@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM FrontyBack — Tablero</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>CRM FrontyBack</h1>
+    <button id="logout-btn" class="btn-ghost">Salir</button>
+  </header>
+
+  <main id="board" class="board">
+    <p class="loading">Cargando...</p>
+  </main>
+
+  <div id="ficha-overlay" class="overlay" hidden>
+    <div class="ficha-detail">
+      <button id="ficha-close" class="ficha-close">×</button>
+      <div id="ficha-body"></div>
+    </div>
+  </div>
+
+  <script src="/js/tablero.js"></script>
+</body>
+</html>

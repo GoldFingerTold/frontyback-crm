@@ -1,0 +1,150 @@
+:root {
+  --ink: #1c1c1a;
+  --muted: #6b6b63;
+  --line: #e4e1d8;
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --accent: #1f6f4a;
+  --danger: #a8462b;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.btn, .btn-primary, .btn-ghost {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.btn-primary { background: var(--ink); color: #fff; width: 100%; }
+.btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+
+/* ---------- Login ---------- */
+.login-body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 32px;
+  width: 100%;
+  max-width: 360px;
+}
+.login-card h1 { font-size: 1.3rem; margin: 0 0 6px; }
+.login-card .hint { color: var(--muted); font-size: 0.88rem; margin: 0 0 20px; }
+.login-card label { display: block; font-size: 0.85rem; color: var(--muted); margin: 14px 0 6px; }
+.login-card input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.login-card button { margin-top: 22px; }
+.form-status { margin-top: 12px; font-size: 0.85rem; min-height: 1.2em; }
+.form-status.error { color: var(--danger); }
+
+/* ---------- Tablero ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.topbar h1 { font-size: 1.1rem; margin: 0; }
+
+.board {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+.loading { padding: 40px; color: var(--muted); }
+
+.column {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-width: 280px;
+  max-width: 280px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 110px);
+}
+.column h2 {
+  font-size: 0.95rem;
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.column h2 .count {
+  background: var(--bg);
+  border-radius: 100px;
+  padding: 2px 9px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.column-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: grab;
+  font-size: 0.85rem;
+}
+.card.dragging { opacity: 0.4; }
+.card-origen { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+.card-nombre { font-weight: 600; margin-bottom: 3px; }
+.card-mensaje { color: var(--muted); margin-bottom: 6px; }
+.card-fecha { font-size: 0.72rem; color: var(--muted); }
+
+/* ---------- Detalle de ficha ---------- */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(20,18,15,0.4);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.overlay[hidden] { display: none; }
+.ficha-detail {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 28px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 82vh;
+  overflow-y: auto;
+  position: relative;
+}
+.ficha-close {
+  position: absolute; top: 14px; right: 16px;
+  border: none; background: none; font-size: 1.4rem; cursor: pointer; color: var(--muted);
+}
+.ficha-contacto { color: var(--muted); margin: 0 0 4px; }
+.ficha-meta { font-size: 0.85rem; color: var(--muted); margin: 0 0 18px; }
+.historial { display: flex; flex-direction: column; gap: 12px; }
+.hist-item { border-left: 3px solid var(--line); padding-left: 10px; }
+.hist-item.hist-respuesta_saliente { border-left-color: var(--accent); }
+.hist-meta { font-size: 0.75rem; color: var(--muted); margin-bottom: 2px; }
+.hist-texto { font-size: 0.9rem; }
