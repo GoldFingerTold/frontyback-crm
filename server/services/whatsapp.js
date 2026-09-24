@@ -16,18 +16,28 @@ function authHeaders() {
 // desde el último mensaje del cliente (mensaje de "sesión", gratis) - fuera de esa
 // ventana, Meta exige usar una plantilla aprobada (con costo), que no es el caso acá
 // porque siempre respondemos a algo que el cliente escribió primero.
+// Meta entrega los celulares argentinos como 549XXXXXXXXXX, pero la lista de destinatarios
+// del número de prueba (y algunas cuentas) los guarda como 54XXXXXXXXXX. Si Meta rechaza el
+// envío con "destinatario no autorizado" (131030), reintentamos sin el 9.
+async function postMensaje(phoneNumberId, para, payload) {
+  const enviar = (destino) =>
+    fetch(`${GRAPH_BASE}/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ messaging_product: 'whatsapp', to: destino, ...payload })
+    });
+
+  let res = await enviar(para);
+  let data = await res.json();
+  if (!res.ok && data?.error?.code === 131030 && /^549\d{10}$/.test(para)) {
+    res = await enviar('54' + para.slice(3));
+    data = await res.json();
+  }
+  return { res, data };
+}
+
 async function enviarTexto({ phoneNumberId, para, texto }) {
-  const res = await fetch(`${GRAPH_BASE}/${phoneNumberId}/messages`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: para,
-      type: 'text',
-      text: { body: texto }
-    })
-  });
-  const data = await res.json();
+  const { res, data } = await postMensaje(phoneNumberId, para, { type: 'text', text: { body: texto } });
   if (!res.ok) throw new Error(`Error enviando WhatsApp texto: ${JSON.stringify(data)}`);
   return data;
 }
@@ -53,17 +63,7 @@ async function subirAudio({ phoneNumberId, buffer, mimeType = 'audio/ogg; codecs
 // voz femenina cuando el cliente mandó un audio.
 async function enviarAudio({ phoneNumberId, para, buffer }) {
   const mediaId = await subirAudio({ phoneNumberId, buffer });
-  const res = await fetch(`${GRAPH_BASE}/${phoneNumberId}/messages`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: para,
-      type: 'audio',
-      audio: { id: mediaId }
-    })
-  });
-  const data = await res.json();
+  const { res, data } = await postMensaje(phoneNumberId, para, { type: 'audio', audio: { id: mediaId } });
   if (!res.ok) throw new Error(`Error enviando WhatsApp audio: ${JSON.stringify(data)}`);
   return data;
 }
