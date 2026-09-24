@@ -76,9 +76,16 @@ function renderTablero() {
     fichasColumna.forEach((f) => lista.appendChild(crearTarjeta(f)));
     col.appendChild(lista);
 
-    lista.addEventListener('dragover', (e) => e.preventDefault());
-    lista.addEventListener('drop', async (e) => {
+    col.addEventListener('dragover', (e) => {
       e.preventDefault();
+      col.classList.add('drop-hover');
+    });
+    col.addEventListener('dragleave', (e) => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drop-hover');
+    });
+    col.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      col.classList.remove('drop-hover');
       const fichaId = e.dataTransfer.getData('text/plain');
       const nuevaPosicion = fichasColumna.length; // se agrega al final de la columna destino
       await moverFicha(fichaId, columna.id, nuevaPosicion);

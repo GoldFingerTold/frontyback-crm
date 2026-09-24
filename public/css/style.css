@@ -97,7 +97,9 @@ body {
   font-size: 0.78rem;
   color: var(--muted);
 }
+.column.drop-hover { border-color: var(--accent); background: #f1f8f4; }
 .column-list {
+  min-height: 120px;
   padding: 10px;
   display: flex;
   flex-direction: column;
