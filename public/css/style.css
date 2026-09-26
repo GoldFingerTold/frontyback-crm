@@ -149,4 +149,4 @@ body {
 .hist-item { border-left: 3px solid var(--line); padding-left: 10px; }
 .hist-item.hist-respuesta_saliente { border-left-color: var(--accent); }
 .hist-meta { font-size: 0.75rem; color: var(--muted); margin-bottom: 2px; }
-.hist-texto { font-size: 0.9rem; }
+.hist-texto { font-size: 0.9rem; white-space: pre-line; }

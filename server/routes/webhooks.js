@@ -38,14 +38,14 @@ router.post('/form/:slug', express.json(), asyncHandler(async (req, res) => {
   });
 
   try {
-    await email.enviarAutorespuesta({
+    const enviado = await email.enviarAutorespuesta({
       nombreCliente: cliente.nombre,
       nombreDestinatario: nombre,
       emailDestinatario: emailCliente
     });
     await fichas.registrarRespuesta(ficha._id, {
       canal: 'email',
-      texto: 'Autorespuesta: recibimos tu consulta, en breve te vamos a contactar.'
+      texto: `Asunto: ${enviado.asunto}\n\n${enviado.texto}`
     });
   } catch (err) {
     // No hacemos fallar el request por esto - la ficha ya quedó guardada, que es lo

@@ -12,20 +12,29 @@ function getResend() {
   return resend;
 }
 
+function escHtml(valor) {
+  return String(valor).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 async function enviarAutorespuesta({ nombreCliente, nombreDestinatario, emailDestinatario }) {
   const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
   const saludo = nombreDestinatario ? `Hola ${nombreDestinatario}` : 'Hola';
 
+  const asunto = `Recibimos tu consulta - ${nombreCliente}`;
+  const parrafo = `Gracias por escribirnos a ${nombreCliente}. Ya recibimos tu consulta y en breve te vamos a contactar.`;
+
   await getResend().emails.send({
     from,
     to: emailDestinatario,
-    subject: `Recibimos tu consulta - ${nombreCliente}`,
+    subject: asunto,
     html: `
-      <p>${saludo},</p>
-      <p>Gracias por escribirnos a <strong>${nombreCliente}</strong>. Ya recibimos tu consulta y en breve te vamos a contactar.</p>
-      <p>Saludos,<br>${nombreCliente}</p>
+      <p>${escHtml(saludo)},</p>
+      <p>Gracias por escribirnos a <strong>${escHtml(nombreCliente)}</strong>. Ya recibimos tu consulta y en breve te vamos a contactar.</p>
+      <p>Saludos,<br>${escHtml(nombreCliente)}</p>
     `
   });
+
+  return { asunto, texto: `${saludo},\n\n${parrafo}\n\nSaludos,\n${nombreCliente}` };
 }
 
 module.exports = { enviarAutorespuesta };

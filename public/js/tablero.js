@@ -18,6 +18,10 @@ async function api(path, options = {}) {
   return data;
 }
 
+function esc(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function etiquetaOrigen(origen) {
   return {
     formulario: '✉️ Formulario',
@@ -40,8 +44,8 @@ function crearTarjeta(ficha) {
 
   el.innerHTML = `
     <div class="card-origen">${etiquetaOrigen(ficha.ultimo_origen || ficha.origen)}</div>
-    <div class="card-nombre">${ficha.nombre || ficha.contacto}</div>
-    <div class="card-mensaje">${(ficha.ultimo_mensaje || ficha.mensaje || '').slice(0, 90)}</div>
+    <div class="card-nombre">${esc(ficha.nombre || ficha.contacto)}</div>
+    <div class="card-mensaje">${esc((ficha.ultimo_mensaje || ficha.mensaje || '').slice(0, 90))}</div>
     <div class="card-fecha">${formatearFecha(ficha.fecha_hora_ultimo_mensaje || ficha.fecha_hora_recibido)}</div>
   `;
 
@@ -70,7 +74,7 @@ function renderTablero() {
       .filter((f) => f.columna_id === columna.id)
       .sort((a, b) => a.posicion - b.posicion);
 
-    col.innerHTML = `<h2>${columna.nombre} <span class="count">${fichasColumna.length}</span></h2>`;
+    col.innerHTML = `<h2>${esc(columna.nombre)} <span class="count">${fichasColumna.length}</span></h2>`;
     const lista = document.createElement('div');
     lista.className = 'column-list';
     fichasColumna.forEach((f) => lista.appendChild(crearTarjeta(f)));
@@ -122,13 +126,13 @@ function abrirFicha(fichaId) {
     .map((h) => `
       <div class="hist-item hist-${h.tipo}">
         <div class="hist-meta">${h.tipo === 'respuesta_saliente' ? 'Respondimos' : 'Escribió'} · ${etiquetaOrigen(h.origen || h.canal)} · ${formatearFecha(h.fecha_hora)}</div>
-        <div class="hist-texto">${h.contenido}</div>
+        <div class="hist-texto">${esc(h.contenido)}</div>
       </div>
     `).join('');
 
   document.getElementById('ficha-body').innerHTML = `
-    <h2>${ficha.nombre || '(sin nombre)'}</h2>
-    <p class="ficha-contacto">${ficha.contacto}</p>
+    <h2>${esc(ficha.nombre || '(sin nombre)')}</h2>
+    <p class="ficha-contacto">${esc(ficha.contacto)}</p>
     <p class="ficha-meta">Recibido: ${formatearFecha(ficha.fecha_hora_recibido)}</p>
     <h3>Historial</h3>
     <div class="historial">${historial || '<p>Sin mensajes todavía.</p>'}</div>
