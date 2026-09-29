@@ -4,21 +4,68 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CRM FrontyBack — Tablero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <h1>CRM FrontyBack</h1>
-    <button id="logout-btn" class="btn-ghost">Salir</button>
-  </header>
+  <div class="app-shell">
+    <aside>
+      <div>
+        <div class="brand-container">
+          <div class="brand-logo">F</div>
+          <div class="brand-text">
+            <h1>FrontyBack</h1>
+            <span>CRM Hub</span>
+          </div>
+        </div>
+        <nav class="nav-menu">
+          <a href="/tablero.html" class="nav-item active"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
+        </nav>
+      </div>
 
-  <main id="board" class="board">
-    <p class="loading">Cargando...</p>
-  </main>
+      <div class="user-section">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">•</div>
+          <div class="user-details">
+            <h4 id="user-nombre">—</h4>
+            <span id="user-slug"></span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <header>
+        <div class="search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="search-input" placeholder="Buscar por nombre o contacto">
+        </div>
+        <div class="header-actions">
+          <div class="metrics-badge">
+            <i class="fa-solid fa-bolt"></i>
+            <span id="metrics-nuevas-hoy">0 nuevas hoy</span>
+          </div>
+          <button class="notif-btn" id="notif-btn" title="Notificaciones">
+            <i class="fa-regular fa-bell"></i>
+            <span class="notif-badge" id="notif-badge" hidden></span>
+          </button>
+        </div>
+      </header>
+
+      <main id="board" class="board">
+        <p class="loading">Cargando...</p>
+      </main>
+    </div>
+  </div>
 
   <div id="ficha-overlay" class="overlay" hidden>
     <div class="ficha-detail">
-      <button id="ficha-close" class="ficha-close">×</button>
+      <button id="ficha-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
       <div id="ficha-body"></div>
     </div>
   </div>

@@ -20,7 +20,36 @@ router.get('/tablero', asyncHandler(async (req, res) => {
     .sort({ posicion: 1 })
     .toArray();
 
-  res.json({ columnas: cliente.columnas, fichas });
+  res.json({
+    columnas: cliente.columnas,
+    fichas,
+    cliente: { nombre: cliente.nombre, slug: cliente.slug }
+  });
+}));
+
+// El monto es el único dato de la ficha que no llega solo por WhatsApp/formulario - se
+// carga a mano desde el panel para poder ver cuánto vale el embudo de ventas.
+router.put('/fichas/:id/monto', asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const fichaId = new db.ObjectId(req.params.id);
+  const { monto } = req.body || {};
+
+  let valor = null;
+  if (monto !== null && monto !== '' && monto !== undefined) {
+    valor = Number(monto);
+    if (!Number.isFinite(valor) || valor < 0) {
+      return res.status(400).json({ error: 'Monto inválido.' });
+    }
+  }
+
+  const result = await mongo.collection('fichas').updateOne(
+    { _id: fichaId, cliente_id: clienteId },
+    { $set: { monto: valor } }
+  );
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe esa ficha.' });
+
+  res.json({ ok: true, monto: valor });
 }));
 
 router.put('/fichas/:id/mover', asyncHandler(async (req, res) => {

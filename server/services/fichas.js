@@ -74,6 +74,7 @@ async function registrarConsulta({
     fecha_hora_recibido: ahora,
     fecha_hora_ultimo_mensaje: ahora,
     respuesta_enviada: null,
+    monto: null,
     columna_id: columnaInicial,
     posicion,
     historial: [evento]

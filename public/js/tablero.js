@@ -1,7 +1,8 @@
 // Tablero Kanban: arma las columnas y las fichas a partir de /api/admin/tablero, y deja
 // arrastrar las fichas entre columnas (drag-and-drop nativo del navegador, sin librerías).
 
-let ESTADO = { columnas: [], fichas: [] };
+let ESTADO = { columnas: [], fichas: [], cliente: null };
+let filtroBusqueda = '';
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -22,12 +23,14 @@ function esc(valor) {
   return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function etiquetaOrigen(origen) {
-  return {
-    formulario: '✉️ Formulario',
-    whatsapp_texto: '💬 WhatsApp',
-    whatsapp_audio: '🎙️ WhatsApp (audio)'
-  }[origen] || origen;
+const ORIGEN_INFO = {
+  formulario: { icon: 'fa-regular fa-envelope', label: 'Formulario' },
+  whatsapp_texto: { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp' },
+  whatsapp_audio: { icon: 'fa-solid fa-microphone', label: 'WhatsApp audio' }
+};
+
+function origenInfo(origen) {
+  return ORIGEN_INFO[origen] || { icon: 'fa-solid fa-message', label: origen || '' };
 }
 
 function formatearFecha(iso) {
@@ -36,17 +39,40 @@ function formatearFecha(iso) {
   return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+function formatearMonto(monto) {
+  if (monto === null || monto === undefined || monto === '') return null;
+  return '$ ' + Math.round(Number(monto)).toLocaleString('es-AR');
+}
+
+function esColumnaGanada(nombreColumna) {
+  return /concretad|ganad|vend/i.test(nombreColumna || '');
+}
+
 function crearTarjeta(ficha) {
   const el = document.createElement('div');
-  el.className = 'card';
+  el.className = 'premium-card';
   el.draggable = true;
   el.dataset.id = ficha._id;
 
+  const origen = origenInfo(ficha.ultimo_origen || ficha.origen);
+  const montoTexto = formatearMonto(ficha.monto);
+
   el.innerHTML = `
-    <div class="card-origen">${etiquetaOrigen(ficha.ultimo_origen || ficha.origen)}</div>
-    <div class="card-nombre">${esc(ficha.nombre || ficha.contacto)}</div>
-    <div class="card-mensaje">${esc((ficha.ultimo_mensaje || ficha.mensaje || '').slice(0, 90))}</div>
-    <div class="card-fecha">${formatearFecha(ficha.fecha_hora_ultimo_mensaje || ficha.fecha_hora_recibido)}</div>
+    <div class="card-header">
+      <div class="card-user-info">
+        <div class="card-icon"><i class="${origen.icon}"></i></div>
+        <div class="card-username-wrap">
+          <div class="card-username">${esc(ficha.nombre || ficha.contacto)}</div>
+          <span class="card-tag">${esc(ficha.contacto)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">"${esc((ficha.ultimo_mensaje || ficha.mensaje || '').slice(0, 100))}"</div>
+    <div class="card-divider"></div>
+    <div class="card-footer">
+      ${montoTexto ? `<span class="card-value">${montoTexto}</span>` : `<span class="card-value sin-monto">Sin monto</span>`}
+      <span class="card-date"><i class="fa-regular fa-clock"></i> ${formatearFecha(ficha.fecha_hora_ultimo_mensaje || ficha.fecha_hora_recibido)}</span>
+    </div>
   `;
 
   el.addEventListener('dragstart', (e) => {
@@ -59,25 +85,49 @@ function crearTarjeta(ficha) {
   return el;
 }
 
+function fichasFiltradas() {
+  if (!filtroBusqueda) return ESTADO.fichas;
+  const q = filtroBusqueda.toLowerCase();
+  return ESTADO.fichas.filter((f) =>
+    (f.nombre || '').toLowerCase().includes(q) ||
+    (f.contacto || '').toLowerCase().includes(q) ||
+    (f.ultimo_mensaje || f.mensaje || '').toLowerCase().includes(q)
+  );
+}
+
 function renderTablero() {
   const board = document.getElementById('board');
   board.innerHTML = '';
 
   const columnasOrdenadas = [...ESTADO.columnas].sort((a, b) => a.posicion - b.posicion);
+  const fichasVisibles = fichasFiltradas();
 
   columnasOrdenadas.forEach((columna) => {
     const col = document.createElement('div');
-    col.className = 'column';
+    col.className = 'kanban-column';
     col.dataset.columnaId = columna.id;
 
-    const fichasColumna = ESTADO.fichas
+    const fichasColumna = fichasVisibles
       .filter((f) => f.columna_id === columna.id)
       .sort((a, b) => a.posicion - b.posicion);
 
-    col.innerHTML = `<h2>${esc(columna.nombre)} <span class="count">${fichasColumna.length}</span></h2>`;
+    const badgeClase = esColumnaGanada(columna.nombre) ? 'column-count' : 'column-count';
+    col.innerHTML = `
+      <div class="column-header">
+        <span class="column-title">${esc(columna.nombre)}</span>
+        <span class="${badgeClase}">${fichasColumna.length}</span>
+      </div>
+    `;
+
     const lista = document.createElement('div');
-    lista.className = 'column-list';
-    fichasColumna.forEach((f) => lista.appendChild(crearTarjeta(f)));
+    lista.className = 'cards-container';
+    if (fichasColumna.length === 0) {
+      lista.innerHTML = filtroBusqueda
+        ? '<div class="cards-empty">Sin resultados acá</div>'
+        : '<div class="cards-empty">Sin fichas por ahora</div>';
+    } else {
+      fichasColumna.forEach((f) => lista.appendChild(crearTarjeta(f)));
+    }
     col.appendChild(lista);
 
     col.addEventListener('dragover', (e) => {
@@ -97,6 +147,26 @@ function renderTablero() {
 
     board.appendChild(col);
   });
+
+  actualizarCabecera();
+}
+
+function actualizarCabecera() {
+  if (ESTADO.cliente) {
+    document.getElementById('user-nombre').textContent = ESTADO.cliente.nombre || '';
+    document.getElementById('user-slug').textContent = ESTADO.cliente.slug || '';
+    const iniciales = (ESTADO.cliente.nombre || '?')
+      .split(' ').filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('');
+    document.getElementById('user-avatar').textContent = iniciales || '?';
+  }
+
+  const hoy = new Date().toDateString();
+  const nuevasHoy = ESTADO.fichas.filter((f) => new Date(f.fecha_hora_recibido).toDateString() === hoy).length;
+  document.getElementById('metrics-nuevas-hoy').textContent = `+${nuevasHoy} nuevas hoy`;
+
+  const primeraColumna = [...ESTADO.columnas].sort((a, b) => a.posicion - b.posicion)[0];
+  const hayPendientes = primeraColumna && ESTADO.fichas.some((f) => f.columna_id === primeraColumna.id);
+  document.getElementById('notif-badge').hidden = !hayPendientes;
 }
 
 async function moverFicha(fichaId, columnaId, posicion) {
@@ -116,27 +186,69 @@ async function moverFicha(fichaId, columnaId, posicion) {
   }
 }
 
+async function guardarMonto(fichaId, valorInput, statusEl) {
+  const crudo = valorInput.value.trim();
+  statusEl.textContent = 'Guardando...';
+  try {
+    const data = await api(`/api/admin/fichas/${fichaId}/monto`, {
+      method: 'PUT',
+      body: JSON.stringify({ monto: crudo === '' ? null : crudo })
+    });
+    const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
+    if (ficha) ficha.monto = data.monto;
+    statusEl.textContent = 'Guardado.';
+    renderTablero();
+    setTimeout(() => { statusEl.textContent = ''; }, 1800);
+  } catch (err) {
+    statusEl.textContent = 'No se pudo guardar: ' + err.message;
+  }
+}
+
 function abrirFicha(fichaId) {
   const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
   if (!ficha) return;
 
+  const columna = ESTADO.columnas.find((c) => c.id === ficha.columna_id);
+  const badgeClase = columna && esColumnaGanada(columna.nombre) ? 'card-status-badge success' : 'card-status-badge';
+
   const historial = (ficha.historial || [])
     .slice()
     .reverse()
-    .map((h) => `
+    .map((h) => {
+      const info = origenInfo(h.origen || h.canal);
+      return `
       <div class="hist-item hist-${h.tipo}">
-        <div class="hist-meta">${h.tipo === 'respuesta_saliente' ? 'Respondimos' : 'Escribió'} · ${etiquetaOrigen(h.origen || h.canal)} · ${formatearFecha(h.fecha_hora)}</div>
+        <div class="hist-meta">${h.tipo === 'respuesta_saliente' ? 'Respondimos' : 'Escribió'} · ${esc(info.label)} · ${formatearFecha(h.fecha_hora)}</div>
         <div class="hist-texto">${esc(h.contenido)}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
   document.getElementById('ficha-body').innerHTML = `
     <h2>${esc(ficha.nombre || '(sin nombre)')}</h2>
     <p class="ficha-contacto">${esc(ficha.contacto)}</p>
-    <p class="ficha-meta">Recibido: ${formatearFecha(ficha.fecha_hora_recibido)}</p>
+    <p class="ficha-meta">
+      <span>Recibido: ${formatearFecha(ficha.fecha_hora_recibido)}</span>
+      ${columna ? `<span class="${badgeClase}">${esc(columna.nombre)}</span>` : ''}
+    </p>
+
+    <div class="ficha-monto">
+      <div>
+        <label for="monto-input">Valor del negocio</label>
+        <input id="monto-input" type="number" min="0" step="1" placeholder="Sin cargar" value="${ficha.monto ?? ''}">
+      </div>
+      <button type="button" class="btn-ghost" id="monto-guardar">Guardar</button>
+    </div>
+    <p class="ficha-monto-status" id="monto-status"></p>
+
     <h3>Historial</h3>
     <div class="historial">${historial || '<p>Sin mensajes todavía.</p>'}</div>
   `;
+
+  document.getElementById('monto-guardar').addEventListener('click', () => {
+    guardarMonto(fichaId, document.getElementById('monto-input'), document.getElementById('monto-status'));
+  });
+
   document.getElementById('ficha-overlay').hidden = false;
 }
 
@@ -150,6 +262,11 @@ document.getElementById('ficha-overlay').addEventListener('click', (e) => {
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await api('/api/auth/logout', { method: 'POST' });
   window.location.href = '/index.html';
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  filtroBusqueda = e.target.value.trim();
+  renderTablero();
 });
 
 async function cargarTablero() {
