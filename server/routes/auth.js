@@ -4,12 +4,23 @@
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
-router.post('/login', asyncHandler(async (req, res) => {
+// Como mucho 10 intentos cada 15 min por IP - deja de sobra para que alguien se equivoque
+// de contraseña un par de veces, pero corta un ataque de fuerza bruta contra el login.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Probá de nuevo en un rato.' }
+});
+
+router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   const { slug, password } = req.body || {};
   if (!slug || !password) return res.status(400).json({ error: 'Faltan datos.' });
 

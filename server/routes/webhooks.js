@@ -3,6 +3,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const asyncHandler = require('../asyncHandler');
 const db = require('../db');
 const fichas = require('../services/fichas');
@@ -16,47 +17,103 @@ const router = express.Router();
 // ---------- Formulario de contacto de los sitios de los clientes ----------
 // Cualquier sitio de FrontyBack puede apuntar su formulario acá:
 // POST /webhook/form/:slug  { nombre, email, mensaje }
+// Es la única ruta pública sin ningún tipo de autenticación (cualquiera con la URL puede
+// pegarle), así que es la que hay que blindar contra spam/bots antes de ofrecerla a clientes.
 
-router.post('/form/:slug', express.json(), asyncHandler(async (req, res) => {
-  const { slug } = req.params;
-  const { nombre, email: emailCliente, mensaje } = req.body || {};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!emailCliente) return res.status(400).json({ error: 'Falta el email del contacto.' });
+// Tope duro de tamaño del body - un formulario de contacto real nunca necesita más de
+// esto, y evita que alguien mande payloads gigantes para saturar Mongo o los emails.
+const parseFormBody = express.json({ limit: '15kb' });
 
-  const cliente = await db.getDb().collection('clientes').findOne({ slug });
-  if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
+// Como máximo 5 consultas cada 15 min por IP+cliente (una persona real jamás manda más
+// que eso), y un tope más laxo por IP sola para que no se pueda rotar de cliente en
+// cliente con la misma IP para esquivar el límite anterior.
+const formLimiterPorCliente = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `${req.ip}:${req.params.slug}`,
+  message: { error: 'Demasiadas consultas seguidas. Probá de nuevo en un rato.' }
+});
+const formLimiterGlobal = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas consultas seguidas. Probá de nuevo en un rato.' }
+});
 
-  const columnaInicial = cliente.columnas[0].id;
+router.post(
+  '/form/:slug',
+  formLimiterGlobal,
+  formLimiterPorCliente,
+  parseFormBody,
+  asyncHandler(async (req, res) => {
+    const { slug } = req.params;
+    const body = req.body || {};
+    const nombre = String(body.nombre || '').trim().slice(0, 120);
+    const emailCliente = String(body.email || '').trim().slice(0, 200);
+    const mensaje = String(body.mensaje || '').trim().slice(0, 2000);
 
-  const ficha = await fichas.registrarConsulta({
-    clienteId: cliente._id,
-    columnaInicial,
-    contacto: emailCliente,
-    nombre,
-    origen: 'formulario',
-    mensaje: mensaje || ''
-  });
+    // Campo trampa para bots: invisible para una persona (se oculta por CSS en el sitio
+    // del cliente), así que si viene completo es un bot rellenando todos los inputs del
+    // formulario. Respondemos 200 igual para no darle una pista de que lo detectamos.
+    if (String(body._hp || '').trim()) {
+      return res.json({ ok: true });
+    }
 
-  try {
-    const enviado = await email.enviarAutorespuesta({
-      nombreCliente: cliente.nombre,
-      nombreDestinatario: nombre,
-      emailDestinatario: emailCliente
+    if (!emailCliente || !EMAIL_RE.test(emailCliente)) {
+      return res.status(400).json({ error: 'El email no es válido.' });
+    }
+
+    const cliente = await db.getDb().collection('clientes').findOne({ slug });
+    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
+
+    const columnaInicial = cliente.columnas[0].id;
+
+    const ficha = await fichas.registrarConsulta({
+      clienteId: cliente._id,
+      columnaInicial,
+      contacto: emailCliente,
+      nombre,
+      origen: 'formulario',
+      mensaje
     });
-    await fichas.registrarRespuesta(ficha._id, {
-      canal: 'email',
-      texto: `Asunto: ${enviado.asunto}\n\n${enviado.texto}`
-    });
-  } catch (err) {
-    // No hacemos fallar el request por esto - la ficha ya quedó guardada, que es lo
-    // importante; el email es un plus.
-    console.error('No se pudo enviar la autorespuesta por email:', err.message);
-  }
 
-  res.json({ ok: true });
-}));
+    try {
+      const enviado = await email.enviarAutorespuesta({
+        nombreCliente: cliente.nombre,
+        nombreDestinatario: nombre,
+        emailDestinatario: emailCliente
+      });
+      await fichas.registrarRespuesta(ficha._id, {
+        canal: 'email',
+        texto: `Asunto: ${enviado.asunto}\n\n${enviado.texto}`
+      });
+    } catch (err) {
+      // No hacemos fallar el request por esto - la ficha ya quedó guardada, que es lo
+      // importante; el email es un plus.
+      console.error('No se pudo enviar la autorespuesta por email:', err.message);
+    }
+
+    res.json({ ok: true });
+  })
+);
 
 // ---------- WhatsApp Business Cloud API (Meta) ----------
+
+// Defensa contra un ataque de saturación (cada request acá cuesta un cálculo HMAC): Meta
+// jamás manda ráfagas así de grandes en uso normal, así que el límite es generoso a
+// propósito para no interferir con tráfico real.
+const whatsappLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+router.use('/whatsapp', whatsappLimiter);
 
 // Meta pide verificar el webhook con un GET antes de empezar a mandar eventos.
 router.get('/whatsapp', (req, res) => {

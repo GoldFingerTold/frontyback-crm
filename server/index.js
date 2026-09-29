@@ -13,6 +13,13 @@ const authRoutes = require('./routes/auth');
 const app = express();
 const PORT = process.env.PORT || 3010;
 
+// El servidor corre siempre detrás del nginx de CloudPanel (local o en el VPS), que manda
+// la IP real del visitante en X-Forwarded-For. Sin esto, req.ip (y con él, todo el rate
+// limiting) vería siempre 127.0.0.1 para todo el mundo - "trust proxy: 1" le dice a Express
+// que confíe en un solo salto de proxy delante suyo (el de nginx), no en cualquier IP que
+// alguien se invente en el header.
+app.set('trust proxy', 1);
+
 app.use(cors({ credentials: true, origin: true }));
 
 // El webhook de WhatsApp necesita el body "crudo" para poder verificar la firma que
