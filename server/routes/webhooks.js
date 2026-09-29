@@ -3,7 +3,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const asyncHandler = require('../asyncHandler');
 const db = require('../db');
 const fichas = require('../services/fichas');
@@ -34,7 +34,7 @@ const formLimiterPorCliente = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => `${req.ip}:${req.params.slug}`,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip)}:${req.params.slug}`,
   message: { error: 'Demasiadas consultas seguidas. Probá de nuevo en un rato.' }
 });
 const formLimiterGlobal = rateLimit({
