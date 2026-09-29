@@ -356,8 +356,10 @@ header {
 .hist-item.hist-respuesta_saliente .hist-texto { background: rgba(212,175,55,0.06); border-color: rgba(212,175,55,0.15); }
 
 /* ---------- Responsive ---------- */
+.mobile-only { display: none; }
 @media (max-width: 860px) {
   aside { display: none; }
+  .mobile-only { display: flex; }
   header { padding: 0 16px; }
   .search-bar { width: 200px; }
   .metrics-badge span { display: none; }

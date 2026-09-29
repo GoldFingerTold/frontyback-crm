@@ -259,10 +259,12 @@ document.getElementById('ficha-overlay').addEventListener('click', (e) => {
   if (e.target.id === 'ficha-overlay') document.getElementById('ficha-overlay').hidden = true;
 });
 
-document.getElementById('logout-btn').addEventListener('click', async () => {
+async function cerrarSesion() {
   await api('/api/auth/logout', { method: 'POST' });
   window.location.href = '/index.html';
-});
+}
+document.getElementById('logout-btn').addEventListener('click', cerrarSesion);
+document.getElementById('logout-btn-mobile').addEventListener('click', cerrarSesion);
 
 document.getElementById('search-input').addEventListener('input', (e) => {
   filtroBusqueda = e.target.value.trim();
