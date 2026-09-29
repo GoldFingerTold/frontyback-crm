@@ -3,6 +3,7 @@
 
 let ESTADO = { columnas: [], fichas: [], cliente: null };
 let filtroBusqueda = '';
+let columnaActivaMobile = null;
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -102,14 +103,21 @@ function renderTablero() {
   const columnasOrdenadas = [...ESTADO.columnas].sort((a, b) => a.posicion - b.posicion);
   const fichasVisibles = fichasFiltradas();
 
+  if (!columnaActivaMobile || !columnasOrdenadas.some((c) => c.id === columnaActivaMobile)) {
+    columnaActivaMobile = columnasOrdenadas[0]?.id || null;
+  }
+
+  const conteos = {};
+
   columnasOrdenadas.forEach((columna) => {
     const col = document.createElement('div');
-    col.className = 'kanban-column';
+    col.className = 'kanban-column' + (columna.id === columnaActivaMobile ? ' mobile-active' : '');
     col.dataset.columnaId = columna.id;
 
     const fichasColumna = fichasVisibles
       .filter((f) => f.columna_id === columna.id)
       .sort((a, b) => a.posicion - b.posicion);
+    conteos[columna.id] = fichasColumna.length;
 
     const badgeClase = esColumnaGanada(columna.nombre) ? 'column-count' : 'column-count';
     col.innerHTML = `
@@ -148,7 +156,24 @@ function renderTablero() {
     board.appendChild(col);
   });
 
+  renderPestanasMobile(columnasOrdenadas, conteos);
   actualizarCabecera();
+}
+
+function renderPestanasMobile(columnasOrdenadas, conteos) {
+  const tabs = document.getElementById('stage-tabs');
+  tabs.innerHTML = '';
+  columnasOrdenadas.forEach((columna) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'stage-chip' + (columna.id === columnaActivaMobile ? ' active' : '');
+    chip.innerHTML = `${esc(columna.nombre)} <span class="stage-count">${conteos[columna.id] ?? 0}</span>`;
+    chip.addEventListener('click', () => {
+      columnaActivaMobile = columna.id;
+      renderTablero();
+    });
+    tabs.appendChild(chip);
+  });
 }
 
 function actualizarCabecera() {
@@ -241,12 +266,30 @@ function abrirFicha(fichaId) {
     </div>
     <p class="ficha-monto-status" id="monto-status"></p>
 
+    <div class="ficha-mover">
+      <label for="mover-select">Etapa</label>
+      <select id="mover-select">
+        ${[...ESTADO.columnas].sort((a, b) => a.posicion - b.posicion).map((c) =>
+          `<option value="${esc(c.id)}" ${c.id === ficha.columna_id ? 'selected' : ''}>${esc(c.nombre)}</option>`
+        ).join('')}
+      </select>
+    </div>
+
     <h3>Historial</h3>
     <div class="historial">${historial || '<p>Sin mensajes todavía.</p>'}</div>
   `;
 
   document.getElementById('monto-guardar').addEventListener('click', () => {
     guardarMonto(fichaId, document.getElementById('monto-input'), document.getElementById('monto-status'));
+  });
+
+  document.getElementById('mover-select').addEventListener('change', async (e) => {
+    const nuevaColumnaId = e.target.value;
+    if (nuevaColumnaId === ficha.columna_id) return;
+    const posicionDestino = ESTADO.fichas.filter((f) => f.columna_id === nuevaColumnaId).length;
+    await moverFicha(fichaId, nuevaColumnaId, posicionDestino);
+    columnaActivaMobile = nuevaColumnaId;
+    abrirFicha(fichaId);
   });
 
   document.getElementById('ficha-overlay').hidden = false;
