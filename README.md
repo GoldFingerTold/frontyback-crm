@@ -55,20 +55,20 @@ npm start
 
 ## Dar de alta un cliente nuevo
 
-Por ahora se hace por línea de comandos (todavía no hay una pantalla de super-admin):
+Desde `/superadmin.html` (usuario/contraseña propios, en `SUPERADMIN_USER` y
+`SUPERADMIN_PASSWORD_HASH` del `.env` - no está en Mongo, hay un solo super-admin):
+crear el cliente, conectar su `whatsapp_phone_number_id` una vez que tenga el número
+en Meta, y editar las columnas del tablero (agregar, renombrar, reordenar o borrar
+etapas - si se borra una columna con fichas adentro, se migran solas a la primera
+columna que quede).
+
+También existe el script de línea de comandos, por si hace falta scriptear un alta:
 
 ```
 node scripts/crear-cliente.js "<slug>" "<nombre del negocio>" "<email>" "<contraseña>"
 ```
 
-Después hay que completarle a mano en Mongo (colección `clientes`) el
-`whatsapp_phone_number_id` una vez que tenga su número conectado en Meta.
-
 ## Pendiente / próximos pasos
 
-- Pantalla de super-admin para dar de alta clientes y conectar su número de WhatsApp sin
-  tocar Mongo a mano.
-- Diseño visual del tablero (por ahora es funcional pero sin pulir - pensado para
-  rediseñarse con Claude Design y después integrarlo acá).
-- Columnas personalizables por cliente desde el panel (hoy vienen con un set por defecto:
-  Nuevos, Contactados, En negociación, Venta concretada, No avanzó).
+- Diseño visual del tablero: ya tiene una primera versión (tema oscuro/dorado), se puede
+  seguir puliendo.
