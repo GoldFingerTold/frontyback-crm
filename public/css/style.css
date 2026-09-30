@@ -47,6 +47,7 @@ h1, h2, h3 { font-family: 'Clash Display', 'Plus Jakarta Sans', sans-serif; marg
 .btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.15); }
 
 /* ---------- Login ---------- */
+#login-view[hidden] { display: none; }
 .login-body {
   display: flex; align-items: center; justify-content: center;
   min-height: 100vh; padding: 20px;
