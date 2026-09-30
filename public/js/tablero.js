@@ -287,8 +287,11 @@ function abrirFicha(fichaId) {
     const nuevaColumnaId = e.target.value;
     if (nuevaColumnaId === ficha.columna_id) return;
     const posicionDestino = ESTADO.fichas.filter((f) => f.columna_id === nuevaColumnaId).length;
-    await moverFicha(fichaId, nuevaColumnaId, posicionDestino);
+    // Importante: la pestaña activa se cambia ANTES de mover la ficha, porque moverFicha()
+    // ya vuelve a dibujar el tablero de atrás - si no, queda mostrando la pestaña vieja
+    // (de la que la ficha se acaba de ir) y parece que la ficha desapareció.
     columnaActivaMobile = nuevaColumnaId;
+    await moverFicha(fichaId, nuevaColumnaId, posicionDestino);
     abrirFicha(fichaId);
   });
 
