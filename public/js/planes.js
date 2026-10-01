@@ -56,10 +56,17 @@ function actualizarPrecio() {
 document.getElementById('f-plan').addEventListener('change', actualizarPrecio);
 
 let codigoTimeout;
+// Si el usuario tipea rápido, pueden salir varios pedidos al servidor seguidos - y no hay
+// garantía de que las respuestas vuelvan en el mismo orden en que se mandaron. Por eso cada
+// pedido lleva un número de secuencia: si vuelve una respuesta vieja después de una más
+// nueva, se descarta en vez de pisar el resultado correcto.
+let codigoSecuencia = 0;
+
 document.getElementById('f-codigo').addEventListener('input', (e) => {
   clearTimeout(codigoTimeout);
   const valor = e.target.value.trim();
   const status = document.getElementById('codigo-status');
+  const miSecuencia = ++codigoSecuencia;
   if (!valor) {
     status.textContent = '';
     status.className = 'pl-codigo-status';
@@ -71,6 +78,7 @@ document.getElementById('f-codigo').addEventListener('input', (e) => {
     try {
       const res = await fetch('/api/public/codigos/' + encodeURIComponent(valor));
       const data = await res.json();
+      if (miSecuencia !== codigoSecuencia) return; // llegó tarde, ya no es la última consulta
       codigoInfo = data;
       if (data.valido) {
         status.textContent = `Código válido: ${data.descuento_pct}% de descuento`;
