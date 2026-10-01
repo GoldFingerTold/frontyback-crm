@@ -54,6 +54,30 @@ function requireSuperadmin(req, res, next) {
 
 router.use(requireSuperadmin);
 
+// ---------- Planes y precios ----------
+router.get('/planes', asyncHandler(async (req, res) => {
+  const planes = await db.getPlanes();
+  res.json({ planes });
+}));
+
+router.put('/planes/:id', asyncHandler(async (req, res) => {
+  const { precio_ars, precio_usd_ref } = req.body || {};
+  const ars = Number(precio_ars);
+  const usd = Number(precio_usd_ref);
+  if (!Number.isFinite(ars) || ars <= 0) {
+    return res.status(400).json({ error: 'El precio en pesos tiene que ser un número mayor a 0.' });
+  }
+  if (!Number.isFinite(usd) || usd <= 0) {
+    return res.status(400).json({ error: 'La referencia en dólares tiene que ser un número mayor a 0.' });
+  }
+  const result = await db.getDb().collection('planes').updateOne(
+    { id: req.params.id },
+    { $set: { precio_ars: ars, precio_usd_ref: usd } }
+  );
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese plan.' });
+  res.json({ ok: true });
+}));
+
 router.get('/clientes', asyncHandler(async (req, res) => {
   const clientes = await db.getDb().collection('clientes')
     .find({}, { projection: { admin_password_hash: 0 } })

@@ -25,6 +25,7 @@ async function connect() {
   await client.connect();
   db = client.db();
   await ensureIndexes();
+  await sembrarPlanes();
   console.log('CRM conectado a MongoDB Atlas.');
 }
 
@@ -35,26 +36,46 @@ async function ensureIndexes() {
   await db.collection('fichas').createIndex({ cliente_id: 1, contacto: 1 });
   await db.collection('fichas').createIndex({ cliente_id: 1, whatsapp_wa_id: 1 });
   await db.collection('codigos').createIndex({ codigo: 1 }, { unique: true });
+  await db.collection('planes').createIndex({ id: 1 }, { unique: true });
 }
 
 // Planes públicos que se muestran en la landing de ventas (planes.html) y se ofrecen en
-// el alta por autoservicio. El precio queda "congelado" en el documento del cliente al
-// momento de darse de alta - si estos precios cambian más adelante, solo afecta a los
-// clientes nuevos, nunca a los que ya están.
-const PLANES = {
-  esencial: {
+// el alta por autoservicio. Viven en Mongo (no hardcodeados) para que Hugo pueda ajustar
+// el precio en pesos desde el super-admin cuando se mueva el dólar, sin tocar código.
+// precio_usd_ref es solo de referencia para mostrar "≈ USD X" - lo que se cobra de
+// verdad (en MercadoPago, y lo que queda guardado en cada cliente) es precio_ars.
+const PLANES_DEFAULT = [
+  {
+    id: 'esencial',
     nombre: 'Esencial',
-    precio: 10,
+    precio_ars: 15000,
+    precio_usd_ref: 10,
     descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, y tablero de seguimiento.',
     features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Tablero Kanban', 'Hasta 150 consultas por mes']
   },
-  completo: {
+  {
+    id: 'completo',
     nombre: 'Completo',
-    precio: 20,
+    precio_ars: 30000,
+    precio_usd_ref: 20,
     descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio y columnas a medida.',
     features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas']
   }
-};
+];
+
+async function sembrarPlanes() {
+  const col = db.collection('planes');
+  for (const plan of PLANES_DEFAULT) {
+    await col.updateOne({ id: plan.id }, { $setOnInsert: plan }, { upsert: true });
+  }
+}
+
+async function getPlanes() {
+  const lista = await db.collection('planes').find({}).sort({ precio_ars: 1 }).toArray();
+  const mapa = {};
+  for (const p of lista) mapa[p.id] = p;
+  return mapa;
+}
 
 const DIAS_PRUEBA_GRATIS = 7;
 
@@ -110,4 +131,4 @@ async function crearCliente({
   return { _id: insertedId, ...doc };
 }
 
-module.exports = { connect, getDb, ObjectId, crearCliente, COLUMNAS_DEFAULT, PLANES, DIAS_PRUEBA_GRATIS };
+module.exports = { connect, getDb, ObjectId, crearCliente, COLUMNAS_DEFAULT, getPlanes, DIAS_PRUEBA_GRATIS };

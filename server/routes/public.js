@@ -22,9 +22,10 @@ const signupLimiter = rateLimit({
   message: { error: 'Demasiados intentos de alta seguidos. Probá de nuevo más tarde.' }
 });
 
-router.get('/planes', (req, res) => {
-  res.json({ planes: db.PLANES, dias_prueba: db.DIAS_PRUEBA_GRATIS });
-});
+router.get('/planes', asyncHandler(async (req, res) => {
+  const planes = await db.getPlanes();
+  res.json({ planes, dias_prueba: db.DIAS_PRUEBA_GRATIS });
+}));
 
 // Validación "en vivo" del código mientras el visitante lo escribe en el formulario, para
 // mostrarle de una el descuento antes de mandar el alta.
@@ -66,7 +67,8 @@ router.post(
     if (password.length < 8) {
       return res.status(400).json({ error: 'La contraseña tiene que tener al menos 8 caracteres.' });
     }
-    if (!db.PLANES[planId]) {
+    const planes = await db.getPlanes();
+    if (!planes[planId]) {
       return res.status(400).json({ error: 'Elegí un plan válido.' });
     }
 
@@ -85,8 +87,8 @@ router.post(
       codigoGuardado = codigoTexto;
     }
 
-    const precioLista = db.PLANES[planId].precio;
-    const precioFinal = Math.round(precioLista * (1 - descuentoPct / 100) * 100) / 100;
+    const precioLista = planes[planId].precio_ars;
+    const precioFinal = Math.round(precioLista * (1 - descuentoPct / 100));
 
     const cliente = await db.crearCliente({
       slug,

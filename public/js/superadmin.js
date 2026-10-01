@@ -24,6 +24,9 @@ function esc(valor) {
 function mostrarPanel() {
   document.getElementById('login-view').hidden = true;
   document.getElementById('panel-view').hidden = false;
+  cargarPlanes().catch((err) => {
+    document.getElementById('planes-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+  });
   cargarCodigos().catch((err) => {
     document.getElementById('codigos-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
   });
@@ -330,6 +333,56 @@ document.getElementById('columnas-guardar').addEventListener('click', async () =
     status.textContent = err.message;
   }
 });
+
+// ---------- Planes y precios ----------
+
+async function cargarPlanes() {
+  const data = await api('/planes');
+  renderPlanes(data.planes);
+}
+
+function renderPlanes(planes) {
+  const cont = document.getElementById('planes-lista');
+  const entradas = Object.values(planes).sort((a, b) => a.precio_ars - b.precio_ars);
+  cont.innerHTML = entradas.map((p) => `
+    <div class="sa-columna-fila" data-plan-id="${esc(p.id)}" style="margin-bottom: 10px;">
+      <div style="width: 90px; font-size: 13px; font-weight: 600; flex: none;">${esc(p.nombre)}</div>
+      <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
+        <span style="color: var(--text-muted); font-size: 13px;">$</span>
+        <input type="number" min="1" step="1" data-campo="precio_ars" value="${p.precio_ars}" style="flex: 1;">
+        <span style="color: var(--text-muted); font-size: 11px;">ARS</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; width: 110px;">
+        <span style="color: var(--text-muted); font-size: 13px;">≈USD</span>
+        <input type="number" min="1" step="1" data-campo="precio_usd_ref" value="${p.precio_usd_ref}">
+      </div>
+      <button type="button" class="btn-ghost" data-guardar-plan="${esc(p.id)}">Guardar</button>
+    </div>
+  `).join('') + '<p class="form-status" id="planes-status"></p>';
+
+  cont.querySelectorAll('[data-guardar-plan]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const fila = btn.closest('[data-plan-id]');
+      const status = document.getElementById('planes-status');
+      status.textContent = 'Guardando...';
+      status.className = 'form-status';
+      try {
+        await api(`/planes/${btn.dataset.guardarPlan}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            precio_ars: fila.querySelector('[data-campo="precio_ars"]').value,
+            precio_usd_ref: fila.querySelector('[data-campo="precio_usd_ref"]').value
+          })
+        });
+        status.textContent = 'Guardado. Afecta a las altas nuevas (los clientes que ya están, siguen con su precio).';
+        setTimeout(() => { status.textContent = ''; }, 3500);
+      } catch (err) {
+        status.textContent = err.message;
+        status.className = 'form-status error';
+      }
+    });
+  });
+}
 
 // ---------- Códigos de descuento / closers ----------
 

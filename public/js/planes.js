@@ -7,6 +7,10 @@ function esc(valor) {
   return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function formatearARS(n) {
+  return '$' + Math.round(n).toLocaleString('es-AR');
+}
+
 async function cargarPlanes() {
   const res = await fetch('/api/public/planes');
   const data = await res.json();
@@ -19,14 +23,14 @@ async function cargarPlanes() {
   cont.innerHTML = entradas.map(([id, p], i) => `
     <div class="pl-plan ${i === entradas.length - 1 ? 'destacado' : ''}">
       <div class="pl-plan-nombre">${esc(p.nombre)}</div>
-      <div class="pl-plan-precio"><span class="num">$${p.precio}</span><span class="per">USD / mes</span></div>
+      <div class="pl-plan-precio"><span class="num">${formatearARS(p.precio_ars)}</span><span class="per">ARS / mes (≈ USD ${p.precio_usd_ref} hoy)</span></div>
       <div class="pl-plan-desc">${esc(p.descripcion)}</div>
       <ul>${p.features.map((f) => `<li><i class="fa-solid fa-check"></i> ${esc(f)}</li>`).join('')}</ul>
       <button type="button" class="btn btn-primary" data-elegir="${esc(id)}">Elegir ${esc(p.nombre)}</button>
     </div>
   `).join('');
 
-  select.innerHTML = entradas.map(([id, p]) => `<option value="${esc(id)}">${esc(p.nombre)} — $${p.precio}/mes</option>`).join('');
+  select.innerHTML = entradas.map(([id, p]) => `<option value="${esc(id)}">${esc(p.nombre)} — ${formatearARS(p.precio_ars)}/mes</option>`).join('');
 
   cont.querySelectorAll('[data-elegir]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -46,8 +50,8 @@ function actualizarPrecio() {
   if (!plan) return;
   const el = document.getElementById('precio-final');
   if (codigoInfo && codigoInfo.valido) {
-    const final = Math.round(plan.precio * (1 - codigoInfo.descuento_pct / 100) * 100) / 100;
-    el.innerHTML = `Con el descuento: <strong>$${final} USD/mes</strong> <span style="text-decoration: line-through; opacity: .6;">$${plan.precio}</span>`;
+    const final = Math.round(plan.precio_ars * (1 - codigoInfo.descuento_pct / 100));
+    el.innerHTML = `Con el descuento: <strong>${formatearARS(final)} ARS/mes</strong> <span style="text-decoration: line-through; opacity: .6;">${formatearARS(plan.precio_ars)}</span>`;
   } else {
     el.textContent = '';
   }
