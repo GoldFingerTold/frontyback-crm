@@ -67,6 +67,37 @@
       </section>
 
       <section class="sa-card">
+        <h2><i class="fa-solid fa-ticket"></i> Códigos de descuento / closers</h2>
+        <form id="nuevo-codigo-form" class="sa-form">
+          <div>
+            <label for="co-codigo">Código</label>
+            <input type="text" id="co-codigo" placeholder="JUAN10" required>
+          </div>
+          <div>
+            <label for="co-nombre">Nombre del closer</label>
+            <input type="text" id="co-nombre" required>
+          </div>
+          <div>
+            <label for="co-contacto">Contacto</label>
+            <input type="text" id="co-contacto" placeholder="email o teléfono">
+          </div>
+          <div>
+            <label for="co-descuento">Descuento al cliente (%)</label>
+            <input type="number" id="co-descuento" min="0" max="100" value="10" required>
+          </div>
+          <div>
+            <label for="co-comision">Comisión al closer (%)</label>
+            <input type="number" id="co-comision" min="0" max="100" value="10" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Crear código</button>
+        </form>
+        <p class="form-status" id="nuevo-codigo-status"></p>
+        <div id="codigos-lista" class="sa-tabla" style="margin-top: 18px;">
+          <p class="loading">Cargando...</p>
+        </div>
+      </section>
+
+      <section class="sa-card">
         <h2><i class="fa-solid fa-address-book"></i> Clientes</h2>
         <div id="clientes-lista" class="sa-tabla">
           <p class="loading">Cargando...</p>

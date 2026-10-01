@@ -10,6 +10,7 @@ const webhookRoutes = require('./routes/webhooks');
 const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const superadminRoutes = require('./routes/superadmin');
+const publicRoutes = require('./routes/public');
 
 const app = express();
 const PORT = process.env.PORT || 3010;
@@ -42,6 +43,7 @@ app.use(
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/superadmin', superadminRoutes);
+app.use('/api/public', publicRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

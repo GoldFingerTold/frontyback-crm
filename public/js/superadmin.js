@@ -3,6 +3,7 @@
 // scripts/crear-cliente.js y tocando Mongo directo.
 
 let CLIENTES = [];
+let CODIGOS = [];
 let columnasEditando = null; // { clienteId, columnas: [{id,nombre}] }
 
 async function api(path, options = {}) {
@@ -23,6 +24,9 @@ function esc(valor) {
 function mostrarPanel() {
   document.getElementById('login-view').hidden = true;
   document.getElementById('panel-view').hidden = false;
+  cargarCodigos().catch((err) => {
+    document.getElementById('codigos-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+  });
   cargarClientes().catch((err) => {
     document.getElementById('clientes-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
   });
@@ -80,6 +84,26 @@ async function cargarClientes() {
   renderClientes();
 }
 
+const PLANES_NOMBRES = { esencial: 'Esencial', completo: 'Completo' };
+
+function diasRestantes(fechaIso) {
+  if (!fechaIso) return null;
+  const ms = new Date(fechaIso).getTime() - Date.now();
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
+
+function tagEstadoPago(c) {
+  if (c.estado_pago === 'activo') return '<span class="sa-tag sa-tag-ok"><i class="fa-solid fa-check"></i> Activo</span>';
+  if (c.estado_pago === 'vencido') return '<span class="sa-tag" style="color: var(--danger); border-color: var(--danger);">Vencido</span>';
+  if (c.estado_pago === 'cancelado') return '<span class="sa-tag">Cancelado</span>';
+  if (c.estado_pago === 'prueba') {
+    const dias = diasRestantes(c.prueba_termina);
+    const texto = dias === null ? 'Prueba' : dias >= 0 ? `Prueba · ${dias}d` : 'Prueba vencida';
+    return `<span class="sa-tag" style="color: var(--accent-gold); border-color: rgba(212,175,55,0.3);">${esc(texto)}</span>`;
+  }
+  return '<span class="sa-tag">—</span>';
+}
+
 function renderClientes() {
   const cont = document.getElementById('clientes-lista');
   if (CLIENTES.length === 0) {
@@ -92,6 +116,9 @@ function renderClientes() {
         <tr>
           <th>Negocio</th>
           <th>Usuario</th>
+          <th>Plan</th>
+          <th>Estado</th>
+          <th>Código</th>
           <th>WhatsApp</th>
           <th>Alta</th>
           <th></th>
@@ -102,6 +129,9 @@ function renderClientes() {
           <tr>
             <td>${esc(c.nombre)}</td>
             <td>${esc(c.slug)}</td>
+            <td>${c.plan ? `${esc(PLANES_NOMBRES[c.plan] || c.plan)} · $${c.precio_mensual ?? '—'}` : '—'}</td>
+            <td>${tagEstadoPago(c)}</td>
+            <td>${c.codigo_referido ? esc(c.codigo_referido) : '—'}</td>
             <td>
               ${c.whatsapp_phone_number_id
                 ? '<span class="sa-tag sa-tag-ok"><i class="fa-solid fa-check"></i> Conectado</span>'
@@ -109,6 +139,7 @@ function renderClientes() {
             </td>
             <td>${formatearFecha(c.created_at)}</td>
             <td class="sa-acciones">
+              ${c.estado_pago !== 'activo' ? `<button type="button" class="btn-ghost" data-accion="marcar-activo" data-id="${c._id}" title="Marcar como pago confirmado"><i class="fa-solid fa-circle-dollar-to-slot"></i></button>` : ''}
               <button type="button" class="btn-ghost" data-accion="whatsapp" data-id="${c._id}"><i class="fa-brands fa-whatsapp"></i></button>
               <button type="button" class="btn-ghost" data-accion="columnas" data-id="${c._id}"><i class="fa-solid fa-table-columns"></i></button>
             </td>
@@ -123,6 +154,16 @@ function renderClientes() {
   });
   cont.querySelectorAll('[data-accion="columnas"]').forEach((btn) => {
     btn.addEventListener('click', () => abrirColumnas(btn.dataset.id));
+  });
+  cont.querySelectorAll('[data-accion="marcar-activo"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Confirmás que este cliente ya pagó? Va a quedar marcado como Activo.')) return;
+      await api(`/clientes/${btn.dataset.id}/estado-pago`, {
+        method: 'PUT',
+        body: JSON.stringify({ estado_pago: 'activo' })
+      });
+      await cargarClientes();
+    });
   });
 }
 
@@ -287,6 +328,95 @@ document.getElementById('columnas-guardar').addEventListener('click', async () =
     setTimeout(() => { document.getElementById('columnas-overlay').hidden = true; }, data.fichasMigradas ? 2200 : 700);
   } catch (err) {
     status.textContent = err.message;
+  }
+});
+
+// ---------- Códigos de descuento / closers ----------
+
+async function cargarCodigos() {
+  const data = await api('/codigos');
+  CODIGOS = data.codigos;
+  renderCodigos();
+}
+
+function renderCodigos() {
+  const cont = document.getElementById('codigos-lista');
+  if (CODIGOS.length === 0) {
+    cont.innerHTML = '<p class="loading">Todavía no creaste ningún código.</p>';
+    return;
+  }
+  cont.innerHTML = `
+    <table class="sa-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Closer</th>
+          <th>Contacto</th>
+          <th>Descuento</th>
+          <th>Comisión</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${CODIGOS.map((c) => `
+          <tr>
+            <td>${esc(c.codigo)}</td>
+            <td>${esc(c.nombre_closer)}</td>
+            <td>${esc(c.contacto || '—')}</td>
+            <td>${c.descuento_pct}%</td>
+            <td>${c.comision_pct}%</td>
+            <td>${c.activo
+              ? '<span class="sa-tag sa-tag-ok"><i class="fa-solid fa-check"></i> Activo</span>'
+              : '<span class="sa-tag">Inactivo</span>'}</td>
+            <td class="sa-acciones">
+              <button type="button" class="btn-ghost" data-toggle-codigo="${c._id}" data-activo="${c.activo}">
+                ${c.activo ? 'Desactivar' : 'Activar'}
+              </button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  cont.querySelectorAll('[data-toggle-codigo]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const activoActual = btn.dataset.activo === 'true';
+      await api(`/codigos/${btn.dataset.toggleCodigo}/activo`, {
+        method: 'PUT',
+        body: JSON.stringify({ activo: !activoActual })
+      });
+      await cargarCodigos();
+    });
+  });
+}
+
+document.getElementById('nuevo-codigo-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const status = document.getElementById('nuevo-codigo-status');
+  status.textContent = 'Creando...';
+  status.className = 'form-status';
+  try {
+    await api('/codigos', {
+      method: 'POST',
+      body: JSON.stringify({
+        codigo: document.getElementById('co-codigo').value.trim(),
+        nombre_closer: document.getElementById('co-nombre').value.trim(),
+        contacto: document.getElementById('co-contacto').value.trim(),
+        descuento_pct: Number(document.getElementById('co-descuento').value),
+        comision_pct: Number(document.getElementById('co-comision').value)
+      })
+    });
+    status.textContent = 'Código creado.';
+    document.getElementById('nuevo-codigo-form').reset();
+    document.getElementById('co-descuento').value = 10;
+    document.getElementById('co-comision').value = 10;
+    await cargarCodigos();
+    setTimeout(() => { status.textContent = ''; }, 2000);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
   }
 });
 

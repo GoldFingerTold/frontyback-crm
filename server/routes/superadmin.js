@@ -166,4 +166,76 @@ router.put('/clientes/:id/columnas', asyncHandler(async (req, res) => {
   res.json({ ok: true, columnas: columnasNormalizadas, fichasMigradas: idsBorrados.length > 0 });
 }));
 
+// Para cuando Hugo cobra a mano después de la prueba gratis (o renueva mes a mes): pasa
+// el cliente a "activo", o lo marca "vencido" si no pagó.
+const ESTADOS_PAGO_VALIDOS = ['prueba', 'activo', 'vencido', 'cancelado'];
+router.put('/clientes/:id/estado-pago', asyncHandler(async (req, res) => {
+  const { estado_pago } = req.body || {};
+  if (!ESTADOS_PAGO_VALIDOS.includes(estado_pago)) {
+    return res.status(400).json({ error: 'Estado de pago inválido.' });
+  }
+  const result = await db.getDb().collection('clientes').updateOne(
+    { _id: new db.ObjectId(req.params.id) },
+    { $set: { estado_pago } }
+  );
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese cliente.' });
+  res.json({ ok: true });
+}));
+
+// ---------- Códigos de descuento / afiliados (closers) ----------
+// Cada código le da un % de descuento al cliente que lo usa al anotarse en planes.html, y
+// deja registrado un % de comisión para quien lo trajo (el "closer") - Hugo calcula y paga
+// esas comisiones a mano a fin de mes, mirando qué clientes activos tienen cada código.
+
+router.get('/codigos', asyncHandler(async (req, res) => {
+  const codigos = await db.getDb().collection('codigos').find({}).sort({ created_at: -1 }).toArray();
+  res.json({ codigos });
+}));
+
+const CODIGO_RE = /^[A-Z0-9]{3,20}$/;
+
+router.post('/codigos', asyncHandler(async (req, res) => {
+  const { codigo, nombre_closer, contacto, descuento_pct, comision_pct } = req.body || {};
+  const codigoLimpio = String(codigo || '').trim().toUpperCase();
+  const nombreLimpio = String(nombre_closer || '').trim();
+  const descuento = Number(descuento_pct);
+  const comision = Number(comision_pct);
+
+  if (!CODIGO_RE.test(codigoLimpio)) {
+    return res.status(400).json({ error: 'El código tiene que tener entre 3 y 20 letras/números, sin espacios.' });
+  }
+  if (!nombreLimpio) return res.status(400).json({ error: 'Falta el nombre del closer.' });
+  if (!Number.isFinite(descuento) || descuento < 0 || descuento > 100) {
+    return res.status(400).json({ error: 'El descuento tiene que ser un número entre 0 y 100.' });
+  }
+  if (!Number.isFinite(comision) || comision < 0 || comision > 100) {
+    return res.status(400).json({ error: 'La comisión tiene que ser un número entre 0 y 100.' });
+  }
+
+  const existente = await db.getDb().collection('codigos').findOne({ codigo: codigoLimpio });
+  if (existente) return res.status(409).json({ error: 'Ya existe un código con ese nombre.' });
+
+  const doc = {
+    codigo: codigoLimpio,
+    nombre_closer: nombreLimpio,
+    contacto: String(contacto || '').trim(),
+    descuento_pct: descuento,
+    comision_pct: comision,
+    activo: true,
+    created_at: new Date()
+  };
+  await db.getDb().collection('codigos').insertOne(doc);
+  res.json({ ok: true, codigo: doc });
+}));
+
+router.put('/codigos/:id/activo', asyncHandler(async (req, res) => {
+  const { activo } = req.body || {};
+  const result = await db.getDb().collection('codigos').updateOne(
+    { _id: new db.ObjectId(req.params.id) },
+    { $set: { activo: Boolean(activo) } }
+  );
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese código.' });
+  res.json({ ok: true });
+}));
+
 module.exports = router;

@@ -1,0 +1,121 @@
+// Landing de ventas: muestra los planes (sacados del servidor, no hardcodeados acá, para
+// no tener el precio en dos lugares distintos) y maneja el alta por autoservicio.
+
+let PLANES = {};
+
+function esc(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function cargarPlanes() {
+  const res = await fetch('/api/public/planes');
+  const data = await res.json();
+  PLANES = data.planes;
+
+  const cont = document.getElementById('planes');
+  const select = document.getElementById('f-plan');
+  const entradas = Object.entries(PLANES);
+
+  cont.innerHTML = entradas.map(([id, p], i) => `
+    <div class="pl-plan ${i === entradas.length - 1 ? 'destacado' : ''}">
+      <div class="pl-plan-nombre">${esc(p.nombre)}</div>
+      <div class="pl-plan-precio"><span class="num">$${p.precio}</span><span class="per">USD / mes</span></div>
+      <div class="pl-plan-desc">${esc(p.descripcion)}</div>
+      <ul>${p.features.map((f) => `<li><i class="fa-solid fa-check"></i> ${esc(f)}</li>`).join('')}</ul>
+      <button type="button" class="btn btn-primary" data-elegir="${esc(id)}">Elegir ${esc(p.nombre)}</button>
+    </div>
+  `).join('');
+
+  select.innerHTML = entradas.map(([id, p]) => `<option value="${esc(id)}">${esc(p.nombre)} — $${p.precio}/mes</option>`).join('');
+
+  cont.querySelectorAll('[data-elegir]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      select.value = btn.dataset.elegir;
+      actualizarPrecio();
+      document.getElementById('f-nombre').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
+  actualizarPrecio();
+}
+
+let codigoInfo = null;
+
+function actualizarPrecio() {
+  const plan = PLANES[document.getElementById('f-plan').value];
+  if (!plan) return;
+  const el = document.getElementById('precio-final');
+  if (codigoInfo && codigoInfo.valido) {
+    const final = Math.round(plan.precio * (1 - codigoInfo.descuento_pct / 100) * 100) / 100;
+    el.innerHTML = `Con el descuento: <strong>$${final} USD/mes</strong> <span style="text-decoration: line-through; opacity: .6;">$${plan.precio}</span>`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+document.getElementById('f-plan').addEventListener('change', actualizarPrecio);
+
+let codigoTimeout;
+document.getElementById('f-codigo').addEventListener('input', (e) => {
+  clearTimeout(codigoTimeout);
+  const valor = e.target.value.trim();
+  const status = document.getElementById('codigo-status');
+  if (!valor) {
+    status.textContent = '';
+    status.className = 'pl-codigo-status';
+    codigoInfo = null;
+    actualizarPrecio();
+    return;
+  }
+  codigoTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/public/codigos/' + encodeURIComponent(valor));
+      const data = await res.json();
+      codigoInfo = data;
+      if (data.valido) {
+        status.textContent = `Código válido: ${data.descuento_pct}% de descuento`;
+        status.className = 'pl-codigo-status ok';
+      } else {
+        status.textContent = 'Ese código no existe o ya no está activo.';
+        status.className = 'pl-codigo-status bad';
+      }
+      actualizarPrecio();
+    } catch {
+      // si falla la verificación en vivo no bloqueamos el formulario, se revalida al enviar
+    }
+  }, 400);
+});
+
+document.getElementById('signup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const status = document.getElementById('signup-status');
+  status.className = 'form-status';
+  status.textContent = 'Creando tu cuenta...';
+
+  try {
+    const res = await fetch('/api/public/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        nombre: document.getElementById('f-nombre').value.trim(),
+        slug: document.getElementById('f-slug').value.trim(),
+        email: document.getElementById('f-email').value.trim(),
+        password: document.getElementById('f-password').value,
+        plan: document.getElementById('f-plan').value,
+        codigo: document.getElementById('f-codigo').value.trim(),
+        _hp: document.getElementById('f-hp').value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo crear la cuenta.');
+    window.location.href = '/tablero.html';
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});
+
+cargarPlanes().catch(() => {
+  document.getElementById('planes').innerHTML = '<p class="loading">No se pudieron cargar los planes.</p>';
+});
