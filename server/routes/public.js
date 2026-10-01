@@ -34,6 +34,9 @@ router.get('/codigos/:codigo', asyncHandler(async (req, res) => {
   if (!codigo) return res.status(400).json({ valido: false });
   const doc = await db.getDb().collection('codigos').findOne({ codigo, activo: true });
   if (!doc) return res.json({ valido: false });
+  if (doc.usos_maximos !== null && doc.usos_maximos !== undefined && doc.usos_actuales >= doc.usos_maximos) {
+    return res.json({ valido: false });
+  }
   res.json({ valido: true, descuento_pct: doc.descuento_pct });
 }));
 
@@ -80,8 +83,21 @@ router.post(
     let comisionPct = 0;
     let codigoGuardado = null;
     if (codigoTexto) {
-      const codigoDoc = await mongo.collection('codigos').findOne({ codigo: codigoTexto, activo: true });
-      if (!codigoDoc) return res.status(400).json({ error: 'El código de descuento no es válido.' });
+      // "Consumir" el código de forma atómica (buscar + sumar el uso en un solo paso), para
+      // que dos altas al mismo tiempo no puedan pasar las dos un código de un solo uso.
+      const codigoDoc = await mongo.collection('codigos').findOneAndUpdate(
+        {
+          codigo: codigoTexto,
+          activo: true,
+          $or: [
+            { usos_maximos: null },
+            { usos_maximos: { $exists: false } },
+            { $expr: { $lt: ['$usos_actuales', '$usos_maximos'] } }
+          ]
+        },
+        { $inc: { usos_actuales: 1 } }
+      );
+      if (!codigoDoc) return res.status(400).json({ error: 'El código de descuento no es válido o ya se usó.' });
       descuentoPct = codigoDoc.descuento_pct;
       comisionPct = codigoDoc.comision_pct;
       codigoGuardado = codigoTexto;

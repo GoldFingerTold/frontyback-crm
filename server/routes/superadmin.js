@@ -219,11 +219,15 @@ router.get('/codigos', asyncHandler(async (req, res) => {
 const CODIGO_RE = /^[A-Z0-9]{3,20}$/;
 
 router.post('/codigos', asyncHandler(async (req, res) => {
-  const { codigo, nombre_closer, contacto, descuento_pct, comision_pct } = req.body || {};
+  const { codigo, nombre_closer, contacto, descuento_pct, comision_pct, usos_maximos } = req.body || {};
   const codigoLimpio = String(codigo || '').trim().toUpperCase();
   const nombreLimpio = String(nombre_closer || '').trim();
   const descuento = Number(descuento_pct);
   const comision = Number(comision_pct);
+  // Vacío/0 = sin límite de usos. Para un código de uso personal (no transferible), poner 1.
+  const usosMax = usos_maximos === '' || usos_maximos === null || usos_maximos === undefined
+    ? null
+    : Number(usos_maximos);
 
   if (!CODIGO_RE.test(codigoLimpio)) {
     return res.status(400).json({ error: 'El código tiene que tener entre 3 y 20 letras/números, sin espacios.' });
@@ -235,6 +239,9 @@ router.post('/codigos', asyncHandler(async (req, res) => {
   if (!Number.isFinite(comision) || comision < 0 || comision > 100) {
     return res.status(400).json({ error: 'La comisión tiene que ser un número entre 0 y 100.' });
   }
+  if (usosMax !== null && (!Number.isFinite(usosMax) || usosMax < 1)) {
+    return res.status(400).json({ error: 'El límite de usos tiene que ser un número de 1 para arriba (o vacío para ilimitado).' });
+  }
 
   const existente = await db.getDb().collection('codigos').findOne({ codigo: codigoLimpio });
   if (existente) return res.status(409).json({ error: 'Ya existe un código con ese nombre.' });
@@ -245,6 +252,8 @@ router.post('/codigos', asyncHandler(async (req, res) => {
     contacto: String(contacto || '').trim(),
     descuento_pct: descuento,
     comision_pct: comision,
+    usos_maximos: usosMax,
+    usos_actuales: 0,
     activo: true,
     created_at: new Date()
   };

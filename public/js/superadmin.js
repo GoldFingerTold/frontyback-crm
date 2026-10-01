@@ -407,6 +407,7 @@ function renderCodigos() {
           <th>Contacto</th>
           <th>Descuento</th>
           <th>Comisión</th>
+          <th>Usos</th>
           <th>Estado</th>
           <th></th>
         </tr>
@@ -419,6 +420,7 @@ function renderCodigos() {
             <td>${esc(c.contacto || '—')}</td>
             <td>${c.descuento_pct}%</td>
             <td>${c.comision_pct}%</td>
+            <td>${c.usos_actuales ?? 0}${c.usos_maximos ? ' / ' + c.usos_maximos : ' / ∞'}</td>
             <td>${c.activo
               ? '<span class="sa-tag sa-tag-ok"><i class="fa-solid fa-check"></i> Activo</span>'
               : '<span class="sa-tag">Inactivo</span>'}</td>
@@ -458,7 +460,8 @@ document.getElementById('nuevo-codigo-form').addEventListener('submit', async (e
         nombre_closer: document.getElementById('co-nombre').value.trim(),
         contacto: document.getElementById('co-contacto').value.trim(),
         descuento_pct: Number(document.getElementById('co-descuento').value),
-        comision_pct: Number(document.getElementById('co-comision').value)
+        comision_pct: Number(document.getElementById('co-comision').value),
+        usos_maximos: document.getElementById('co-usos').value.trim()
       })
     });
     status.textContent = 'Código creado.';
