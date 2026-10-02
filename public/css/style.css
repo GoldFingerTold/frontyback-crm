@@ -427,12 +427,13 @@ header {
   color: #f3d4ca;
 }
 .estado-banner strong { color: #fff; }
-.estado-banner a.btn-reactivar {
+.estado-banner .btn-reactivar {
   flex: none;
   background: var(--accent-gold); color: #141517; font-weight: 600;
   padding: 8px 16px; border-radius: 9px; font-size: 12.5px; text-decoration: none;
-  white-space: nowrap;
+  white-space: nowrap; border: none; cursor: pointer; font-family: inherit;
 }
+.estado-banner .btn-reactivar:disabled { opacity: 0.6; cursor: default; }
 
 /* ---------- Super-admin ---------- */
 .sa-shell {

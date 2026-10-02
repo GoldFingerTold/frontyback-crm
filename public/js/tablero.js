@@ -215,18 +215,43 @@ function renderEstadoBanner() {
     banner.className = 'estado-banner gracia';
     banner.innerHTML = `
       <span>Tu plan venció y dejamos de mandar respuestas automáticas. <strong>Te quedan ${dias} día${dias === 1 ? '' : 's'}</strong> para reactivarlo antes de que se corte el servicio del todo.</span>
-      <a class="btn-reactivar" target="_blank" rel="noopener" href="https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Quiero reactivar mi plan del CRM (' + (ESTADO.cliente.slug || '') + ')')}">Reactivar ahora</a>
+      <button type="button" class="btn-reactivar" id="btn-reactivar">Reactivar ahora</button>
     `;
     banner.hidden = false;
+    document.getElementById('btn-reactivar').addEventListener('click', abrirLinkDePago);
   } else if (estado === 'vencido_cortado') {
     banner.className = 'estado-banner cortado';
     banner.innerHTML = `
       <span>Tu servicio está cortado por falta de pago - no se están guardando consultas nuevas. Mirá todo lo que te estás perdiendo y <strong>reactivalo cuando quieras</strong>, tus datos siguen intactos.</span>
-      <a class="btn-reactivar" target="_blank" rel="noopener" href="https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Quiero reactivar mi plan del CRM (' + (ESTADO.cliente.slug || '') + ')')}">Reactivar ahora</a>
+      <button type="button" class="btn-reactivar" id="btn-reactivar">Reactivar ahora</button>
     `;
     banner.hidden = false;
+    document.getElementById('btn-reactivar').addEventListener('click', abrirLinkDePago);
   } else {
     banner.hidden = true;
+  }
+}
+
+// Al tocar "Reactivar ahora" se genera (o reusa) el link de suscripción de Mercado Pago y
+// se abre en una pestaña nueva. Si por algo falla (plan sin configurar, Mercado Pago caído),
+// cae de respaldo al WhatsApp de FrontyBack para resolverlo a mano.
+async function abrirLinkDePago() {
+  const boton = document.getElementById('btn-reactivar');
+  if (!boton) return;
+  const textoOriginal = boton.textContent;
+  boton.textContent = 'Generando link...';
+  boton.disabled = true;
+  try {
+    const res = await fetch('/api/admin/pago/link', { credentials: 'include' });
+    const data = await res.json();
+    if (!res.ok || !data.link) throw new Error(data.error || 'No se pudo generar el link de pago.');
+    window.open(data.link, '_blank', 'noopener');
+  } catch (err) {
+    console.error('No se pudo generar el link de pago:', err.message);
+    window.open(`https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Quiero reactivar mi plan del CRM (' + (ESTADO.cliente.slug || '') + ')')}`, '_blank', 'noopener');
+  } finally {
+    boton.textContent = textoOriginal;
+    boton.disabled = false;
   }
 }
 

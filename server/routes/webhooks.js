@@ -11,6 +11,7 @@ const email = require('../services/email');
 const whatsapp = require('../services/whatsapp');
 const stt = require('../services/stt');
 const tts = require('../services/tts');
+const mercadopago = require('../services/mercadopago');
 
 const router = express.Router();
 
@@ -238,6 +239,51 @@ async function procesarEventoWhatsapp(body) {
       }
     }
     // Otros tipos (imagen, ubicación, etc.) se ignoran por ahora - se puede sumar después.
+  }
+}
+
+// ---------- Mercado Pago (cobro recurrente) ----------
+// Mercado Pago avisa acá cada vez que cambia el estado de una suscripción (autorizada,
+// cancelada) o se cobra una cuota. La URL se le pasa directamente a cada suscripción al
+// crearla (notification_url, en server/services/mercadopago.js), así que no hace falta
+// configurar nada aparte en el panel de Mercado Pago.
+
+router.post(
+  '/mercadopago',
+  express.json(),
+  asyncHandler(async (req, res) => {
+    // Le contestamos 200 enseguida - si tarda o falla, Mercado Pago reintenta el mismo evento.
+    res.sendStatus(200);
+
+    try {
+      await procesarNotificacionMercadoPago(req.body || {}, req.query || {});
+    } catch (err) {
+      console.error('Error procesando notificación de Mercado Pago:', err);
+    }
+  })
+);
+
+async function procesarNotificacionMercadoPago(body, query) {
+  const tipo = body.type || query.type || query.topic;
+  const id = body.data?.id || query.id || query['data.id'];
+  if (!tipo || !id) return;
+
+  if (tipo === 'subscription_preapproval') {
+    const sus = await mercadopago.obtenerSuscripcion(id);
+    const cliente = await db.getDb().collection('clientes').findOne({ slug: sus.external_reference });
+    if (!cliente) return;
+
+    if (sus.status === 'authorized') {
+      await db.activarPorPago(cliente._id, { preapprovalId: sus.id });
+    } else if (sus.status === 'cancelled') {
+      await db.cortarPorFaltaDePago(cliente._id);
+    }
+  } else if (tipo === 'subscription_authorized_payment') {
+    const pago = await mercadopago.obtenerPagoAutorizado(id);
+    if (pago.status === 'approved' && pago.preapproval_id) {
+      const cliente = await db.getDb().collection('clientes').findOne({ mercadopago_preapproval_id: pago.preapproval_id });
+      if (cliente) await db.activarPorPago(cliente._id, { preapprovalId: pago.preapproval_id });
+    }
   }
 }
 

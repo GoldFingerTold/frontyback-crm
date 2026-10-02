@@ -107,6 +107,25 @@ function estadoPermiteRespuesta(estadoPago) {
   return estadoPago === 'prueba' || estadoPago === 'activo';
 }
 
+// Lo llama el webhook de Mercado Pago cuando se autoriza una suscripción o se cobra una
+// cuota: el cliente queda activo y se borran los plazos de prueba/gracia (si los tenía).
+async function activarPorPago(clienteId, { preapprovalId } = {}) {
+  const set = { estado_pago: 'activo', prueba_termina: null, gracia_termina: null };
+  if (preapprovalId) set.mercadopago_preapproval_id = preapprovalId;
+  await getDb().collection('clientes').updateOne({ _id: clienteId }, { $set: set });
+}
+
+// Lo llama el webhook de Mercado Pago cuando Mercado Pago cancela la suscripción porque no
+// pudo cobrarle al cliente (tarjeta rechazada varias veces) - entra al mismo período de
+// gracia de 7 días que el vencimiento de la prueba gratis.
+async function cortarPorFaltaDePago(clienteId) {
+  const gracia_termina = new Date(Date.now() + DIAS_GRACIA * 24 * 60 * 60 * 1000);
+  await getDb().collection('clientes').updateOne(
+    { _id: clienteId, estado_pago: { $ne: 'vencido_cortado' } },
+    { $set: { estado_pago: 'vencido_gracia', gracia_termina } }
+  );
+}
+
 // Columnas por defecto del tablero de un cliente nuevo - se pueden editar después desde
 // el panel (agregar, renombrar o borrar columnas), esto es solo el punto de partida.
 const COLUMNAS_DEFAULT = [
@@ -171,5 +190,7 @@ module.exports = {
   DIAS_PRUEBA_GRATIS,
   DIAS_GRACIA,
   estadoPermiteCaptura,
-  estadoPermiteRespuesta
+  estadoPermiteRespuesta,
+  activarPorPago,
+  cortarPorFaltaDePago
 };
