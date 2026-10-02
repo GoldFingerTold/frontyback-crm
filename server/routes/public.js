@@ -56,6 +56,7 @@ router.post(
     const email = String(body.email || '').trim().slice(0, 200);
     const password = String(body.password || '');
     const planId = String(body.plan || '');
+    const frecuencia = body.frecuencia === 'anual' ? 'anual' : 'mensual';
     const codigoTexto = String(body.codigo || '').trim().toUpperCase();
 
     if (!nombre || !slug || !email || !password) {
@@ -103,7 +104,7 @@ router.post(
       codigoGuardado = codigoTexto;
     }
 
-    const precioLista = planes[planId].precio_ars;
+    const precioLista = frecuencia === 'anual' ? planes[planId].precio_ars_anual : planes[planId].precio_ars;
     const precioFinal = Math.round(precioLista * (1 - descuentoPct / 100));
 
     const cliente = await db.crearCliente({
@@ -112,7 +113,8 @@ router.post(
       email_notificacion: email,
       admin_password: password,
       plan: planId,
-      precio_mensual: precioFinal,
+      precio_pactado: precioFinal,
+      frecuencia_pago: frecuencia,
       origen: 'landing',
       codigo_referido: codigoGuardado,
       descuento_pct_aplicado: descuentoPct,

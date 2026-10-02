@@ -43,13 +43,17 @@ async function ensureIndexes() {
 // el alta por autoservicio. Viven en Mongo (no hardcodeados) para que Hugo pueda ajustar
 // el precio en pesos desde el super-admin cuando se mueva el dólar, sin tocar código.
 // precio_usd_ref es solo de referencia para mostrar "≈ USD X" - lo que se cobra de
-// verdad (en MercadoPago, y lo que queda guardado en cada cliente) es precio_ars.
+// verdad (en MercadoPago, y lo que queda guardado en cada cliente) es el *_ars.
+// Cada plan tiene precio mensual y un precio anual (pagando el año adelantado, 2 meses
+// gratis respecto de pagar mes a mes).
 const PLANES_DEFAULT = [
   {
     id: 'esencial',
     nombre: 'Esencial',
     precio_ars: 15000,
     precio_usd_ref: 10,
+    precio_ars_anual: 150000,
+    precio_usd_ref_anual: 100,
     descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, y tablero de seguimiento.',
     features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Tablero Kanban', 'Hasta 150 consultas por mes']
   },
@@ -58,6 +62,8 @@ const PLANES_DEFAULT = [
     nombre: 'Completo',
     precio_ars: 30000,
     precio_usd_ref: 20,
+    precio_ars_anual: 300000,
+    precio_usd_ref_anual: 200,
     descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio y columnas a medida.',
     features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas']
   }
@@ -67,6 +73,13 @@ async function sembrarPlanes() {
   const col = db.collection('planes');
   for (const plan of PLANES_DEFAULT) {
     await col.updateOne({ id: plan.id }, { $setOnInsert: plan }, { upsert: true });
+    // Si el plan ya existía de antes (por ejemplo, antes de agregar los precios anuales),
+    // completa solo los campos que todavía no tiene - nunca pisa un precio que Hugo ya
+    // haya ajustado a mano desde el super-admin.
+    await col.updateOne(
+      { id: plan.id, precio_ars_anual: { $exists: false } },
+      { $set: { precio_ars_anual: plan.precio_ars_anual, precio_usd_ref_anual: plan.precio_usd_ref_anual } }
+    );
   }
 }
 
@@ -112,7 +125,8 @@ async function crearCliente({
   email_notificacion,
   admin_password,
   plan = null,
-  precio_mensual = 0,
+  precio_pactado = 0,
+  frecuencia_pago = 'mensual',
   origen = 'superadmin',
   codigo_referido = null,
   descuento_pct_aplicado = 0,
@@ -131,7 +145,8 @@ async function crearCliente({
     admin_password_hash: password_hash,
     columnas: COLUMNAS_DEFAULT,
     plan,
-    precio_mensual,
+    precio_pactado,
+    frecuencia_pago,
     origen,
     codigo_referido,
     descuento_pct_aplicado,

@@ -61,18 +61,21 @@ router.get('/planes', asyncHandler(async (req, res) => {
 }));
 
 router.put('/planes/:id', asyncHandler(async (req, res) => {
-  const { precio_ars, precio_usd_ref } = req.body || {};
-  const ars = Number(precio_ars);
-  const usd = Number(precio_usd_ref);
-  if (!Number.isFinite(ars) || ars <= 0) {
-    return res.status(400).json({ error: 'El precio en pesos tiene que ser un número mayor a 0.' });
-  }
-  if (!Number.isFinite(usd) || usd <= 0) {
-    return res.status(400).json({ error: 'La referencia en dólares tiene que ser un número mayor a 0.' });
+  const { precio_ars, precio_usd_ref, precio_ars_anual, precio_usd_ref_anual } = req.body || {};
+  const valores = {
+    precio_ars: Number(precio_ars),
+    precio_usd_ref: Number(precio_usd_ref),
+    precio_ars_anual: Number(precio_ars_anual),
+    precio_usd_ref_anual: Number(precio_usd_ref_anual)
+  };
+  for (const [campo, valor] of Object.entries(valores)) {
+    if (!Number.isFinite(valor) || valor <= 0) {
+      return res.status(400).json({ error: `El campo "${campo}" tiene que ser un número mayor a 0.` });
+    }
   }
   const result = await db.getDb().collection('planes').updateOne(
     { id: req.params.id },
-    { $set: { precio_ars: ars, precio_usd_ref: usd } }
+    { $set: valores }
   );
   if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese plan.' });
   res.json({ ok: true });

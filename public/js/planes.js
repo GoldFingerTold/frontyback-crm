@@ -26,7 +26,13 @@ async function cargarPlanes() {
       <div class="pl-plan-precio"><span class="num">${formatearARS(p.precio_ars)}</span><span class="per">ARS / mes (≈ USD ${p.precio_usd_ref} hoy)</span></div>
       <div class="pl-plan-desc">${esc(p.descripcion)}</div>
       <ul>${p.features.map((f) => `<li><i class="fa-solid fa-check"></i> ${esc(f)}</li>`).join('')}</ul>
-      <button type="button" class="btn btn-primary" data-elegir="${esc(id)}">Elegir ${esc(p.nombre)}</button>
+      <button type="button" class="btn btn-primary" data-elegir="${esc(id)}" data-frecuencia="mensual">Elegir mes a mes</button>
+
+      <div class="pl-plan-anual">
+        <span class="pl-plan-anual-badge"><i class="fa-solid fa-gift"></i> 2 meses gratis pagando el año</span>
+        <div class="pl-plan-anual-precio"><span class="num">${formatearARS(p.precio_ars_anual)}</span><span class="per">ARS / año (≈ USD ${p.precio_usd_ref_anual} hoy)</span></div>
+        <button type="button" class="btn-ghost" data-elegir="${esc(id)}" data-frecuencia="anual" style="width: 100%;">Elegir plan anual</button>
+      </div>
     </div>
   `).join('');
 
@@ -35,6 +41,7 @@ async function cargarPlanes() {
   cont.querySelectorAll('[data-elegir]').forEach((btn) => {
     btn.addEventListener('click', () => {
       select.value = btn.dataset.elegir;
+      document.getElementById('f-frecuencia').value = btn.dataset.frecuencia;
       actualizarPrecio();
       document.getElementById('f-nombre').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
@@ -48,16 +55,20 @@ let codigoInfo = null;
 function actualizarPrecio() {
   const plan = PLANES[document.getElementById('f-plan').value];
   if (!plan) return;
+  const esAnual = document.getElementById('f-frecuencia').value === 'anual';
+  const precioBase = esAnual ? plan.precio_ars_anual : plan.precio_ars;
+  const periodo = esAnual ? 'año' : 'mes';
   const el = document.getElementById('precio-final');
   if (codigoInfo && codigoInfo.valido) {
-    const final = Math.round(plan.precio_ars * (1 - codigoInfo.descuento_pct / 100));
-    el.innerHTML = `Con el descuento: <strong>${formatearARS(final)} ARS/mes</strong> <span style="text-decoration: line-through; opacity: .6;">${formatearARS(plan.precio_ars)}</span>`;
+    const final = Math.round(precioBase * (1 - codigoInfo.descuento_pct / 100));
+    el.innerHTML = `Con el descuento: <strong>${formatearARS(final)} ARS/${periodo}</strong> <span style="text-decoration: line-through; opacity: .6;">${formatearARS(precioBase)}</span>`;
   } else {
     el.textContent = '';
   }
 }
 
 document.getElementById('f-plan').addEventListener('change', actualizarPrecio);
+document.getElementById('f-frecuencia').addEventListener('change', actualizarPrecio);
 
 let codigoTimeout;
 // Si el usuario tipea rápido, pueden salir varios pedidos al servidor seguidos - y no hay
@@ -115,6 +126,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
         email: document.getElementById('f-email').value.trim(),
         password: document.getElementById('f-password').value,
         plan: document.getElementById('f-plan').value,
+        frecuencia: document.getElementById('f-frecuencia').value,
         codigo: document.getElementById('f-codigo').value.trim(),
         _hp: document.getElementById('f-hp').value
       })

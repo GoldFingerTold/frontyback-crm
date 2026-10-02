@@ -136,7 +136,7 @@ function renderClientes() {
           <tr>
             <td>${esc(c.nombre)}</td>
             <td>${esc(c.slug)}</td>
-            <td>${c.plan ? `${esc(PLANES_NOMBRES[c.plan] || c.plan)} · $${c.precio_mensual ?? '—'}` : '—'}</td>
+            <td>${c.plan ? `${esc(PLANES_NOMBRES[c.plan] || c.plan)} · $${c.precio_pactado ?? '—'} ${c.frecuencia_pago === 'anual' ? '/año' : '/mes'}` : '—'}</td>
             <td>${tagEstadoPago(c)}</td>
             <td>${c.codigo_referido ? esc(c.codigo_referido) : '—'}</td>
             <td>
@@ -349,16 +349,19 @@ function renderPlanes(planes) {
   const cont = document.getElementById('planes-lista');
   const entradas = Object.values(planes).sort((a, b) => a.precio_ars - b.precio_ars);
   cont.innerHTML = entradas.map((p) => `
-    <div class="sa-columna-fila" data-plan-id="${esc(p.id)}" style="margin-bottom: 10px;">
+    <div class="sa-columna-fila" data-plan-id="${esc(p.id)}" style="margin-bottom: 10px; flex-wrap: wrap;">
       <div style="width: 90px; font-size: 13px; font-weight: 600; flex: none;">${esc(p.nombre)}</div>
-      <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
-        <span style="color: var(--text-muted); font-size: 13px;">$</span>
+      <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 160px;">
+        <span style="color: var(--text-muted); font-size: 11px; width: 38px;">Mes $</span>
         <input type="number" min="1" step="1" data-campo="precio_ars" value="${p.precio_ars}" style="flex: 1;">
-        <span style="color: var(--text-muted); font-size: 11px;">ARS</span>
+        <span style="color: var(--text-muted); font-size: 11px;">≈USD</span>
+        <input type="number" min="1" step="1" data-campo="precio_usd_ref" value="${p.precio_usd_ref}" style="width: 55px;">
       </div>
-      <div style="display: flex; align-items: center; gap: 4px; width: 110px;">
-        <span style="color: var(--text-muted); font-size: 13px;">≈USD</span>
-        <input type="number" min="1" step="1" data-campo="precio_usd_ref" value="${p.precio_usd_ref}">
+      <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 160px;">
+        <span style="color: var(--text-muted); font-size: 11px; width: 38px;">Año $</span>
+        <input type="number" min="1" step="1" data-campo="precio_ars_anual" value="${p.precio_ars_anual}" style="flex: 1;">
+        <span style="color: var(--text-muted); font-size: 11px;">≈USD</span>
+        <input type="number" min="1" step="1" data-campo="precio_usd_ref_anual" value="${p.precio_usd_ref_anual}" style="width: 55px;">
       </div>
       <button type="button" class="btn-ghost" data-guardar-plan="${esc(p.id)}">Guardar</button>
     </div>
@@ -375,7 +378,9 @@ function renderPlanes(planes) {
           method: 'PUT',
           body: JSON.stringify({
             precio_ars: fila.querySelector('[data-campo="precio_ars"]').value,
-            precio_usd_ref: fila.querySelector('[data-campo="precio_usd_ref"]').value
+            precio_usd_ref: fila.querySelector('[data-campo="precio_usd_ref"]').value,
+            precio_ars_anual: fila.querySelector('[data-campo="precio_ars_anual"]').value,
+            precio_usd_ref_anual: fila.querySelector('[data-campo="precio_usd_ref_anual"]').value
           })
         });
         status.textContent = 'Guardado. Afecta a las altas nuevas (los clientes que ya están, siguen con su precio).';
