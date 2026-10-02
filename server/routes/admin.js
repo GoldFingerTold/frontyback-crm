@@ -23,7 +23,13 @@ router.get('/tablero', asyncHandler(async (req, res) => {
   res.json({
     columnas: cliente.columnas,
     fichas,
-    cliente: { nombre: cliente.nombre, slug: cliente.slug }
+    cliente: {
+      nombre: cliente.nombre,
+      slug: cliente.slug,
+      estado_pago: cliente.estado_pago,
+      prueba_termina: cliente.prueba_termina,
+      gracia_termina: cliente.gracia_termina
+    }
   });
 }));
 

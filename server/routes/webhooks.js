@@ -71,6 +71,12 @@ router.post(
     const cliente = await db.getDb().collection('clientes').findOne({ slug });
     if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
 
+    // Servicio cortado por falta de pago: no se guarda nada, pero no se lo decimos al
+    // visitante del formulario (devolvemos 200 igual, es un tema entre nosotros y el cliente).
+    if (!db.estadoPermiteCaptura(cliente.estado_pago)) {
+      return res.json({ ok: true });
+    }
+
     const columnaInicial = cliente.columnas[0].id;
 
     const ficha = await fichas.registrarConsulta({
@@ -82,20 +88,25 @@ router.post(
       mensaje
     });
 
-    try {
-      const enviado = await email.enviarAutorespuesta({
-        nombreCliente: cliente.nombre,
-        nombreDestinatario: nombre,
-        emailDestinatario: emailCliente
-      });
-      await fichas.registrarRespuesta(ficha._id, {
-        canal: 'email',
-        texto: `Asunto: ${enviado.asunto}\n\n${enviado.texto}`
-      });
-    } catch (err) {
-      // No hacemos fallar el request por esto - la ficha ya quedó guardada, que es lo
-      // importante; el email es un plus.
-      console.error('No se pudo enviar la autorespuesta por email:', err.message);
+    // En período de gracia (vencido, pero todavía dentro de los 7 días) seguimos
+    // guardando la ficha para no perder el lead, pero no mandamos la respuesta automática -
+    // esa es la parte del servicio que se corta primero.
+    if (db.estadoPermiteRespuesta(cliente.estado_pago)) {
+      try {
+        const enviado = await email.enviarAutorespuesta({
+          nombreCliente: cliente.nombre,
+          nombreDestinatario: nombre,
+          emailDestinatario: emailCliente
+        });
+        await fichas.registrarRespuesta(ficha._id, {
+          canal: 'email',
+          texto: `Asunto: ${enviado.asunto}\n\n${enviado.texto}`
+        });
+      } catch (err) {
+        // No hacemos fallar el request por esto - la ficha ya quedó guardada, que es lo
+        // importante; el email es un plus.
+        console.error('No se pudo enviar la autorespuesta por email:', err.message);
+      }
     }
 
     res.json({ ok: true });
@@ -172,6 +183,10 @@ async function procesarEventoWhatsapp(body) {
     console.warn(`Llegó un mensaje de WhatsApp para un número sin cliente asociado (phone_number_id=${phoneNumberId}).`);
     return;
   }
+  if (!db.estadoPermiteCaptura(cliente.estado_pago)) {
+    return; // servicio cortado por falta de pago - no se procesa nada
+  }
+  const puedeResponder = db.estadoPermiteRespuesta(cliente.estado_pago);
 
   const contactoInfo = cambio.contacts?.[0];
   const nombreContacto = contactoInfo?.profile?.name || '';
@@ -192,8 +207,10 @@ async function procesarEventoWhatsapp(body) {
         whatsappWaId: waId
       });
 
-      await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: MENSAJE_AUTORESPUESTA });
-      await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: MENSAJE_AUTORESPUESTA });
+      if (puedeResponder) {
+        await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: MENSAJE_AUTORESPUESTA });
+        await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: MENSAJE_AUTORESPUESTA });
+      }
     } else if (msg.type === 'audio') {
       const { buffer, mimeType } = await whatsapp.descargarMedia(msg.audio.id);
 
@@ -214,9 +231,11 @@ async function procesarEventoWhatsapp(body) {
         whatsappWaId: waId
       });
 
-      const audioRespuesta = await tts.generarAudio(MENSAJE_AUTORESPUESTA);
-      await whatsapp.enviarAudio({ phoneNumberId, para: waId, buffer: audioRespuesta });
-      await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_audio', texto: MENSAJE_AUTORESPUESTA });
+      if (puedeResponder) {
+        const audioRespuesta = await tts.generarAudio(MENSAJE_AUTORESPUESTA);
+        await whatsapp.enviarAudio({ phoneNumberId, para: waId, buffer: audioRespuesta });
+        await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_audio', texto: MENSAJE_AUTORESPUESTA });
+      }
     }
     // Otros tipos (imagen, ubicación, etc.) se ignoran por ahora - se puede sumar después.
   }

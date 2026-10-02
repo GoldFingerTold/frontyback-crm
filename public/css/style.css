@@ -404,6 +404,36 @@ header {
 }
 .ficha-mover select:focus { border-color: rgba(212,175,55,0.4); }
 
+/* ---------- Cartel de estado de pago ---------- */
+@keyframes estado-banner-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+.estado-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 30px;
+  font-size: 13px;
+}
+.estado-banner.gracia {
+  background: rgba(214,90,54,0.12);
+  border-bottom: 1px solid rgba(214,90,54,0.3);
+  color: #e4a08c;
+  animation: estado-banner-pulso 1.8s ease-in-out infinite;
+}
+.estado-banner.cortado {
+  background: rgba(214,90,54,0.2);
+  border-bottom: 1px solid rgba(214,90,54,0.4);
+  color: #f3d4ca;
+}
+.estado-banner strong { color: #fff; }
+.estado-banner a.btn-reactivar {
+  flex: none;
+  background: var(--accent-gold); color: #141517; font-weight: 600;
+  padding: 8px 16px; border-radius: 9px; font-size: 12.5px; text-decoration: none;
+  white-space: nowrap;
+}
+
 /* ---------- Super-admin ---------- */
 .sa-shell {
   min-height: 100vh;

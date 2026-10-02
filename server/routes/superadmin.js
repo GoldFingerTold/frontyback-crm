@@ -192,7 +192,7 @@ router.put('/clientes/:id/columnas', asyncHandler(async (req, res) => {
 
 // Para cuando Hugo cobra a mano después de la prueba gratis (o renueva mes a mes): pasa
 // el cliente a "activo", o lo marca "vencido" si no pagó.
-const ESTADOS_PAGO_VALIDOS = ['prueba', 'activo', 'vencido', 'cancelado'];
+const ESTADOS_PAGO_VALIDOS = ['prueba', 'activo', 'vencido_gracia', 'vencido_cortado', 'cancelado'];
 router.put('/clientes/:id/estado-pago', asyncHandler(async (req, res) => {
   const { estado_pago } = req.body || {};
   if (!ESTADOS_PAGO_VALIDOS.includes(estado_pago)) {

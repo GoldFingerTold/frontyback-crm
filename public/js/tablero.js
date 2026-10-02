@@ -192,6 +192,42 @@ function actualizarCabecera() {
   const primeraColumna = [...ESTADO.columnas].sort((a, b) => a.posicion - b.posicion)[0];
   const hayPendientes = primeraColumna && ESTADO.fichas.some((f) => f.columna_id === primeraColumna.id);
   document.getElementById('notif-badge').hidden = !hayPendientes;
+
+  renderEstadoBanner();
+}
+
+// Número de WhatsApp de FrontyBack para coordinar la reactivación mientras no está
+// conectado el cobro automático con MercadoPago - una vez que esté, esto apunta al link
+// de pago de cada cliente en lugar de a este chat.
+const WHATSAPP_FRONTYBACK = '5491162195243';
+
+function diasHasta(fechaIso) {
+  if (!fechaIso) return null;
+  return Math.ceil((new Date(fechaIso).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+}
+
+function renderEstadoBanner() {
+  const banner = document.getElementById('estado-banner');
+  const estado = ESTADO.cliente?.estado_pago;
+
+  if (estado === 'vencido_gracia') {
+    const dias = Math.max(diasHasta(ESTADO.cliente.gracia_termina) ?? 0, 0);
+    banner.className = 'estado-banner gracia';
+    banner.innerHTML = `
+      <span>Tu plan venció y dejamos de mandar respuestas automáticas. <strong>Te quedan ${dias} día${dias === 1 ? '' : 's'}</strong> para reactivarlo antes de que se corte el servicio del todo.</span>
+      <a class="btn-reactivar" target="_blank" rel="noopener" href="https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Quiero reactivar mi plan del CRM (' + (ESTADO.cliente.slug || '') + ')')}">Reactivar ahora</a>
+    `;
+    banner.hidden = false;
+  } else if (estado === 'vencido_cortado') {
+    banner.className = 'estado-banner cortado';
+    banner.innerHTML = `
+      <span>Tu servicio está cortado por falta de pago - no se están guardando consultas nuevas. Mirá todo lo que te estás perdiendo y <strong>reactivalo cuando quieras</strong>, tus datos siguen intactos.</span>
+      <a class="btn-reactivar" target="_blank" rel="noopener" href="https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Quiero reactivar mi plan del CRM (' + (ESTADO.cliente.slug || '') + ')')}">Reactivar ahora</a>
+    `;
+    banner.hidden = false;
+  } else {
+    banner.hidden = true;
+  }
 }
 
 async function moverFicha(fichaId, columnaId, posicion) {

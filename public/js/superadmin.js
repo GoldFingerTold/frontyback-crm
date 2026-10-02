@@ -97,7 +97,11 @@ function diasRestantes(fechaIso) {
 
 function tagEstadoPago(c) {
   if (c.estado_pago === 'activo') return '<span class="sa-tag sa-tag-ok"><i class="fa-solid fa-check"></i> Activo</span>';
-  if (c.estado_pago === 'vencido') return '<span class="sa-tag" style="color: var(--danger); border-color: var(--danger);">Vencido</span>';
+  if (c.estado_pago === 'vencido_gracia') {
+    const dias = Math.max(diasRestantes(c.gracia_termina) ?? 0, 0);
+    return `<span class="sa-tag" style="color: var(--danger); border-color: var(--danger);">En gracia · ${dias}d</span>`;
+  }
+  if (c.estado_pago === 'vencido_cortado') return '<span class="sa-tag" style="color: var(--danger); border-color: var(--danger);">Cortado</span>';
   if (c.estado_pago === 'cancelado') return '<span class="sa-tag">Cancelado</span>';
   if (c.estado_pago === 'prueba') {
     const dias = diasRestantes(c.prueba_termina);

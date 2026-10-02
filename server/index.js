@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const superadminRoutes = require('./routes/superadmin');
 const publicRoutes = require('./routes/public');
+const cicloPagos = require('./services/ciclo-pagos');
 
 const app = express();
 const PORT = process.env.PORT || 3010;
@@ -54,6 +55,7 @@ app.use((err, req, res, next) => {
 
 async function start() {
   await db.connect();
+  cicloPagos.iniciar();
   app.listen(PORT, () => {
     console.log(`CRM de FrontyBack corriendo en http://localhost:${PORT}`);
   });

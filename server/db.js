@@ -78,6 +78,21 @@ async function getPlanes() {
 }
 
 const DIAS_PRUEBA_GRATIS = 7;
+const DIAS_GRACIA = 7;
+
+// Qué puede hacer cada estado de pago cuando llega una consulta nueva (formulario o
+// WhatsApp):
+// - prueba / activo: se guarda la ficha y se manda la respuesta automática, todo normal.
+// - vencido_gracia: se guarda la ficha (no se pierde el lead del cliente final), pero NO
+//   se manda respuesta automática - esa es la parte "paga" que se corta primero.
+// - vencido_cortado / cancelado: no se guarda nada, el servicio está completamente
+//   detenido hasta que vuelva a pagar.
+function estadoPermiteCaptura(estadoPago) {
+  return estadoPago !== 'vencido_cortado' && estadoPago !== 'cancelado';
+}
+function estadoPermiteRespuesta(estadoPago) {
+  return estadoPago === 'prueba' || estadoPago === 'activo';
+}
 
 // Columnas por defecto del tablero de un cliente nuevo - se pueden editar después desde
 // el panel (agregar, renombrar o borrar columnas), esto es solo el punto de partida.
@@ -131,4 +146,15 @@ async function crearCliente({
   return { _id: insertedId, ...doc };
 }
 
-module.exports = { connect, getDb, ObjectId, crearCliente, COLUMNAS_DEFAULT, getPlanes, DIAS_PRUEBA_GRATIS };
+module.exports = {
+  connect,
+  getDb,
+  ObjectId,
+  crearCliente,
+  COLUMNAS_DEFAULT,
+  getPlanes,
+  DIAS_PRUEBA_GRATIS,
+  DIAS_GRACIA,
+  estadoPermiteCaptura,
+  estadoPermiteRespuesta
+};
