@@ -46,6 +46,11 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/superadmin', superadminRoutes);
 app.use('/api/public', publicRoutes);
 
+// La landing de ventas pasó de /planes.html a la raíz (mejor para SEO: el dominio raíz es
+// lo que Google indexa con más fuerza, y es la URL que la gente comparte/recuerda).
+// Esto evita un 404 si alguien ya tenía guardado el link viejo.
+app.get('/planes.html', (req, res) => res.redirect(301, '/'));
+
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use((err, req, res, next) => {

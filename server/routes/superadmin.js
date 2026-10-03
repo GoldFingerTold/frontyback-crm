@@ -210,7 +210,7 @@ router.put('/clientes/:id/estado-pago', asyncHandler(async (req, res) => {
 }));
 
 // ---------- Códigos de descuento / afiliados (closers) ----------
-// Cada código le da un % de descuento al cliente que lo usa al anotarse en planes.html, y
+// Cada código le da un % de descuento al cliente que lo usa al anotarse desde la landing, y
 // deja registrado un % de comisión para quien lo trajo (el "closer") - Hugo calcula y paga
 // esas comisiones a mano a fin de mes, mirando qué clientes activos tienen cada código.
 

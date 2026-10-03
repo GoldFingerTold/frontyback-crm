@@ -12,7 +12,7 @@ async function api(path, options = {}) {
     ...options
   });
   if (res.status === 401) {
-    window.location.href = '/index.html';
+    window.location.href = '/login.html';
     throw new Error('No autenticado');
   }
   const data = await res.json().catch(() => ({}));
@@ -368,7 +368,7 @@ document.getElementById('ficha-overlay').addEventListener('click', (e) => {
 
 async function cerrarSesion() {
   await api('/api/auth/logout', { method: 'POST' });
-  window.location.href = '/index.html';
+  window.location.href = '/login.html';
 }
 document.getElementById('logout-btn').addEventListener('click', cerrarSesion);
 document.getElementById('logout-btn-mobile').addEventListener('click', cerrarSesion);

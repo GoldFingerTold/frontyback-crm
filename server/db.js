@@ -39,7 +39,7 @@ async function ensureIndexes() {
   await db.collection('planes').createIndex({ id: 1 }, { unique: true });
 }
 
-// Planes públicos que se muestran en la landing de ventas (planes.html) y se ofrecen en
+// Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en
 // el alta por autoservicio. Viven en Mongo (no hardcodeados) para que Hugo pueda ajustar
 // el precio en pesos desde el super-admin cuando se mueva el dólar, sin tocar código.
 // precio_usd_ref es solo de referencia para mostrar "≈ USD X" - lo que se cobra de

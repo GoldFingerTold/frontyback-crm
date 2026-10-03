@@ -1,4 +1,4 @@
-// Alta por autoservicio desde la landing de ventas (planes.html): cualquiera puede
+// Alta por autoservicio desde la landing de ventas (index.html): cualquiera puede
 // anotarse eligiendo un plan, con 7 días de prueba gratis. Es la única ruta pública que
 // crea cuentas, así que lleva el mismo blindaje que el formulario de contacto del
 // webhook (límite de envíos, honeypot, validación real) - ver server/routes/webhooks.js.
