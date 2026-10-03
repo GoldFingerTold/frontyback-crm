@@ -6,7 +6,7 @@ const express = require('express');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { requireAuth } = require('./auth');
-const mercadopago = require('../services/mercadopago');
+const pagos = require('../services/pagos');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -41,35 +41,11 @@ router.get('/pago/link', asyncHandler(async (req, res) => {
   const mongo = db.getDb();
   const clienteId = new db.ObjectId(req.session.clienteId);
   const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
-  if (!cliente.plan) return res.status(400).json({ error: 'Esta cuenta no tiene un plan asignado.' });
 
-  if (cliente.mercadopago_preapproval_id) {
-    try {
-      const existente = await mercadopago.obtenerSuscripcion(cliente.mercadopago_preapproval_id);
-      if (existente.status === 'pending' && existente.init_point) {
-        return res.json({ link: existente.init_point });
-      }
-    } catch {
-      // si falla la consulta (p.ej. quedó un id viejo inválido), se crea una nueva abajo
-    }
-  }
+  const link = await pagos.obtenerOCrearLinkDePago(cliente);
+  if (!link) return res.status(400).json({ error: 'Esta cuenta no tiene un plan asignado.' });
 
-  const planes = await db.getPlanes();
-  const plan = planes[cliente.plan];
-  const suscripcion = await mercadopago.crearSuscripcion({
-    slug: cliente.slug,
-    email: cliente.email_notificacion,
-    monto: cliente.precio_pactado || plan?.precio_ars,
-    frecuenciaPago: cliente.frecuencia_pago,
-    nombrePlan: plan?.nombre || cliente.plan
-  });
-
-  await mongo.collection('clientes').updateOne(
-    { _id: clienteId },
-    { $set: { mercadopago_preapproval_id: suscripcion.id } }
-  );
-
-  res.json({ link: suscripcion.init_point });
+  res.json({ link });
 }));
 
 // El monto es el único dato de la ficha que no llega solo por WhatsApp/formulario - se

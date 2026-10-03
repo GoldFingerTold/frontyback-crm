@@ -37,4 +37,40 @@ async function enviarAutorespuesta({ nombreCliente, nombreDestinatario, emailDes
   return { asunto, texto: `${saludo},\n\n${parrafo}\n\nSaludos,\n${nombreCliente}` };
 }
 
-module.exports = { enviarAutorespuesta };
+// Avisos automáticos del ciclo de pagos: recordatorio antes de que termine la prueba
+// gratis, aviso cuando arranca el período de gracia, y último aviso antes de que se corte
+// el servicio del todo. Las tres mandan el mismo tipo de link de pago, solo cambia el
+// apuro del mensaje.
+const TEXTOS_AVISO_PAGO = {
+  recordatorio_prueba: {
+    asunto: 'Tu prueba gratis del CRM termina en 2 días',
+    parrafo: 'Tu prueba gratis de 7 días en el CRM de FrontyBack está por terminar. Para que no se interrumpa el servicio, activá el pago acá abajo. Si ya lo programaste, ignorá este mensaje.'
+  },
+  inicio_gracia: {
+    asunto: 'Tu plan venció - te quedan 7 días para reactivarlo',
+    parrafo: 'Tu prueba gratis terminó y por ahora dejamos de mandar respuestas automáticas a tus consultas (las seguimos guardando igual, no se pierde nada). Tenés 7 días para reactivar el plan antes de que se corte del todo.'
+  },
+  ultimo_aviso: {
+    asunto: 'Últimos días para reactivar tu CRM',
+    parrafo: 'En pocos días se corta por completo tu servicio si no reactivás el pago. No vas a perder nada de lo que ya conseguiste, pero vas a dejar de recibir consultas nuevas hasta que pagues.'
+  }
+};
+
+async function enviarAvisoPago({ emailDestinatario, tipo, link }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+  const { asunto, parrafo } = TEXTOS_AVISO_PAGO[tipo];
+
+  await getResend().emails.send({
+    from,
+    to: emailDestinatario,
+    subject: asunto,
+    html: `
+      <p>Hola,</p>
+      <p>${escHtml(parrafo)}</p>
+      <p><a href="${escHtml(link)}" style="display:inline-block;background:#d4af37;color:#141517;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">Activar el pago</a></p>
+      <p>Saludos,<br>FrontyBack</p>
+    `
+  });
+}
+
+module.exports = { enviarAutorespuesta, enviarAvisoPago };
