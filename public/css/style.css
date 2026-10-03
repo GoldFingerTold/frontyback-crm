@@ -466,13 +466,15 @@ header {
   display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.04em; color: var(--text-secondary); margin-bottom: 6px;
 }
-.sa-form input {
+.sa-form input, .sa-form select {
   width: 100%; padding: 11px 13px;
   background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px;
   font-size: 0.9rem; font-family: inherit; color: var(--text-primary); outline: none;
 }
-.sa-form input:focus { border-color: rgba(212,175,55,0.4); }
+.sa-form input:focus, .sa-form select:focus { border-color: rgba(212,175,55,0.4); }
 .sa-form button { align-self: flex-start; margin-top: 4px; }
+.sa-form-fila { display: flex; gap: 12px; }
+.sa-form-fila > div { flex: 1; }
 
 .sa-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .sa-table th {

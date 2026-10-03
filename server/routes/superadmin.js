@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
+const mercadopago = require('../services/mercadopago');
 
 const router = express.Router();
 
@@ -206,6 +207,75 @@ router.put('/clientes/:id/estado-pago', asyncHandler(async (req, res) => {
     { $set: { estado_pago } }
   );
   if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese cliente.' });
+  res.json({ ok: true });
+}));
+
+// Edición general de un cliente ya creado (nombre, email, plan/precio/frecuencia pactados,
+// y el tope mensual de audios de WhatsApp - pensado sobre todo para ajustarlo en cuentas
+// que vinieron con un código 100% gratis). Cada campo es opcional: solo se actualiza el que
+// venga en el body, así el formulario del panel puede mandar nada más que lo que cambió.
+const PLANES_VALIDOS = ['esencial', 'completo'];
+router.put('/clientes/:id', asyncHandler(async (req, res) => {
+  const { nombre, email_notificacion, plan, precio_pactado, frecuencia_pago, limite_audios_mes } = req.body || {};
+  const clienteId = new db.ObjectId(req.params.id);
+  const set = {};
+
+  if (nombre !== undefined) {
+    const nombreLimpio = String(nombre).trim();
+    if (!nombreLimpio) return res.status(400).json({ error: 'El nombre no puede quedar vacío.' });
+    set.nombre = nombreLimpio;
+  }
+  if (email_notificacion !== undefined) {
+    set.email_notificacion = String(email_notificacion).trim();
+  }
+  if (plan !== undefined) {
+    if (plan !== null && !PLANES_VALIDOS.includes(plan)) return res.status(400).json({ error: 'Plan inválido.' });
+    set.plan = plan || null;
+  }
+  if (precio_pactado !== undefined) {
+    const precio = Number(precio_pactado);
+    if (!Number.isFinite(precio) || precio < 0) return res.status(400).json({ error: 'El precio tiene que ser un número de 0 para arriba.' });
+    set.precio_pactado = precio;
+  }
+  if (frecuencia_pago !== undefined) {
+    if (frecuencia_pago !== 'mensual' && frecuencia_pago !== 'anual') return res.status(400).json({ error: 'Frecuencia inválida.' });
+    set.frecuencia_pago = frecuencia_pago;
+  }
+  if (limite_audios_mes !== undefined) {
+    if (limite_audios_mes === null || limite_audios_mes === '') {
+      set.limite_audios_mes = null;
+    } else {
+      const limite = Number(limite_audios_mes);
+      if (!Number.isFinite(limite) || limite < 0) return res.status(400).json({ error: 'El límite de audios tiene que ser un número de 0 para arriba (o vacío para ilimitado).' });
+      set.limite_audios_mes = limite;
+    }
+  }
+
+  const result = await db.getDb().collection('clientes').updateOne({ _id: clienteId }, { $set: set });
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese cliente.' });
+  res.json({ ok: true });
+}));
+
+// Borra un cliente y todo lo suyo (fichas, contador de uso de audios). Si tenía una
+// suscripción de Mercado Pago pendiente o autorizada, se cancela de paso - si no, Mercado
+// Pago seguiría intentando cobrarle a una cuenta que ya no existe en el CRM.
+router.delete('/clientes/:id', asyncHandler(async (req, res) => {
+  const clienteId = new db.ObjectId(req.params.id);
+  const mongo = db.getDb();
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese cliente.' });
+
+  if (cliente.mercadopago_preapproval_id) {
+    try {
+      await mercadopago.cancelarSuscripcion(cliente.mercadopago_preapproval_id);
+    } catch (err) {
+      console.error('No se pudo cancelar la suscripción de Mercado Pago al borrar el cliente:', err.message);
+    }
+  }
+
+  await mongo.collection('fichas').deleteMany({ cliente_id: clienteId });
+  await mongo.collection('uso_audio_mensual').deleteMany({ cliente_id: clienteId });
+  await mongo.collection('clientes').deleteOne({ _id: clienteId });
   res.json({ ok: true });
 }));
 

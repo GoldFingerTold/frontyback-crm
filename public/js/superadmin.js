@@ -149,6 +149,7 @@ function renderClientes() {
               ${c.estado_pago !== 'activo' ? `<button type="button" class="btn-ghost" data-accion="marcar-activo" data-id="${c._id}" title="Marcar como pago confirmado"><i class="fa-solid fa-circle-dollar-to-slot"></i></button>` : ''}
               <button type="button" class="btn-ghost" data-accion="whatsapp" data-id="${c._id}"><i class="fa-brands fa-whatsapp"></i></button>
               <button type="button" class="btn-ghost" data-accion="columnas" data-id="${c._id}"><i class="fa-solid fa-table-columns"></i></button>
+              <button type="button" class="btn-ghost" data-accion="editar" data-id="${c._id}" title="Editar cliente"><i class="fa-solid fa-pen"></i></button>
             </td>
           </tr>
         `).join('')}
@@ -172,7 +173,69 @@ function renderClientes() {
       await cargarClientes();
     });
   });
+  cont.querySelectorAll('[data-accion="editar"]').forEach((btn) => {
+    btn.addEventListener('click', () => abrirEditarCliente(btn.dataset.id));
+  });
 }
+
+// ---------- Editor de cliente ----------
+function abrirEditarCliente(clienteId) {
+  const cliente = CLIENTES.find((c) => c._id === clienteId);
+  if (!cliente) return;
+  document.getElementById('ce-nombre').value = cliente.nombre || '';
+  document.getElementById('ce-email').value = cliente.email_notificacion || '';
+  document.getElementById('ce-plan').value = cliente.plan || '';
+  document.getElementById('ce-frecuencia').value = cliente.frecuencia_pago || 'mensual';
+  document.getElementById('ce-precio').value = cliente.precio_pactado ?? '';
+  document.getElementById('ce-limite-audios').value = cliente.limite_audios_mes ?? '';
+  document.getElementById('cliente-editar-status').textContent = '';
+  document.getElementById('cliente-editar-form').dataset.id = clienteId;
+  document.getElementById('cliente-editar-borrar').dataset.id = clienteId;
+  document.getElementById('cliente-overlay').hidden = false;
+}
+document.getElementById('cliente-close').addEventListener('click', () => {
+  document.getElementById('cliente-overlay').hidden = true;
+});
+document.getElementById('cliente-editar-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const clienteId = e.target.dataset.id;
+  const status = document.getElementById('cliente-editar-status');
+  status.textContent = 'Guardando...';
+  status.className = 'ficha-monto-status';
+  try {
+    await api(`/clientes/${clienteId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        nombre: document.getElementById('ce-nombre').value.trim(),
+        email_notificacion: document.getElementById('ce-email').value.trim(),
+        plan: document.getElementById('ce-plan').value || null,
+        frecuencia_pago: document.getElementById('ce-frecuencia').value,
+        precio_pactado: document.getElementById('ce-precio').value,
+        limite_audios_mes: document.getElementById('ce-limite-audios').value
+      })
+    });
+    await cargarClientes();
+    document.getElementById('cliente-overlay').hidden = true;
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'ficha-monto-status error';
+  }
+});
+document.getElementById('cliente-editar-borrar').addEventListener('click', async (e) => {
+  const clienteId = e.target.closest('button').dataset.id;
+  const cliente = CLIENTES.find((c) => c._id === clienteId);
+  if (!cliente) return;
+  if (!confirm(`¿Borrar a "${cliente.nombre}"? Se borran también todas sus consultas. Esto no se puede deshacer.`)) return;
+  const status = document.getElementById('cliente-editar-status');
+  try {
+    await api(`/clientes/${clienteId}`, { method: 'DELETE' });
+    document.getElementById('cliente-overlay').hidden = true;
+    await cargarClientes();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'ficha-monto-status error';
+  }
+});
 
 // ---------- Nuevo cliente ----------
 document.getElementById('nuevo-cliente-form').addEventListener('submit', async (e) => {

@@ -37,6 +37,7 @@ async function ensureIndexes() {
   await db.collection('fichas').createIndex({ cliente_id: 1, whatsapp_wa_id: 1 });
   await db.collection('codigos').createIndex({ codigo: 1 }, { unique: true });
   await db.collection('planes').createIndex({ id: 1 }, { unique: true });
+  await db.collection('uso_audio_mensual').createIndex({ cliente_id: 1, mes: 1 }, { unique: true });
 }
 
 // Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en
@@ -136,6 +137,13 @@ const COLUMNAS_DEFAULT = [
   { id: 'perdido', nombre: 'No avanzó', posicion: 4 }
 ];
 
+// Una cuenta dada de alta con un código 100% gratis no deja ninguna facturación que
+// compense lo que cuesta transcribir y responder con voz por WhatsApp (son las dos únicas
+// funciones de este CRM con costo variable por uso - todo lo demás es gratis o de costo
+// fijo). Por eso a esas cuentas se les pone un tope mensual de audios por defecto, editable
+// por cliente desde el super-admin si hace falta más.
+const LIMITE_AUDIOS_CODIGO_GRATIS = 30;
+
 // origen: 'superadmin' (alta manual, sin período de prueba, se asume ya acordado con
 // Hugo) | 'landing' (autoservicio, arranca en prueba gratis).
 async function crearCliente({
@@ -170,6 +178,7 @@ async function crearCliente({
     codigo_referido,
     descuento_pct_aplicado,
     comision_pct_aplicada,
+    limite_audios_mes: descuento_pct_aplicado >= 100 ? LIMITE_AUDIOS_CODIGO_GRATIS : null,
     estado_pago: esAltaAutoservicio ? 'prueba' : 'activo',
     prueba_termina: esAltaAutoservicio
       ? new Date(ahora.getTime() + DIAS_PRUEBA_GRATIS * 24 * 60 * 60 * 1000)
@@ -178,6 +187,27 @@ async function crearCliente({
   };
   const { insertedId } = await getDb().collection('clientes').insertOne(doc);
   return { _id: insertedId, ...doc };
+}
+
+// Cuenta cuántos audios de WhatsApp ya se transcribieron este mes para un cliente -
+// contador aparte de "fichas" porque una misma persona que manda varios audios no genera
+// una ficha nueva por cada uno (se deduplican por contacto), así que contar fichas
+// subestimaría el uso real.
+function mesActual() {
+  return new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+}
+
+async function contarUsoAudioEsteMes(clienteId) {
+  const doc = await getDb().collection('uso_audio_mensual').findOne({ cliente_id: clienteId, mes: mesActual() });
+  return doc?.cantidad || 0;
+}
+
+async function registrarUsoAudio(clienteId) {
+  await getDb().collection('uso_audio_mensual').updateOne(
+    { cliente_id: clienteId, mes: mesActual() },
+    { $inc: { cantidad: 1 } },
+    { upsert: true }
+  );
 }
 
 module.exports = {
@@ -192,5 +222,7 @@ module.exports = {
   estadoPermiteCaptura,
   estadoPermiteRespuesta,
   activarPorPago,
-  cortarPorFaltaDePago
+  cortarPorFaltaDePago,
+  contarUsoAudioEsteMes,
+  registrarUsoAudio
 };

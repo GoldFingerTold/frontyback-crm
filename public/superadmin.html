@@ -149,6 +149,56 @@
     </div>
   </div>
 
+  <!-- Editor de cliente -->
+  <div id="cliente-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 460px;">
+      <button id="cliente-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Editar cliente</h2>
+      <form id="cliente-editar-form" class="sa-form" style="max-width: none;">
+        <div>
+          <label for="ce-nombre">Nombre del negocio</label>
+          <input type="text" id="ce-nombre" required>
+        </div>
+        <div>
+          <label for="ce-email">Email de contacto</label>
+          <input type="email" id="ce-email">
+        </div>
+        <div class="sa-form-fila">
+          <div>
+            <label for="ce-plan">Plan</label>
+            <select id="ce-plan">
+              <option value="">Sin plan</option>
+              <option value="esencial">Esencial</option>
+              <option value="completo">Completo</option>
+            </select>
+          </div>
+          <div>
+            <label for="ce-frecuencia">Frecuencia</label>
+            <select id="ce-frecuencia">
+              <option value="mensual">Mensual</option>
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+        </div>
+        <div class="sa-form-fila">
+          <div>
+            <label for="ce-precio">Precio pactado ($)</label>
+            <input type="number" id="ce-precio" min="0" step="1">
+          </div>
+          <div>
+            <label for="ce-limite-audios">Límite audios/mes</label>
+            <input type="number" id="ce-limite-audios" min="0" step="1" placeholder="Sin límite">
+          </div>
+        </div>
+        <p class="ficha-monto-status" id="cliente-editar-status"></p>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </form>
+      <button type="button" id="cliente-editar-borrar" class="btn-ghost" style="margin-top: 14px; width: 100%; color: var(--danger); border-color: var(--danger);">
+        <i class="fa-solid fa-trash"></i> Borrar este cliente
+      </button>
+    </div>
+  </div>
+
   <script src="/js/superadmin.js"></script>
 </body>
 </html>

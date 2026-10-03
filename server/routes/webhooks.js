@@ -213,13 +213,28 @@ async function procesarEventoWhatsapp(body) {
         await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: MENSAJE_AUTORESPUESTA });
       }
     } else if (msg.type === 'audio') {
-      const { buffer, mimeType } = await whatsapp.descargarMedia(msg.audio.id);
+      // Transcribir (OpenAI) y responder con voz (ElevenLabs) es lo único de este CRM con
+      // costo variable por uso - por eso está limitado al plan Completo, y además a un tope
+      // mensual en las cuentas que vinieron con un código 100% gratis (cliente.limite_audios_mes).
+      // Fuera de esos casos igual se guarda la consulta (no se pierde el lead), solo que sin
+      // transcribir y respondiendo con el texto normal en vez de audio.
+      const usoActual = cliente.limite_audios_mes != null ? await db.contarUsoAudioEsteMes(cliente._id) : 0;
+      const puedeUsarAudio = cliente.plan === 'completo' && (cliente.limite_audios_mes == null || usoActual < cliente.limite_audios_mes);
 
-      let transcripcion = '(no se pudo transcribir el audio)';
-      try {
-        transcripcion = await stt.transcribirAudio(buffer, mimeType);
-      } catch (err) {
-        console.error('No se pudo transcribir el audio de WhatsApp:', err.message);
+      let mensaje;
+      if (puedeUsarAudio) {
+        const { buffer, mimeType } = await whatsapp.descargarMedia(msg.audio.id);
+        try {
+          mensaje = await stt.transcribirAudio(buffer, mimeType);
+        } catch (err) {
+          console.error('No se pudo transcribir el audio de WhatsApp:', err.message);
+          mensaje = '(no se pudo transcribir el audio)';
+        }
+        await db.registrarUsoAudio(cliente._id);
+      } else {
+        mensaje = cliente.plan === 'completo'
+          ? '(Audio recibido - se alcanzó el límite mensual de audios de esta cuenta)'
+          : '(Audio recibido - el plan de esta cuenta no incluye transcripción automática)';
       }
 
       const ficha = await fichas.registrarConsulta({
@@ -228,14 +243,19 @@ async function procesarEventoWhatsapp(body) {
         contacto: waId,
         nombre: nombreContacto,
         origen: 'whatsapp_audio',
-        mensaje: transcripcion,
+        mensaje,
         whatsappWaId: waId
       });
 
       if (puedeResponder) {
-        const audioRespuesta = await tts.generarAudio(MENSAJE_AUTORESPUESTA);
-        await whatsapp.enviarAudio({ phoneNumberId, para: waId, buffer: audioRespuesta });
-        await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_audio', texto: MENSAJE_AUTORESPUESTA });
+        if (puedeUsarAudio) {
+          const audioRespuesta = await tts.generarAudio(MENSAJE_AUTORESPUESTA);
+          await whatsapp.enviarAudio({ phoneNumberId, para: waId, buffer: audioRespuesta });
+          await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_audio', texto: MENSAJE_AUTORESPUESTA });
+        } else {
+          await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: MENSAJE_AUTORESPUESTA });
+          await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: MENSAJE_AUTORESPUESTA });
+        }
       }
     }
     // Otros tipos (imagen, ubicación, etc.) se ignoran por ahora - se puede sumar después.
