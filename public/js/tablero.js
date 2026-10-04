@@ -188,7 +188,7 @@ function actualizarCabecera() {
   if (ESTADO.usuario) {
     const esGerencia = ESTADO.usuario.rol === 'gerencia';
     document.getElementById('user-rol').textContent = esGerencia
-      ? `${ESTADO.usuario.nombre} · Gerencia (ve todo)`
+      ? 'Gerencia · ve todo'
       : `${ESTADO.usuario.nombre} · ${ESTADO.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !esGerencia;
   }
