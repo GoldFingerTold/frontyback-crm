@@ -1,6 +1,8 @@
-// Login del panel - multi-cliente: cada negocio entra con el "slug" de su cuenta (se lo
-// pasamos nosotros al darlo de alta) más su contraseña, igual que el resto de los sitios
-// de FrontyBack.
+// Login del panel - cada persona entra con su propio usuario y contraseña (no el negocio
+// entero compartiendo un solo login). El primer usuario de cada cliente es "Gerencia" y ve
+// todas las fichas; el resto de los empleados (los crea Gerencia desde el tablero) solo ve
+// las de su departamento. El campo del body sigue llamándose "slug" por compatibilidad con
+// el formulario de login que ya existe, pero ahora identifica a la persona, no al negocio.
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -21,17 +23,24 @@ const loginLimiter = rateLimit({
 });
 
 router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
-  const { slug, password } = req.body || {};
-  if (!slug || !password) return res.status(400).json({ error: 'Faltan datos.' });
+  const { slug: usuarioLogin, password } = req.body || {};
+  if (!usuarioLogin || !password) return res.status(400).json({ error: 'Faltan datos.' });
 
-  const cliente = await db.getDb().collection('clientes').findOne({ slug });
-  if (!cliente) return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+  const usuario = await db.getDb().collection('usuarios').findOne({ usuario: usuarioLogin });
+  if (!usuario) return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
 
-  const ok = bcrypt.compareSync(password, cliente.admin_password_hash);
+  const ok = bcrypt.compareSync(password, usuario.password_hash);
   if (!ok) return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+
+  const cliente = await db.getDb().collection('clientes').findOne({ _id: usuario.cliente_id });
+  if (!cliente) return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
 
   req.session.clienteId = cliente._id.toString();
   req.session.clienteSlug = cliente.slug;
+  req.session.usuarioId = usuario._id.toString();
+  req.session.usuarioNombre = usuario.nombre;
+  req.session.rol = usuario.rol;
+  req.session.departamento = usuario.departamento || null;
   res.json({ ok: true, nombre: cliente.nombre });
 }));
 
@@ -42,7 +51,9 @@ router.post('/logout', (req, res) => {
 router.get('/session', (req, res) => {
   res.json({
     autenticado: Boolean(req.session && req.session.clienteId),
-    clienteSlug: req.session?.clienteSlug || null
+    clienteSlug: req.session?.clienteSlug || null,
+    rol: req.session?.rol || null,
+    departamento: req.session?.departamento || null
   });
 });
 
@@ -53,5 +64,16 @@ function requireAuth(req, res, next) {
   next();
 }
 
+// Solo Gerencia puede gestionar empleados. Una sesión vieja (de antes de que existiera este
+// sistema de usuarios) no tiene "rol" guardado - se la trata como Gerencia, porque esa
+// cuenta era la única que existía y veía todo.
+function requireGerencia(req, res, next) {
+  if (req.session?.rol === 'departamento') {
+    return res.status(403).json({ error: 'Solo Gerencia puede hacer esto.' });
+  }
+  next();
+}
+
 module.exports = router;
 module.exports.requireAuth = requireAuth;
+module.exports.requireGerencia = requireGerencia;

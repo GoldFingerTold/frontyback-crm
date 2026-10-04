@@ -195,6 +195,9 @@ async function procesarEventoWhatsapp(body) {
   const contactoInfo = cambio.contacts?.[0];
   const nombreContacto = contactoInfo?.profile?.name || '';
   const columnaInicial = cliente.columnas[0].id;
+  // De qué departamento es esta línea (si Hugo le puso etiqueta al conectarla) - define a
+  // qué empleados se les muestra la ficha en server/routes/admin.js.
+  const departamento = cliente.whatsapp_numeros.find((n) => n.phone_number_id === phoneNumberId)?.etiqueta || null;
 
   for (const msg of mensajes) {
     const waId = msg.from;
@@ -208,7 +211,8 @@ async function procesarEventoWhatsapp(body) {
         nombre: nombreContacto,
         origen: 'whatsapp_texto',
         mensaje: texto,
-        whatsappWaId: waId
+        whatsappWaId: waId,
+        departamento
       });
 
       if (puedeResponder) {
@@ -248,7 +252,8 @@ async function procesarEventoWhatsapp(body) {
         nombre: nombreContacto,
         origen: 'whatsapp_audio',
         mensaje,
-        whatsappWaId: waId
+        whatsappWaId: waId,
+        departamento
       });
 
       if (puedeResponder) {

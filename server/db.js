@@ -27,6 +27,7 @@ async function connect() {
   await ensureIndexes();
   await sembrarPlanes();
   await migrarWhatsappNumeros();
+  await migrarUsuarios();
   console.log('CRM conectado a MongoDB Atlas.');
 }
 
@@ -39,6 +40,8 @@ async function ensureIndexes() {
   await db.collection('codigos').createIndex({ codigo: 1 }, { unique: true });
   await db.collection('planes').createIndex({ id: 1 }, { unique: true });
   await db.collection('uso_audio_mensual').createIndex({ cliente_id: 1, mes: 1 }, { unique: true });
+  await db.collection('usuarios').createIndex({ usuario: 1 }, { unique: true });
+  await db.collection('usuarios').createIndex({ cliente_id: 1 });
 }
 
 // Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en
@@ -179,6 +182,9 @@ const LIMITE_AUDIOS_CODIGO_GRATIS = 30;
 
 // origen: 'superadmin' (alta manual, sin período de prueba, se asume ya acordado con
 // Hugo) | 'landing' (autoservicio, arranca en prueba gratis).
+// El login ya no vive en el cliente - se crea acá mismo el primer usuario, con rol
+// "gerencia" (ve todas las fichas, sin importar el departamento) y usuario = el slug,
+// para no cambiarle nada al formulario de alta ni a la pantalla de login existentes.
 async function crearCliente({
   slug,
   nombre,
@@ -192,7 +198,6 @@ async function crearCliente({
   descuento_pct_aplicado = 0,
   comision_pct_aplicada = 0
 }) {
-  const password_hash = bcrypt.hashSync(admin_password, 10);
   const ahora = new Date();
   const esAltaAutoservicio = origen === 'landing';
 
@@ -201,7 +206,6 @@ async function crearCliente({
     nombre,
     email_notificacion: email_notificacion || '',
     whatsapp_numeros: [],
-    admin_password_hash: password_hash,
     columnas: COLUMNAS_DEFAULT,
     plan,
     precio_pactado,
@@ -218,6 +222,17 @@ async function crearCliente({
     created_at: ahora
   };
   const { insertedId } = await getDb().collection('clientes').insertOne(doc);
+
+  await getDb().collection('usuarios').insertOne({
+    cliente_id: insertedId,
+    usuario: slug,
+    password_hash: bcrypt.hashSync(admin_password, 10),
+    nombre: 'Gerencia',
+    rol: 'gerencia',
+    departamento: null,
+    created_at: ahora
+  });
+
   return { _id: insertedId, ...doc };
 }
 
@@ -259,6 +274,42 @@ async function migrarWhatsappNumeros() {
   }
 }
 
+// Los clientes creados antes de que existiera este sistema de usuarios tenían el login
+// directo en admin_password_hash - se convierte una sola vez al mismo usuario "Gerencia"
+// que ahora crea crearCliente(), sin tocar la contraseña (se copia el hash tal cual, así
+// nadie pierde el acceso con la contraseña que ya tenía).
+async function migrarUsuarios() {
+  const clientes = db.collection('clientes');
+  const usuarios = db.collection('usuarios');
+  const viejos = await clientes.find({ admin_password_hash: { $exists: true } }).toArray();
+  for (const c of viejos) {
+    await usuarios.updateOne(
+      { usuario: c.slug },
+      {
+        $setOnInsert: {
+          cliente_id: c._id,
+          usuario: c.slug,
+          password_hash: c.admin_password_hash,
+          nombre: 'Gerencia',
+          rol: 'gerencia',
+          departamento: null,
+          created_at: c.created_at || new Date()
+        }
+      },
+      { upsert: true }
+    );
+    await clientes.updateOne({ _id: c._id }, { $unset: { admin_password_hash: '' } });
+  }
+}
+
+// Departamentos disponibles para un cliente: las etiquetas que Hugo ya les puso a sus
+// cuentas de WhatsApp conectadas (sin repetidos, sin las vacías) - así Gerencia solo puede
+// asignarle a un empleado un departamento que de verdad tiene una línea de WhatsApp detrás.
+function departamentosDeCliente(cliente) {
+  const etiquetas = (cliente.whatsapp_numeros || []).map((n) => n.etiqueta).filter(Boolean);
+  return [...new Set(etiquetas)];
+}
+
 module.exports = {
   connect,
   getDb,
@@ -273,5 +324,6 @@ module.exports = {
   activarPorPago,
   cortarPorFaltaDePago,
   contarUsoAudioEsteMes,
-  registrarUsoAudio
+  registrarUsoAudio,
+  departamentosDeCliente
 };

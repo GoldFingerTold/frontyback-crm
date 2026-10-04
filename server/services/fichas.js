@@ -20,6 +20,10 @@ async function siguientePosicion(clienteId, columnaId) {
 }
 
 // origen: 'formulario' | 'whatsapp_texto' | 'whatsapp_audio'
+// departamento: de qué línea de WhatsApp llegó (su etiqueta) - null para formulario, que no
+// está atado a ninguna línea. Si una persona vuelve a escribir por una línea de otro
+// departamento, la ficha se "muda" a ese departamento (se queda con el último que la
+// atendió, no el primero).
 async function registrarConsulta({
   clienteId,
   columnaInicial,
@@ -27,7 +31,8 @@ async function registrarConsulta({
   nombre,
   origen,
   mensaje,
-  whatsappWaId
+  whatsappWaId,
+  departamento = null
 }) {
   const mongo = db.getDb();
   const ahora = new Date();
@@ -53,7 +58,10 @@ async function registrarConsulta({
           ultimo_origen: origen,
           fecha_hora_ultimo_mensaje: ahora,
           ...(nombre ? { nombre } : {}),
-          ...(whatsappWaId ? { whatsapp_wa_id: whatsappWaId } : {})
+          ...(whatsappWaId ? { whatsapp_wa_id: whatsappWaId } : {}),
+          // Si este mensaje no viene de una línea con departamento (p.ej. llegó por el
+          // formulario del sitio), no se pisa el departamento que la ficha ya tenía.
+          ...(departamento ? { departamento } : {})
         },
         $push: { historial: evento }
       }
@@ -68,6 +76,7 @@ async function registrarConsulta({
     contacto,
     whatsapp_wa_id: whatsappWaId || '',
     origen,
+    departamento,
     mensaje,
     ultimo_mensaje: mensaje,
     ultimo_origen: origen,

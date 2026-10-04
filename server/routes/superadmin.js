@@ -83,8 +83,10 @@ router.put('/planes/:id', asyncHandler(async (req, res) => {
 }));
 
 router.get('/clientes', asyncHandler(async (req, res) => {
+  // Las contraseñas ya no viven acá (están en "usuarios", una por persona), así que no
+  // hace falta excluir ningún campo sensible al listar los clientes.
   const clientes = await db.getDb().collection('clientes')
-    .find({}, { projection: { admin_password_hash: 0 } })
+    .find({})
     .sort({ created_at: -1 })
     .toArray();
   res.json({ clientes });
@@ -309,6 +311,7 @@ router.delete('/clientes/:id', asyncHandler(async (req, res) => {
 
   await mongo.collection('fichas').deleteMany({ cliente_id: clienteId });
   await mongo.collection('uso_audio_mensual').deleteMany({ cliente_id: clienteId });
+  await mongo.collection('usuarios').deleteMany({ cliente_id: clienteId });
   await mongo.collection('clientes').deleteOne({ _id: clienteId });
   res.json({ ok: true });
 }));

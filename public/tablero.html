@@ -24,6 +24,9 @@
         </div>
         <nav class="nav-menu">
           <a href="/tablero.html" class="nav-item active"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
+          <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
+            <i class="fa-solid fa-users"></i> Empleados
+          </button>
         </nav>
       </div>
 
@@ -33,6 +36,7 @@
           <div class="user-details">
             <h4 id="user-nombre">—</h4>
             <span id="user-slug"></span>
+            <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
           </div>
         </div>
         <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
@@ -74,6 +78,35 @@
     <div class="ficha-detail">
       <button id="ficha-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
       <div id="ficha-body"></div>
+    </div>
+  </div>
+
+  <div id="empleados-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 480px;">
+      <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <div id="empleados-lista" class="sa-columnas-lista"></div>
+      <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
+        <div>
+          <label for="emp-nombre">Nombre</label>
+          <input type="text" id="emp-nombre" required>
+        </div>
+        <div>
+          <label for="emp-usuario">Usuario (para el login)</label>
+          <input type="text" id="emp-usuario" required>
+        </div>
+        <div>
+          <label for="emp-password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+        </div>
+        <div>
+          <label for="emp-departamento">Departamento</label>
+          <select id="emp-departamento" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+      </form>
+      <p class="form-status" id="empleado-status"></p>
     </div>
   </div>
 

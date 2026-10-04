@@ -185,6 +185,14 @@ function actualizarCabecera() {
     document.getElementById('user-avatar').textContent = iniciales || '?';
   }
 
+  if (ESTADO.usuario) {
+    const esGerencia = ESTADO.usuario.rol === 'gerencia';
+    document.getElementById('user-rol').textContent = esGerencia
+      ? `${ESTADO.usuario.nombre} · Gerencia (ve todo)`
+      : `${ESTADO.usuario.nombre} · ${ESTADO.usuario.departamento}`;
+    document.getElementById('nav-empleados').hidden = !esGerencia;
+  }
+
   const hoy = new Date().toDateString();
   const nuevasHoy = ESTADO.fichas.filter((f) => new Date(f.fecha_hora_recibido).toDateString() === hoy).length;
   document.getElementById('metrics-nuevas-hoy').textContent = `+${nuevasHoy} nuevas hoy`;
@@ -391,3 +399,82 @@ cargarTablero().catch((err) => {
 // Actualiza solo, cada 20s, para que aparezcan las fichas nuevas que van llegando por
 // WhatsApp o formulario sin tener que recargar la página a mano.
 setInterval(() => cargarTablero().catch(() => {}), 20000);
+
+// ---------- Empleados (solo lo ve y usa Gerencia) ----------
+async function abrirEmpleados() {
+  document.getElementById('empleados-overlay').hidden = false;
+  document.getElementById('empleado-status').textContent = '';
+  document.getElementById('empleado-nuevo-form').reset();
+  try {
+    const [{ usuarios }, { departamentos }] = await Promise.all([
+      api('/api/admin/usuarios'),
+      api('/api/admin/departamentos')
+    ]);
+    renderEmpleados(usuarios);
+    const select = document.getElementById('emp-departamento');
+    select.innerHTML = departamentos.length
+      ? departamentos.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join('')
+      : '<option value="" disabled selected>No hay departamentos todavía</option>';
+  } catch (err) {
+    document.getElementById('empleados-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+  }
+}
+
+function renderEmpleados(usuarios) {
+  const cont = document.getElementById('empleados-lista');
+  const empleados = usuarios.filter((u) => u.rol === 'departamento');
+  if (empleados.length === 0) {
+    cont.innerHTML = '<p class="loading" style="padding: 0;">Todavía no agregaste ningún empleado.</p>';
+    return;
+  }
+  cont.innerHTML = empleados.map((u) => `
+    <div class="sa-columna-fila">
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 13px;">${esc(u.nombre)} <span style="color: var(--text-muted);">· ${esc(u.usuario)}</span></div>
+        <div style="font-size: 11.5px; color: var(--text-muted);">${esc(u.departamento)}</div>
+      </div>
+      <button type="button" class="btn-ghost sa-columna-borrar" data-borrar-empleado="${u._id}"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+  cont.querySelectorAll('[data-borrar-empleado]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Borrar a este empleado? Deja de poder entrar al CRM.')) return;
+      try {
+        await api(`/api/admin/usuarios/${btn.dataset.borrarEmpleado}`, { method: 'DELETE' });
+        abrirEmpleados();
+      } catch (err) {
+        document.getElementById('empleado-status').textContent = err.message;
+      }
+    });
+  });
+}
+
+document.getElementById('nav-empleados').addEventListener('click', abrirEmpleados);
+document.getElementById('empleados-close').addEventListener('click', () => {
+  document.getElementById('empleados-overlay').hidden = true;
+});
+document.getElementById('empleado-nuevo-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const status = document.getElementById('empleado-status');
+  status.textContent = 'Agregando...';
+  status.className = 'form-status';
+  try {
+    await api('/api/admin/usuarios', {
+      method: 'POST',
+      body: JSON.stringify({
+        nombre: document.getElementById('emp-nombre').value.trim(),
+        usuario: document.getElementById('emp-usuario').value.trim(),
+        password: document.getElementById('emp-password').value,
+        departamento: document.getElementById('emp-departamento').value
+      })
+    });
+    status.textContent = 'Empleado agregado.';
+    document.getElementById('empleado-nuevo-form').reset();
+    const { usuarios } = await api('/api/admin/usuarios');
+    renderEmpleados(usuarios);
+    setTimeout(() => { status.textContent = ''; }, 2500);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});
