@@ -128,4 +128,50 @@ router.post(
   })
 );
 
+// ---------- Callback del Embedded Signup de WhatsApp (alojado por Meta) ----------
+// Cuando un cliente nuevo termina de conectar su WhatsApp en la página alojada por Meta,
+// el navegador vuelve acá con un "code" para canjear por un token. Primera vez que probamos
+// este flujo en producción, así que de movida queda todo bien logueado - en cuanto Hugo
+// haga la primera conexión real vamos a ver exactamente qué datos manda Meta (WABA y
+// phone_number_id) y terminar de conectarlo automáticamente con el cliente correspondiente
+// (identificado acá por "state").
+const WHATSAPP_CALLBACK_URL = 'https://crm.frontyback.com/api/public/whatsapp/callback';
+
+router.get('/whatsapp/callback', asyncHandler(async (req, res) => {
+  console.log('Callback de WhatsApp Embedded Signup recibido:', JSON.stringify(req.query));
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).send('Falta el código de autorización de Meta. Volvé a intentar la conexión.');
+  }
+
+  const params = new URLSearchParams({
+    client_id: process.env.WHATSAPP_APP_ID || '',
+    client_secret: process.env.WHATSAPP_APP_SECRET || '',
+    redirect_uri: WHATSAPP_CALLBACK_URL,
+    code: String(code)
+  });
+
+  let tokenData;
+  try {
+    const tokenRes = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?${params}`);
+    tokenData = await tokenRes.json();
+    if (!tokenRes.ok) {
+      console.error('Error canjeando el código de WhatsApp por un token:', tokenData);
+      return res.status(500).send('No se pudo completar la conexión con Meta. Avisale a FrontyBack.');
+    }
+  } catch (err) {
+    console.error('Error de red canjeando el código de WhatsApp:', err.message);
+    return res.status(500).send('No se pudo completar la conexión con Meta. Avisale a FrontyBack.');
+  }
+
+  console.log('Token de WhatsApp obtenido correctamente:', JSON.stringify(tokenData));
+
+  res.send(
+    '<html><body style="font-family: sans-serif; text-align: center; padding: 60px;">' +
+    '<h2>¡Listo! Tu WhatsApp quedó conectado.</h2><p>Ya podés cerrar esta ventana.</p>' +
+    '</body></html>'
+  );
+}));
+
 module.exports = router;
