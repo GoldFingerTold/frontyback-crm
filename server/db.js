@@ -85,7 +85,7 @@ const PLANES_DEFAULT = [
     precio_usd_ref_anual: 300,
     max_whatsapp: 20,
     descripcion: 'Todo lo del plan Profesional, pensado para negocios con varias sucursales o líneas de WhatsApp.',
-    features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Ideal para varias sucursales o equipos']
+    features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
   }
 ];
 
