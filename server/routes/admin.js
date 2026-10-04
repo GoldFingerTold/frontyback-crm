@@ -37,6 +37,7 @@ router.get('/tablero', asyncHandler(async (req, res) => {
     cliente: {
       nombre: cliente.nombre,
       slug: cliente.slug,
+      plan: cliente.plan,
       estado_pago: cliente.estado_pago,
       prueba_termina: cliente.prueba_termina,
       gracia_termina: cliente.gracia_termina
@@ -170,6 +171,84 @@ router.delete('/usuarios/:id', requireGerencia, asyncHandler(async (req, res) =>
   });
   if (result.deletedCount === 0) return res.status(404).json({ error: 'No existe ese empleado.' });
   res.json({ ok: true });
+}));
+
+// ---------- Estadísticas (exclusivo del plan Premium, solo Gerencia) ----------
+// Todo sale de datos que ya se guardan solos (columna_id, monto, origen, departamento,
+// fecha) - no hace falta que el cliente cargue nada aparte para tener estos gráficos.
+router.get('/estadisticas', requireGerencia, asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+
+  if (cliente.plan !== 'premium') {
+    return res.status(403).json({ error: 'Las estadísticas son exclusivas del plan Premium.' });
+  }
+
+  const fichasCol = mongo.collection('fichas');
+
+  const [porColumna, porOrigen, porDepartamento] = await Promise.all([
+    fichasCol.aggregate([
+      { $match: { cliente_id: clienteId } },
+      { $group: { _id: '$columna_id', cantidad: { $sum: 1 }, monto_total: { $sum: { $ifNull: ['$monto', 0] } } } }
+    ]).toArray(),
+    fichasCol.aggregate([
+      { $match: { cliente_id: clienteId } },
+      { $group: { _id: '$origen', cantidad: { $sum: 1 } } }
+    ]).toArray(),
+    fichasCol.aggregate([
+      { $match: { cliente_id: clienteId } },
+      { $group: { _id: '$departamento', cantidad: { $sum: 1 } } }
+    ]).toArray()
+  ]);
+
+  const mapaColumna = Object.fromEntries(porColumna.map((c) => [c._id, c]));
+  const columnasOrdenadas = [...cliente.columnas].sort((a, b) => a.posicion - b.posicion);
+  const embudo = columnasOrdenadas.map((col) => ({
+    columna_id: col.id,
+    nombre: col.nombre,
+    cantidad: mapaColumna[col.id]?.cantidad || 0,
+    monto_total: mapaColumna[col.id]?.monto_total || 0
+  }));
+
+  // Últimos 12 meses, con los meses sin consultas en cero (para que el gráfico no "salte").
+  const hoy = new Date();
+  hoy.setDate(1);
+  const mesesClaves = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    mesesClaves.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const desde = new Date(hoy.getFullYear(), hoy.getMonth() - 11, 1);
+  const porMes = await fichasCol.aggregate([
+    { $match: { cliente_id: clienteId, fecha_hora_recibido: { $gte: desde } } },
+    {
+      $group: {
+        _id: { $dateToString: { format: '%Y-%m', date: '$fecha_hora_recibido' } },
+        monto_total: { $sum: { $ifNull: ['$monto', 0] } },
+        cantidad: { $sum: 1 }
+      }
+    }
+  ]).toArray();
+  const mapaMes = Object.fromEntries(porMes.map((m) => [m._id, m]));
+  const valorPorMes = mesesClaves.map((mes) => ({
+    mes,
+    monto_total: mapaMes[mes]?.monto_total || 0,
+    cantidad: mapaMes[mes]?.cantidad || 0
+  }));
+
+  const totalLeads = embudo.reduce((acc, c) => acc + c.cantidad, 0);
+  const valorTotal = embudo.reduce((acc, c) => acc + c.monto_total, 0);
+  const ultimaColumna = embudo[embudo.length - 1];
+  const tasaConversion = totalLeads > 0 ? (ultimaColumna.cantidad / totalLeads) * 100 : 0;
+
+  res.json({
+    kpis: { total_leads: totalLeads, valor_total: valorTotal, tasa_conversion: tasaConversion, nombre_ultima_columna: ultimaColumna?.nombre || '' },
+    embudo,
+    valor_por_mes: valorPorMes,
+    origen: porOrigen.map((o) => ({ origen: o._id, cantidad: o.cantidad })),
+    departamento: porDepartamento.map((d) => ({ departamento: d._id, cantidad: d.cantidad }))
+  });
 }));
 
 module.exports = router;

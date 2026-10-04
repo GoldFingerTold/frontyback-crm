@@ -191,6 +191,7 @@ function actualizarCabecera() {
       ? 'Gerencia · ve todo'
       : `${ESTADO.usuario.nombre} · ${ESTADO.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !esGerencia;
+    document.getElementById('nav-estadisticas').hidden = !(esGerencia && ESTADO.cliente?.plan === 'premium');
   }
 
   const hoy = new Date().toDateString();

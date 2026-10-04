@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM FrontyBack — Estadísticas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .stats-main { flex: 1; padding: 26px 30px 60px; overflow-y: auto; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .stats-titulo { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; margin: 0 0 20px; }
+
+  .kpi-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .kpi-tile {
+    flex: 1 1 200px; background: rgba(28,29,31,0.6); border: 1px solid var(--border-subtle);
+    border-radius: 14px; padding: 20px 22px;
+  }
+  .kpi-tile .kpi-label { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 8px; }
+  .kpi-tile .kpi-valor { font-family: 'Clash Display', sans-serif; font-size: 28px; font-weight: 600; color: var(--text-primary); }
+  .kpi-tile .kpi-valor .accent { color: var(--accent-gold); }
+
+  .chart-card {
+    background: rgba(28,29,31,0.6); border: 1px solid var(--border-subtle); border-radius: 14px;
+    padding: 24px 26px; margin-bottom: 20px;
+  }
+  .chart-card h2 { font-size: 14.5px; font-weight: 600; margin: 0 0 4px; color: var(--text-primary); }
+  .chart-card .chart-sub { font-size: 12px; color: var(--text-muted); margin: 0 0 18px; }
+  .chart-vacio { font-size: 13px; color: var(--text-muted); padding: 20px 0; }
+
+  .bar-fila { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bar-fila .bar-etiqueta { width: 130px; flex: none; font-size: 12.5px; color: var(--text-secondary); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-fila .bar-pista { flex: 1; position: relative; height: 24px; }
+  .bar-fila .bar-rect { height: 100%; border-radius: 4px; transition: filter 0.1s; cursor: default; }
+  .bar-fila .bar-rect:hover, .bar-fila .bar-rect:focus { filter: brightness(1.18); outline: none; }
+  .bar-fila .bar-valor { font-size: 12px; color: var(--text-secondary); margin-left: 8px; white-space: nowrap; }
+
+  .col-chart { display: flex; align-items: flex-end; gap: 4px; height: 160px; padding-top: 10px; }
+  .col-chart .col-barra-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+  .col-chart .col-barra { width: 100%; max-width: 26px; border-radius: 4px 4px 0 0; cursor: default; transition: filter 0.1s; }
+  .col-chart .col-barra:hover, .col-chart .col-barra:focus { filter: brightness(1.18); outline: none; }
+  .col-chart .col-etiqueta { font-size: 10.5px; color: var(--text-muted); margin-top: 6px; white-space: nowrap; }
+
+  .viz-tooltip {
+    position: fixed; background: #0e0f10; border: 1px solid var(--border-subtle); border-radius: 8px;
+    padding: 8px 11px; font-size: 12px; pointer-events: none; z-index: 50; opacity: 0; transition: opacity 0.1s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .viz-tooltip.visible { opacity: 1; }
+  .viz-tooltip .tt-valor { font-weight: 700; color: var(--text-primary); display: block; }
+  .viz-tooltip .tt-label { color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <div>
+        <div class="brand-container">
+          <div class="brand-logo">F</div>
+          <div class="brand-text">
+            <h1>FrontyBack</h1>
+            <span>CRM Hub</span>
+          </div>
+        </div>
+        <nav class="nav-menu">
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
+          <a href="/estadisticas.html" class="nav-item active"><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
+          <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
+            <i class="fa-solid fa-users"></i> Empleados
+          </button>
+        </nav>
+      </div>
+
+      <div class="user-section">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">•</div>
+          <div class="user-details">
+            <h4 id="user-nombre">—</h4>
+            <span id="user-slug"></span>
+            <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <header>
+        <div class="search-bar" style="visibility: hidden;"></div>
+        <div class="header-actions">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="stats-main">
+        <h1 class="stats-titulo">Estadísticas</h1>
+        <div id="stats-contenido"><p class="loading">Cargando...</p></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Empleados (mismo overlay que en el tablero, reusado acá para no tener que ir y volver) -->
+  <div id="empleados-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 480px;">
+      <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <div id="empleados-lista" class="sa-columnas-lista"></div>
+      <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
+        <div>
+          <label for="emp-nombre">Nombre</label>
+          <input type="text" id="emp-nombre" required>
+        </div>
+        <div>
+          <label for="emp-usuario">Usuario (para el login)</label>
+          <input type="text" id="emp-usuario" required>
+        </div>
+        <div>
+          <label for="emp-password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+        </div>
+        <div>
+          <label for="emp-departamento">Departamento</label>
+          <select id="emp-departamento" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+      </form>
+      <p class="form-status" id="empleado-status"></p>
+    </div>
+  </div>
+
+  <div id="viz-tooltip" class="viz-tooltip"></div>
+
+  <script src="/js/estadisticas.js"></script>
+</body>
+</html>
