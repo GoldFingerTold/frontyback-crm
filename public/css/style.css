@@ -126,6 +126,7 @@ aside {
   text-decoration: none;
 }
 .nav-item i { width: 16px; text-align: center; color: var(--text-muted); }
+.nav-item[hidden] { display: none; }
 .nav-item.active {
   background: var(--bg-surface);
   color: var(--accent-gold);
