@@ -162,6 +162,9 @@ router.post(
     // Le contestamos 200 a Meta enseguida - si tarda, Meta reintenta el mismo evento.
     res.sendStatus(200);
 
+    // TEMPORAL: diagnosticando por qué no llegan mensajes - sacar después.
+    console.log('Webhook de WhatsApp recibido:', JSON.stringify(req.body));
+
     try {
       await procesarEventoWhatsapp(req.body);
     } catch (err) {
