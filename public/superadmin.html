@@ -136,16 +136,18 @@
 
   <!-- Editor de WhatsApp -->
   <div id="whatsapp-overlay" class="overlay" hidden>
-    <div class="ficha-detail" style="max-width: 420px;">
+    <div class="ficha-detail" style="max-width: 440px;">
       <button id="whatsapp-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Conectar WhatsApp</h2>
-      <p class="ficha-contacto" style="margin-bottom: 20px;" id="whatsapp-cliente-nombre"></p>
-      <div class="ficha-mover">
-        <label for="whatsapp-input">Phone Number ID (de Meta)</label>
-        <input type="text" id="whatsapp-input" placeholder="Ej: 1366767613181502" style="width: 100%; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; padding: 10px 12px; color: var(--text-primary); font-family: inherit; font-size: 13px;">
+      <h2>Cuentas de WhatsApp</h2>
+      <p class="ficha-contacto" style="margin-bottom: 6px;" id="whatsapp-cliente-nombre"></p>
+      <p class="hint" style="margin: 0 0 16px; color: var(--text-muted); font-size: 12.5px;" id="whatsapp-tope"></p>
+      <div id="whatsapp-lista" class="sa-columnas-lista"></div>
+      <div class="sa-columna-nueva" style="align-items: flex-start;">
+        <input type="text" id="whatsapp-input" placeholder="Phone Number ID (de Meta)">
+        <input type="text" id="whatsapp-etiqueta-input" placeholder="Etiqueta (opcional, ej: Ventas)" style="max-width: 160px;">
+        <button type="button" id="whatsapp-agregar-btn" class="btn-ghost"><i class="fa-solid fa-plus"></i></button>
       </div>
       <p class="ficha-monto-status" id="whatsapp-status"></p>
-      <button type="button" id="whatsapp-guardar" class="btn btn-primary">Guardar</button>
     </div>
   </div>
 
@@ -169,7 +171,8 @@
             <select id="ce-plan">
               <option value="">Sin plan</option>
               <option value="esencial">Esencial</option>
-              <option value="completo">Completo</option>
+              <option value="completo">Profesional</option>
+              <option value="premium">Premium</option>
             </select>
           </div>
           <div>

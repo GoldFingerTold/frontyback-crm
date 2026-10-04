@@ -172,6 +172,9 @@ router.post(
 
 const MENSAJE_AUTORESPUESTA = 'Recibimos tu consulta, en breve te vamos a contactar. ¡Gracias por escribirnos!';
 
+// Planes que incluyen WhatsApp con audio (transcripción + respuesta con voz) - Esencial no.
+const PLANES_CON_AUDIO = ['completo', 'premium'];
+
 async function procesarEventoWhatsapp(body) {
   const entry = body.entry?.[0];
   const cambio = entry?.changes?.[0]?.value;
@@ -179,7 +182,7 @@ async function procesarEventoWhatsapp(body) {
   if (!mensajes || mensajes.length === 0) return; // puede ser un evento de "status" (entregado/leído), no un mensaje nuevo
 
   const phoneNumberId = cambio.metadata.phone_number_id;
-  const cliente = await db.getDb().collection('clientes').findOne({ whatsapp_phone_number_id: phoneNumberId });
+  const cliente = await db.getDb().collection('clientes').findOne({ 'whatsapp_numeros.phone_number_id': phoneNumberId });
   if (!cliente) {
     console.warn(`Llegó un mensaje de WhatsApp para un número sin cliente asociado (phone_number_id=${phoneNumberId}).`);
     return;
@@ -219,7 +222,8 @@ async function procesarEventoWhatsapp(body) {
       // Fuera de esos casos igual se guarda la consulta (no se pierde el lead), solo que sin
       // transcribir y respondiendo con el texto normal en vez de audio.
       const usoActual = cliente.limite_audios_mes != null ? await db.contarUsoAudioEsteMes(cliente._id) : 0;
-      const puedeUsarAudio = cliente.plan === 'completo' && (cliente.limite_audios_mes == null || usoActual < cliente.limite_audios_mes);
+      const planIncluyeAudio = PLANES_CON_AUDIO.includes(cliente.plan);
+      const puedeUsarAudio = planIncluyeAudio && (cliente.limite_audios_mes == null || usoActual < cliente.limite_audios_mes);
 
       let mensaje;
       if (puedeUsarAudio) {
@@ -232,7 +236,7 @@ async function procesarEventoWhatsapp(body) {
         }
         await db.registrarUsoAudio(cliente._id);
       } else {
-        mensaje = cliente.plan === 'completo'
+        mensaje = planIncluyeAudio
           ? '(Audio recibido - se alcanzó el límite mensual de audios de esta cuenta)'
           : '(Audio recibido - el plan de esta cuenta no incluye transcripción automática)';
       }

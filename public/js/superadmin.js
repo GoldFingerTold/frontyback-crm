@@ -4,7 +4,9 @@
 
 let CLIENTES = [];
 let CODIGOS = [];
+let PLANES = {};
 let columnasEditando = null; // { clienteId, columnas: [{id,nombre}] }
+let whatsappEditando = null; // { clienteId }
 
 async function api(path, options = {}) {
   const res = await fetch('/api/superadmin' + path, {
@@ -87,7 +89,7 @@ async function cargarClientes() {
   renderClientes();
 }
 
-const PLANES_NOMBRES = { esencial: 'Esencial', completo: 'Completo' };
+const PLANES_NOMBRES = { esencial: 'Esencial', completo: 'Profesional', premium: 'Premium' };
 
 function diasRestantes(fechaIso) {
   if (!fechaIso) return null;
@@ -140,8 +142,8 @@ function renderClientes() {
             <td>${tagEstadoPago(c)}</td>
             <td>${c.codigo_referido ? esc(c.codigo_referido) : '—'}</td>
             <td>
-              ${c.whatsapp_phone_number_id
-                ? '<span class="sa-tag sa-tag-ok"><i class="fa-solid fa-check"></i> Conectado</span>'
+              ${c.whatsapp_numeros && c.whatsapp_numeros.length > 0
+                ? `<span class="sa-tag sa-tag-ok"><i class="fa-solid fa-check"></i> ${c.whatsapp_numeros.length}</span>`
                 : '<span class="sa-tag">Sin conectar</span>'}
             </td>
             <td>${formatearFecha(c.created_at)}</td>
@@ -277,30 +279,76 @@ document.getElementById('nc-slug').addEventListener('input', (e) => {
   e.target.dataset.tocado = 'si';
 });
 
-// ---------- Editor de WhatsApp ----------
+// ---------- Editor de WhatsApp (varias cuentas por cliente, según el tope del plan) ----------
 function abrirWhatsapp(clienteId) {
   const cliente = CLIENTES.find((c) => c._id === clienteId);
   if (!cliente) return;
+  whatsappEditando = { clienteId };
   document.getElementById('whatsapp-cliente-nombre').textContent = cliente.nombre;
-  document.getElementById('whatsapp-input').value = cliente.whatsapp_phone_number_id || '';
   document.getElementById('whatsapp-status').textContent = '';
-  document.getElementById('whatsapp-guardar').dataset.id = clienteId;
+  document.getElementById('whatsapp-input').value = '';
+  document.getElementById('whatsapp-etiqueta-input').value = '';
+  renderWhatsappEditor(cliente);
   document.getElementById('whatsapp-overlay').hidden = false;
 }
+
+function renderWhatsappEditor(cliente) {
+  const numeros = cliente.whatsapp_numeros || [];
+  const max = cliente.plan ? (PLANES[cliente.plan]?.max_whatsapp ?? 1) : 1;
+  document.getElementById('whatsapp-tope').textContent = `${numeros.length} de ${max} cuenta${max === 1 ? '' : 's'} usadas (según el plan ${cliente.plan ? (PLANES_NOMBRES[cliente.plan] || cliente.plan) : 'sin asignar'}).`;
+
+  const cont = document.getElementById('whatsapp-lista');
+  if (numeros.length === 0) {
+    cont.innerHTML = '<p class="loading" style="padding: 0;">Todavía no hay ninguna cuenta conectada.</p>';
+  } else {
+    cont.innerHTML = numeros.map((n) => `
+      <div class="sa-columna-fila">
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-family: monospace;">${esc(n.phone_number_id)}</div>
+          ${n.etiqueta ? `<div style="font-size: 11.5px; color: var(--text-muted);">${esc(n.etiqueta)}</div>` : ''}
+        </div>
+        <button type="button" class="btn-ghost sa-columna-borrar" data-borrar-numero="${esc(n.phone_number_id)}"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    `).join('');
+    cont.querySelectorAll('[data-borrar-numero]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const status = document.getElementById('whatsapp-status');
+        try {
+          await api(`/clientes/${whatsappEditando.clienteId}/whatsapp/${encodeURIComponent(btn.dataset.borrarNumero)}`, { method: 'DELETE' });
+          await cargarClientes();
+          renderWhatsappEditor(CLIENTES.find((c) => c._id === whatsappEditando.clienteId));
+        } catch (err) {
+          status.textContent = err.message;
+        }
+      });
+    });
+  }
+
+  const puedeAgregar = numeros.length < max;
+  document.getElementById('whatsapp-agregar-btn').disabled = !puedeAgregar;
+  document.getElementById('whatsapp-input').disabled = !puedeAgregar;
+  document.getElementById('whatsapp-etiqueta-input').disabled = !puedeAgregar;
+}
+
 document.getElementById('whatsapp-close').addEventListener('click', () => {
   document.getElementById('whatsapp-overlay').hidden = true;
 });
-document.getElementById('whatsapp-guardar').addEventListener('click', async (e) => {
-  const clienteId = e.target.dataset.id;
+document.getElementById('whatsapp-agregar-btn').addEventListener('click', async () => {
   const status = document.getElementById('whatsapp-status');
-  status.textContent = 'Guardando...';
+  const phoneNumberId = document.getElementById('whatsapp-input').value.trim();
+  const etiqueta = document.getElementById('whatsapp-etiqueta-input').value.trim();
+  if (!phoneNumberId) return;
+  status.textContent = 'Agregando...';
   try {
-    await api(`/clientes/${clienteId}/whatsapp`, {
-      method: 'PUT',
-      body: JSON.stringify({ whatsapp_phone_number_id: document.getElementById('whatsapp-input').value.trim() })
+    await api(`/clientes/${whatsappEditando.clienteId}/whatsapp`, {
+      method: 'POST',
+      body: JSON.stringify({ phone_number_id: phoneNumberId, etiqueta })
     });
+    document.getElementById('whatsapp-input').value = '';
+    document.getElementById('whatsapp-etiqueta-input').value = '';
+    status.textContent = '';
     await cargarClientes();
-    document.getElementById('whatsapp-overlay').hidden = true;
+    renderWhatsappEditor(CLIENTES.find((c) => c._id === whatsappEditando.clienteId));
   } catch (err) {
     status.textContent = err.message;
   }
@@ -405,6 +453,7 @@ document.getElementById('columnas-guardar').addEventListener('click', async () =
 
 async function cargarPlanes() {
   const data = await api('/planes');
+  PLANES = data.planes;
   renderPlanes(data.planes);
 }
 

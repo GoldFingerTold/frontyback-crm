@@ -123,11 +123,45 @@ router.post('/clientes', asyncHandler(async (req, res) => {
   });
 }));
 
-router.put('/clientes/:id/whatsapp', asyncHandler(async (req, res) => {
-  const { whatsapp_phone_number_id } = req.body || {};
+// Cada plan limita cuántas cuentas de WhatsApp puede tener conectadas un cliente a la vez
+// (server/db.js, PLANES_DEFAULT) - sin plan asignado, se asume el tope más chico (1) para
+// no dejar conectar de más por error antes de que Hugo le asigne un plan de verdad.
+async function maxWhatsappDeCliente(cliente) {
+  if (!cliente.plan) return 1;
+  const planes = await db.getPlanes();
+  return planes[cliente.plan]?.max_whatsapp ?? 1;
+}
+
+router.post('/clientes/:id/whatsapp', asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.params.id);
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese cliente.' });
+
+  const phoneNumberId = String(req.body?.phone_number_id || '').trim();
+  const etiqueta = String(req.body?.etiqueta || '').trim().slice(0, 40);
+  if (!phoneNumberId) return res.status(400).json({ error: 'Falta el Phone Number ID.' });
+
+  const numeros = cliente.whatsapp_numeros || [];
+  if (numeros.some((n) => n.phone_number_id === phoneNumberId)) {
+    return res.status(409).json({ error: 'Ese número ya está conectado a este cliente.' });
+  }
+  const max = await maxWhatsappDeCliente(cliente);
+  if (numeros.length >= max) {
+    return res.status(400).json({ error: `Este cliente ya tiene el máximo de ${max} cuenta${max === 1 ? '' : 's'} de WhatsApp de su plan.` });
+  }
+
+  await mongo.collection('clientes').updateOne(
+    { _id: clienteId },
+    { $push: { whatsapp_numeros: { phone_number_id: phoneNumberId, etiqueta } } }
+  );
+  res.json({ ok: true });
+}));
+
+router.delete('/clientes/:id/whatsapp/:phoneNumberId', asyncHandler(async (req, res) => {
   const result = await db.getDb().collection('clientes').updateOne(
     { _id: new db.ObjectId(req.params.id) },
-    { $set: { whatsapp_phone_number_id: String(whatsapp_phone_number_id || '').trim() } }
+    { $pull: { whatsapp_numeros: { phone_number_id: req.params.phoneNumberId } } }
   );
   if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese cliente.' });
   res.json({ ok: true });
@@ -214,7 +248,7 @@ router.put('/clientes/:id/estado-pago', asyncHandler(async (req, res) => {
 // y el tope mensual de audios de WhatsApp - pensado sobre todo para ajustarlo en cuentas
 // que vinieron con un código 100% gratis). Cada campo es opcional: solo se actualiza el que
 // venga en el body, así el formulario del panel puede mandar nada más que lo que cambió.
-const PLANES_VALIDOS = ['esencial', 'completo'];
+const PLANES_VALIDOS = ['esencial', 'completo', 'premium'];
 router.put('/clientes/:id', asyncHandler(async (req, res) => {
   const { nombre, email_notificacion, plan, precio_pactado, frecuencia_pago, limite_audios_mes } = req.body || {};
   const clienteId = new db.ObjectId(req.params.id);

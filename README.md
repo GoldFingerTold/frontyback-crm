@@ -29,8 +29,9 @@ arrastrar de columna a medida que avanza (o no) la venta.
 4. Generar un token **permanente** (no el de 24hs) - se hace creando un "System User" en
    el Business Manager con permiso sobre la app, y generando su token desde ahí.
 5. Copiar el `phone_number_id` que Meta le asigna a ese número - eso es lo que identifica
-   a qué cliente pertenece cada mensaje que llega (se carga en el documento del cliente
-   en Mongo, campo `whatsapp_phone_number_id`).
+   a qué cliente pertenece cada mensaje que llega (se carga desde el super-admin, en la
+   lista `whatsapp_numeros` del cliente - cada plan limita cuántos números puede tener
+   conectados un mismo cliente al mismo tiempo).
 
 **2) OpenAI** (para transcribir los audios) - una sola cuenta, compartida entre todos los
 clientes del CRM. Generar una API key en platform.openai.com.
@@ -57,8 +58,8 @@ npm start
 
 Desde `/superadmin.html` (usuario/contraseña propios, en `SUPERADMIN_USER` y
 `SUPERADMIN_PASSWORD_HASH` del `.env` - no está en Mongo, hay un solo super-admin):
-crear el cliente, conectar su `whatsapp_phone_number_id` una vez que tenga el número
-en Meta, y editar las columnas del tablero (agregar, renombrar, reordenar o borrar
+crear el cliente, conectar su(s) número(s) de WhatsApp una vez que los tenga en Meta
+(hasta el tope de cuentas que permite su plan), y editar las columnas del tablero (agregar, renombrar, reordenar o borrar
 etapas - si se borra una columna con fichas adentro, se migran solas a la primera
 columna que quede).
 

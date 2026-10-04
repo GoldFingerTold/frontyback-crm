@@ -26,12 +26,13 @@ async function connect() {
   db = client.db();
   await ensureIndexes();
   await sembrarPlanes();
+  await migrarWhatsappNumeros();
   console.log('CRM conectado a MongoDB Atlas.');
 }
 
 async function ensureIndexes() {
   await db.collection('clientes').createIndex({ slug: 1 }, { unique: true });
-  await db.collection('clientes').createIndex({ whatsapp_phone_number_id: 1 });
+  await db.collection('clientes').createIndex({ 'whatsapp_numeros.phone_number_id': 1 });
   await db.collection('fichas').createIndex({ cliente_id: 1, columna_id: 1, posicion: 1 });
   await db.collection('fichas').createIndex({ cliente_id: 1, contacto: 1 });
   await db.collection('fichas').createIndex({ cliente_id: 1, whatsapp_wa_id: 1 });
@@ -46,7 +47,9 @@ async function ensureIndexes() {
 // precio_usd_ref es solo de referencia para mostrar "≈ USD X" - lo que se cobra de
 // verdad (en MercadoPago, y lo que queda guardado en cada cliente) es el *_ars.
 // Cada plan tiene precio mensual y un precio anual (pagando el año adelantado, 2 meses
-// gratis respecto de pagar mes a mes).
+// gratis respecto de pagar mes a mes), y max_whatsapp: cuántas cuentas de WhatsApp puede
+// conectar un cliente con ese plan (server/routes/superadmin.js lo hace cumplir al agregar
+// un número nuevo).
 const PLANES_DEFAULT = [
   {
     id: 'esencial',
@@ -55,18 +58,31 @@ const PLANES_DEFAULT = [
     precio_usd_ref: 10,
     precio_ars_anual: 150000,
     precio_usd_ref_anual: 100,
+    max_whatsapp: 1,
     descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, y tablero de seguimiento.',
-    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Tablero Kanban', 'Hasta 150 consultas por mes']
+    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
   },
   {
     id: 'completo',
-    nombre: 'Completo',
+    nombre: 'Profesional',
     precio_ars: 30000,
     precio_usd_ref: 20,
     precio_ars_anual: 300000,
     precio_usd_ref_anual: 200,
-    descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio y columnas a medida.',
-    features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas']
+    max_whatsapp: 5,
+    descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio, columnas a medida y hasta 5 cuentas de WhatsApp.',
+    features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas', 'Hasta 5 cuentas de WhatsApp conectadas']
+  },
+  {
+    id: 'premium',
+    nombre: 'Premium',
+    precio_ars: 45000,
+    precio_usd_ref: 30,
+    precio_ars_anual: 450000,
+    precio_usd_ref_anual: 300,
+    max_whatsapp: 20,
+    descripcion: 'Todo lo del plan Profesional, pensado para negocios con varias sucursales o líneas de WhatsApp.',
+    features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Ideal para varias sucursales o equipos']
   }
 ];
 
@@ -74,14 +90,31 @@ async function sembrarPlanes() {
   const col = db.collection('planes');
   for (const plan of PLANES_DEFAULT) {
     await col.updateOne({ id: plan.id }, { $setOnInsert: plan }, { upsert: true });
-    // Si el plan ya existía de antes (por ejemplo, antes de agregar los precios anuales),
-    // completa solo los campos que todavía no tiene - nunca pisa un precio que Hugo ya
-    // haya ajustado a mano desde el super-admin.
+    // Si el plan ya existía de antes (por ejemplo, antes de agregar los precios anuales o
+    // el tope de WhatsApp), completa solo los campos que todavía no tiene - nunca pisa un
+    // precio que Hugo ya haya ajustado a mano desde el super-admin.
     await col.updateOne(
       { id: plan.id, precio_ars_anual: { $exists: false } },
       { $set: { precio_ars_anual: plan.precio_ars_anual, precio_usd_ref_anual: plan.precio_usd_ref_anual } }
     );
+    await col.updateOne(
+      { id: plan.id, max_whatsapp: { $exists: false } },
+      { $set: { max_whatsapp: plan.max_whatsapp } }
+    );
   }
+  // El plan "completo" pasó a llamarse "Profesional" (ahora que el diferencial principal
+  // frente a Esencial es la cantidad de cuentas de WhatsApp, no solo el audio) - una sola
+  // vez, no pisa el nombre si Hugo ya lo cambió a otra cosa.
+  await col.updateOne(
+    { id: 'completo', nombre: 'Completo' },
+    {
+      $set: {
+        nombre: 'Profesional',
+        descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio, columnas a medida y hasta 5 cuentas de WhatsApp.',
+        features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas', 'Hasta 5 cuentas de WhatsApp conectadas']
+      }
+    }
+  );
 }
 
 async function getPlanes() {
@@ -167,8 +200,7 @@ async function crearCliente({
     slug,
     nombre,
     email_notificacion: email_notificacion || '',
-    whatsapp_phone_number_id: '',
-    whatsapp_display_phone: '',
+    whatsapp_numeros: [],
     admin_password_hash: password_hash,
     columnas: COLUMNAS_DEFAULT,
     plan,
@@ -208,6 +240,23 @@ async function registrarUsoAudio(clienteId) {
     { $inc: { cantidad: 1 } },
     { upsert: true }
   );
+}
+
+// Antes cada cliente tenía un solo whatsapp_phone_number_id - ahora puede tener varios,
+// en whatsapp_numeros. Convierte una sola vez los clientes viejos que todavía no tienen
+// ese array, sin perder el número que ya tenían conectado.
+async function migrarWhatsappNumeros() {
+  const col = db.collection('clientes');
+  const viejos = await col.find({ whatsapp_numeros: { $exists: false } }).toArray();
+  for (const c of viejos) {
+    const numeros = c.whatsapp_phone_number_id
+      ? [{ phone_number_id: c.whatsapp_phone_number_id, etiqueta: '' }]
+      : [];
+    await col.updateOne(
+      { _id: c._id },
+      { $set: { whatsapp_numeros: numeros }, $unset: { whatsapp_phone_number_id: '', whatsapp_display_phone: '' } }
+    );
+  }
 }
 
 module.exports = {

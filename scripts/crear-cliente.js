@@ -22,7 +22,7 @@ async function main() {
   console.log('  nombre:', cliente.nombre);
   console.log('  id:', cliente._id.toString());
   console.log('');
-  console.log('Pendiente: conectar su número de WhatsApp (whatsapp_phone_number_id) y avisarle el link');
+  console.log('Pendiente: conectar su número de WhatsApp desde el super-admin y avisarle el link');
   console.log('del formulario de su sitio para que apunte a POST /webhook/form/' + slug);
 
   process.exit(0);
