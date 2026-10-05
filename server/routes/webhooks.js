@@ -15,6 +15,25 @@ const mercadopago = require('../services/mercadopago');
 
 const router = express.Router();
 
+// Avisa por email al dueño del negocio cuando entra un lead NUEVO (no en cada mensaje de
+// seguimiento) - solo si lo tiene activado (cliente.avisos_lead_email, prendido por
+// defecto, se apaga desde el tablero). Nunca bloquea el flujo principal si falla.
+async function avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto, origen, mensaje }) {
+  if (!ficha.esNueva || !cliente.avisos_lead_email || !cliente.email_notificacion) return;
+  try {
+    await email.enviarAvisoLeadNuevo({
+      emailDestinatario: cliente.email_notificacion,
+      nombreCliente: cliente.nombre,
+      nombreContacto,
+      contacto,
+      origen,
+      mensaje
+    });
+  } catch (err) {
+    console.error('No se pudo mandar el aviso de lead nuevo:', err.message);
+  }
+}
+
 // ---------- Formulario de contacto de los sitios de los clientes ----------
 // Cualquier sitio de FrontyBack puede apuntar su formulario acá:
 // POST /webhook/form/:slug  { nombre, email, mensaje }
@@ -88,6 +107,7 @@ router.post(
       origen: 'formulario',
       mensaje
     });
+    await avisarLeadNuevo(cliente, ficha, { nombreContacto: nombre, contacto: emailCliente, origen: 'formulario', mensaje });
 
     // En período de gracia (vencido, pero todavía dentro de los 7 días) seguimos
     // guardando la ficha para no perder el lead, pero no mandamos la respuesta automática -
@@ -214,6 +234,7 @@ async function procesarEventoWhatsapp(body) {
         whatsappWaId: waId,
         departamento
       });
+      await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_texto', mensaje: texto });
 
       if (puedeResponder) {
         await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: MENSAJE_AUTORESPUESTA });
@@ -255,6 +276,7 @@ async function procesarEventoWhatsapp(body) {
         whatsappWaId: waId,
         departamento
       });
+      await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_audio', mensaje });
 
       if (puedeResponder) {
         if (puedeUsarAudio) {

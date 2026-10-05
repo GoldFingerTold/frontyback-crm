@@ -28,6 +28,10 @@ async function connect() {
   await sembrarPlanes();
   await migrarWhatsappNumeros();
   await migrarUsuarios();
+  await db.collection('clientes').updateMany(
+    { avisos_lead_email: { $exists: false } },
+    { $set: { avisos_lead_email: true } }
+  );
   console.log('CRM conectado a MongoDB Atlas.');
 }
 
@@ -215,6 +219,7 @@ async function crearCliente({
     descuento_pct_aplicado,
     comision_pct_aplicada,
     limite_audios_mes: descuento_pct_aplicado >= 100 ? LIMITE_AUDIOS_CODIGO_GRATIS : null,
+    avisos_lead_email: true,
     estado_pago: esAltaAutoservicio ? 'prueba' : 'activo',
     prueba_termina: esAltaAutoservicio
       ? new Date(ahora.getTime() + DIAS_PRUEBA_GRATIS * 24 * 60 * 60 * 1000)

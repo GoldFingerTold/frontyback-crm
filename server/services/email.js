@@ -73,4 +73,33 @@ async function enviarAvisoPago({ emailDestinatario, tipo, link }) {
   });
 }
 
-module.exports = { enviarAutorespuesta, enviarAvisoPago };
+const ORIGEN_LABEL = {
+  whatsapp_texto: 'WhatsApp',
+  whatsapp_audio: 'WhatsApp (audio)',
+  formulario: 'el formulario del sitio'
+};
+
+// Aviso al dueño del negocio cada vez que entra un lead NUEVO (no en cada mensaje de
+// seguimiento de alguien que ya estaba en el tablero) - opcional, se apaga desde el
+// tablero (cliente.avisos_lead_email) porque a un negocio con mucho volumen le termina
+// resultando más un spam que una ayuda.
+async function enviarAvisoLeadNuevo({ emailDestinatario, nombreCliente, nombreContacto, contacto, origen, mensaje }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+  const quien = nombreContacto ? `${nombreContacto} (${contacto})` : contacto;
+  const previewMensaje = String(mensaje || '').slice(0, 200);
+
+  await getResend().emails.send({
+    from,
+    to: emailDestinatario,
+    subject: `Nueva consulta por ${ORIGEN_LABEL[origen] || origen}`,
+    html: `
+      <p>Te llegó una consulta nueva a <strong>${escHtml(nombreCliente)}</strong>, por ${escHtml(ORIGEN_LABEL[origen] || origen)}.</p>
+      <p><strong>De:</strong> ${escHtml(quien)}</p>
+      <p><strong>Mensaje:</strong> "${escHtml(previewMensaje)}"</p>
+      <p><a href="https://crm.frontyback.com/tablero.html" style="display:inline-block;background:#d4af37;color:#141517;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">Ver en el tablero</a></p>
+      <p style="color:#888;font-size:12px;">¿Te llegan demasiados avisos? Podés apagarlos desde el tablero.</p>
+    `
+  });
+}
+
+module.exports = { enviarAutorespuesta, enviarAvisoPago, enviarAvisoLeadNuevo };

@@ -4,6 +4,7 @@
 let ESTADO = { columnas: [], fichas: [], cliente: null };
 let filtroBusqueda = '';
 let columnaActivaMobile = null;
+let avisoLeadInicializado = false;
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -192,6 +193,13 @@ function actualizarCabecera() {
       : `${ESTADO.usuario.nombre} · ${ESTADO.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !esGerencia;
     document.getElementById('nav-estadisticas').hidden = !(esGerencia && ESTADO.cliente?.plan === 'premium');
+    document.getElementById('aviso-lead-label').hidden = !esGerencia;
+    // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
+    // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.
+    if (!avisoLeadInicializado && esGerencia) {
+      document.getElementById('aviso-lead-checkbox').checked = ESTADO.cliente?.avisos_lead_email !== false;
+      avisoLeadInicializado = true;
+    }
   }
 
   const hoy = new Date().toDateString();
@@ -451,6 +459,16 @@ function renderEmpleados(usuarios) {
 }
 
 document.getElementById('nav-empleados').addEventListener('click', abrirEmpleados);
+document.getElementById('aviso-lead-checkbox').addEventListener('change', async (e) => {
+  try {
+    await api('/api/admin/preferencias', {
+      method: 'PUT',
+      body: JSON.stringify({ avisos_lead_email: e.target.checked })
+    });
+  } catch {
+    e.target.checked = !e.target.checked; // si falló, volvemos el checkbox a como estaba
+  }
+});
 document.getElementById('empleados-close').addEventListener('click', () => {
   document.getElementById('empleados-overlay').hidden = true;
 });

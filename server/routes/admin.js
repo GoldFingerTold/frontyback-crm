@@ -40,7 +40,8 @@ router.get('/tablero', asyncHandler(async (req, res) => {
       plan: cliente.plan,
       estado_pago: cliente.estado_pago,
       prueba_termina: cliente.prueba_termina,
-      gracia_termina: cliente.gracia_termina
+      gracia_termina: cliente.gracia_termina,
+      avisos_lead_email: cliente.avisos_lead_email !== false
     },
     usuario: {
       nombre: req.session.usuarioNombre || 'Gerencia',
@@ -62,6 +63,16 @@ router.get('/pago/link', asyncHandler(async (req, res) => {
   if (!link) return res.status(400).json({ error: 'Esta cuenta no tiene un plan asignado.' });
 
   res.json({ link });
+}));
+
+// Prender/apagar el aviso por email de "lead nuevo" (server/routes/webhooks.js) - útil
+// para cuentas con pocas consultas, un estorbo para las que tienen mucho volumen.
+router.put('/preferencias', requireGerencia, asyncHandler(async (req, res) => {
+  await db.getDb().collection('clientes').updateOne(
+    { _id: new db.ObjectId(req.session.clienteId) },
+    { $set: { avisos_lead_email: Boolean(req.body?.avisos_lead_email) } }
+  );
+  res.json({ ok: true });
 }));
 
 // El monto es el único dato de la ficha que no llega solo por WhatsApp/formulario - se
