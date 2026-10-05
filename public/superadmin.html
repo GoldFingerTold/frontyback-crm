@@ -148,6 +148,17 @@
         <button type="button" id="whatsapp-agregar-btn" class="btn-ghost"><i class="fa-solid fa-plus"></i></button>
       </div>
       <p class="ficha-monto-status" id="whatsapp-status"></p>
+
+      <div style="border-top: 1px solid var(--border-subtle); margin-top: 18px; padding-top: 16px;">
+        <p class="hint" style="margin: 0 0 10px; color: var(--text-muted); font-size: 12.5px;">
+          O mandale este link para que lo conecte él mismo, en unos clics, desde Meta:
+        </p>
+        <button type="button" id="whatsapp-link-btn" class="btn-ghost" style="width: 100%;"><i class="fa-brands fa-whatsapp"></i> Generar link de conexión</button>
+        <div id="whatsapp-link-resultado" style="margin-top: 10px; display: none;">
+          <input type="text" id="whatsapp-link-texto" readonly style="width: 100%; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 12px; color: var(--text-primary); font-family: inherit; font-size: 12px;">
+          <button type="button" id="whatsapp-link-copiar" class="btn-ghost" style="margin-top: 6px; width: 100%;">Copiar</button>
+        </div>
+      </div>
     </div>
   </div>
 

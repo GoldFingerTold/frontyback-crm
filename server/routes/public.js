@@ -128,21 +128,33 @@ router.post(
   })
 );
 
-// ---------- Callback del Embedded Signup de WhatsApp (alojado por Meta) ----------
-// Cuando un cliente nuevo termina de conectar su WhatsApp en la página alojada por Meta,
-// el navegador vuelve acá con un "code" para canjear por un token. Primera vez que probamos
-// este flujo en producción, así que de movida queda todo bien logueado - en cuanto Hugo
-// haga la primera conexión real vamos a ver exactamente qué datos manda Meta (WABA y
-// phone_number_id) y terminar de conectarlo automáticamente con el cliente correspondiente
-// (identificado acá por "state").
+// ---------- Embedded Signup de WhatsApp (alojado por Meta) ----------
+// El super-admin genera un link personalizado por cliente (ver server/routes/superadmin.js,
+// GET /clientes/:id/whatsapp-link) con el slug del cliente en "state". Cuando esa persona
+// termina de conectar su WhatsApp en la página alojada por Meta, el navegador vuelve acá con
+// un "code" (para canjear por un token) y el mismo "state", así sabemos a qué cliente
+// corresponde. Primera vez que probamos este flujo en producción, así que de movida queda
+// todo bien logueado - en cuanto Hugo haga la primera conexión real vamos a ver exactamente
+// qué datos manda Meta y terminar de ajustar el descubrimiento del WABA si hace falta.
 const WHATSAPP_CALLBACK_URL = 'https://crm.frontyback.com/api/public/whatsapp/callback';
 
 router.get('/whatsapp/callback', asyncHandler(async (req, res) => {
   console.log('Callback de WhatsApp Embedded Signup recibido:', JSON.stringify(req.query));
-  const { code } = req.query;
+  const { code, state } = req.query;
 
-  if (!code) {
-    return res.status(400).send('Falta el código de autorización de Meta. Volvé a intentar la conexión.');
+  const paginaError = (mensaje) =>
+    res.status(400).send(
+      `<html><body style="font-family: sans-serif; text-align: center; padding: 60px;">` +
+      `<h2>No se pudo completar la conexión</h2><p>${mensaje} Avisale a FrontyBack.</p></body></html>`
+    );
+
+  if (!code) return paginaError('Falta el código de autorización de Meta.');
+
+  const slug = String(state || '').trim();
+  const cliente = slug ? await db.getDb().collection('clientes').findOne({ slug }) : null;
+  if (!cliente) {
+    console.warn(`Callback de WhatsApp sin cliente identificable (state="${state}").`);
+    return paginaError('No pudimos identificar a qué cuenta pertenece esta conexión.');
   }
 
   const params = new URLSearchParams({
@@ -158,14 +170,28 @@ router.get('/whatsapp/callback', asyncHandler(async (req, res) => {
     tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('Error canjeando el código de WhatsApp por un token:', tokenData);
-      return res.status(500).send('No se pudo completar la conexión con Meta. Avisale a FrontyBack.');
+      return paginaError('Meta rechazó la conexión.');
     }
   } catch (err) {
     console.error('Error de red canjeando el código de WhatsApp:', err.message);
-    return res.status(500).send('No se pudo completar la conexión con Meta. Avisale a FrontyBack.');
+    return paginaError('Hubo un error de red hablando con Meta.');
   }
 
-  console.log('Token de WhatsApp obtenido correctamente:', JSON.stringify(tokenData));
+  console.log(`Token de WhatsApp obtenido para cliente "${slug}":`, JSON.stringify(tokenData));
+
+  // Con nuestro propio token (el system user de FrontyBack) buscamos qué WABA nos acaba de
+  // compartir este cliente - se loguea completo porque es la primera vez que vemos la forma
+  // real de esta respuesta en producción.
+  try {
+    const businessId = process.env.WHATSAPP_BUSINESS_ID;
+    const wabasRes = await fetch(
+      `https://graph.facebook.com/v21.0/${businessId}/client_whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}&access_token=${process.env.WHATSAPP_TOKEN}`
+    );
+    const wabasData = await wabasRes.json();
+    console.log(`WABAs visibles para FrontyBack tras conectar "${slug}":`, JSON.stringify(wabasData));
+  } catch (err) {
+    console.error('Error consultando las WABA del cliente tras el Embedded Signup:', err.message);
+  }
 
   res.send(
     '<html><body style="font-family: sans-serif; text-align: center; padding: 60px;">' +

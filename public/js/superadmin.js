@@ -288,9 +288,26 @@ function abrirWhatsapp(clienteId) {
   document.getElementById('whatsapp-status').textContent = '';
   document.getElementById('whatsapp-input').value = '';
   document.getElementById('whatsapp-etiqueta-input').value = '';
+  document.getElementById('whatsapp-link-resultado').style.display = 'none';
   renderWhatsappEditor(cliente);
   document.getElementById('whatsapp-overlay').hidden = false;
 }
+
+document.getElementById('whatsapp-link-btn').addEventListener('click', async () => {
+  const status = document.getElementById('whatsapp-status');
+  try {
+    const { link } = await api(`/clientes/${whatsappEditando.clienteId}/whatsapp-link`);
+    document.getElementById('whatsapp-link-texto').value = link;
+    document.getElementById('whatsapp-link-resultado').style.display = 'block';
+  } catch (err) {
+    status.textContent = err.message;
+  }
+});
+document.getElementById('whatsapp-link-copiar').addEventListener('click', () => {
+  const input = document.getElementById('whatsapp-link-texto');
+  input.select();
+  navigator.clipboard?.writeText(input.value).catch(() => document.execCommand('copy'));
+});
 
 function renderWhatsappEditor(cliente) {
   const numeros = cliente.whatsapp_numeros || [];
