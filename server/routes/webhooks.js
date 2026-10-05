@@ -12,25 +12,60 @@ const whatsapp = require('../services/whatsapp');
 const stt = require('../services/stt');
 const tts = require('../services/tts');
 const mercadopago = require('../services/mercadopago');
+const push = require('../services/push');
 
 const router = express.Router();
 
-// Avisa por email al dueño del negocio cuando entra un lead NUEVO (no en cada mensaje de
-// seguimiento) - solo si lo tiene activado (cliente.avisos_lead_email, prendido por
-// defecto, se apaga desde el tablero). Nunca bloquea el flujo principal si falla.
-async function avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto, origen, mensaje }) {
-  if (!ficha.esNueva || !cliente.avisos_lead_email || !cliente.email_notificacion) return;
+const ORIGEN_LABEL_CORTO = { whatsapp_texto: 'WhatsApp', whatsapp_audio: 'WhatsApp (audio)', formulario: 'el formulario' };
+
+// Avisa por email y por notificación push (a quien instaló el CRM como PWA) al dueño del
+// negocio cuando entra un lead NUEVO (no en cada mensaje de seguimiento). El email se
+// apaga con cliente.avisos_lead_email (prendido por defecto); el push es opt-in por
+// persona (solo le llega a quien se suscribió desde el tablero), y respeta el mismo
+// filtro por departamento que el resto del tablero - a un empleado solo le avisa de los
+// leads de su propio departamento, a Gerencia de todos. Nunca bloquea el flujo principal.
+async function avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto, origen, mensaje, departamento = null }) {
+  if (!ficha.esNueva) return;
+
+  if (cliente.avisos_lead_email && cliente.email_notificacion) {
+    try {
+      await email.enviarAvisoLeadNuevo({
+        emailDestinatario: cliente.email_notificacion,
+        nombreCliente: cliente.nombre,
+        nombreContacto,
+        contacto,
+        origen,
+        mensaje
+      });
+    } catch (err) {
+      console.error('No se pudo mandar el aviso de lead nuevo:', err.message);
+    }
+  }
+
   try {
-    await email.enviarAvisoLeadNuevo({
-      emailDestinatario: cliente.email_notificacion,
-      nombreCliente: cliente.nombre,
-      nombreContacto,
-      contacto,
-      origen,
-      mensaje
-    });
+    const mongo = db.getDb();
+    const suscripciones = await mongo.collection('push_subscriptions').find({ cliente_id: cliente._id }).toArray();
+    if (suscripciones.length === 0) return;
+
+    const payload = {
+      title: `Nueva consulta por ${ORIGEN_LABEL_CORTO[origen] || origen}`,
+      body: nombreContacto ? `${nombreContacto}: ${mensaje}`.slice(0, 120) : String(mensaje || '').slice(0, 120),
+      url: '/tablero.html'
+    };
+
+    for (const sub of suscripciones) {
+      const usuario = await mongo.collection('usuarios').findOne({ _id: sub.usuario_id });
+      if (!usuario) continue;
+      const leVale = usuario.rol === 'gerencia' || usuario.departamento === departamento;
+      if (!leVale) continue;
+
+      const resultado = await push.enviarPush(sub, payload);
+      if (resultado.expirada) {
+        await mongo.collection('push_subscriptions').deleteOne({ _id: sub._id });
+      }
+    }
   } catch (err) {
-    console.error('No se pudo mandar el aviso de lead nuevo:', err.message);
+    console.error('No se pudo mandar la notificación push de lead nuevo:', err.message);
   }
 }
 
@@ -234,7 +269,7 @@ async function procesarEventoWhatsapp(body) {
         whatsappWaId: waId,
         departamento
       });
-      await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_texto', mensaje: texto });
+      await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_texto', mensaje: texto, departamento });
 
       if (puedeResponder) {
         await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: MENSAJE_AUTORESPUESTA });
@@ -276,7 +311,7 @@ async function procesarEventoWhatsapp(body) {
         whatsappWaId: waId,
         departamento
       });
-      await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_audio', mensaje });
+      await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_audio', mensaje, departamento });
 
       if (puedeResponder) {
         if (puedeUsarAudio) {

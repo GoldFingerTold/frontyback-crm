@@ -46,6 +46,8 @@ async function ensureIndexes() {
   await db.collection('uso_audio_mensual').createIndex({ cliente_id: 1, mes: 1 }, { unique: true });
   await db.collection('usuarios').createIndex({ usuario: 1 }, { unique: true });
   await db.collection('usuarios').createIndex({ cliente_id: 1 });
+  await db.collection('push_subscriptions').createIndex({ endpoint: 1 }, { unique: true });
+  await db.collection('push_subscriptions').createIndex({ usuario_id: 1 });
 }
 
 // Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en

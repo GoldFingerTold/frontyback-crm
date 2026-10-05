@@ -8,6 +8,7 @@ const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { requireAuth, requireGerencia } = require('./auth');
 const pagos = require('../services/pagos');
+const push = require('../services/push');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -72,6 +73,41 @@ router.put('/preferencias', requireGerencia, asyncHandler(async (req, res) => {
     { _id: new db.ObjectId(req.session.clienteId) },
     { $set: { avisos_lead_email: Boolean(req.body?.avisos_lead_email) } }
   );
+  res.json({ ok: true });
+}));
+
+// ---------- Notificaciones push (PWA) ----------
+// Cualquier usuario logueado puede suscribirse (no solo Gerencia) - un empleado de
+// departamento también puede querer el aviso al instante de los leads de su propio
+// departamento, igual que recibe el resto del tablero filtrado.
+router.get('/push/public-key', (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || '' });
+});
+
+router.post('/push/suscribir', asyncHandler(async (req, res) => {
+  const { endpoint, keys } = req.body || {};
+  if (!endpoint || !keys?.p256dh || !keys?.auth) {
+    return res.status(400).json({ error: 'Suscripción inválida.' });
+  }
+  await db.getDb().collection('push_subscriptions').updateOne(
+    { endpoint },
+    {
+      $set: {
+        endpoint,
+        keys,
+        cliente_id: new db.ObjectId(req.session.clienteId),
+        usuario_id: new db.ObjectId(req.session.usuarioId),
+        created_at: new Date()
+      }
+    },
+    { upsert: true }
+  );
+  res.json({ ok: true });
+}));
+
+router.delete('/push/suscribir', asyncHandler(async (req, res) => {
+  const { endpoint } = req.body || {};
+  if (endpoint) await db.getDb().collection('push_subscriptions').deleteOne({ endpoint });
   res.json({ ok: true });
 }));
 

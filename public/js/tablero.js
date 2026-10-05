@@ -497,3 +497,59 @@ document.getElementById('empleado-nuevo-form').addEventListener('submit', async 
     status.className = 'form-status error';
   }
 });
+
+// ---------- Notificaciones push (PWA) ----------
+// Aviso al instante de leads nuevos, además del email - opt-in por persona (cada quien
+// activa o no en su propio celular/navegador), respeta el mismo filtro por departamento
+// que el resto del tablero (server/routes/webhooks.js).
+function base64UrlAUint8Array(base64Url) {
+  const base64 = (base64Url + '='.repeat((4 - (base64Url.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
+async function actualizarBotonPush() {
+  const boton = document.getElementById('push-btn');
+  const texto = document.getElementById('push-btn-texto');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    boton.hidden = true;
+    return;
+  }
+  const registro = await navigator.serviceWorker.ready;
+  const suscripcion = await registro.pushManager.getSubscription();
+  texto.textContent = suscripcion ? 'Desactivar notificaciones' : 'Activar notificaciones';
+  boton.dataset.suscrito = suscripcion ? 'si' : 'no';
+}
+
+async function alternarPush() {
+  const boton = document.getElementById('push-btn');
+  const registro = await navigator.serviceWorker.ready;
+  const suscripcionActual = await registro.pushManager.getSubscription();
+
+  if (suscripcionActual) {
+    await api('/api/admin/push/suscribir', { method: 'DELETE', body: JSON.stringify({ endpoint: suscripcionActual.endpoint }) });
+    await suscripcionActual.unsubscribe();
+    await actualizarBotonPush();
+    return;
+  }
+
+  const permiso = await Notification.requestPermission();
+  if (permiso !== 'granted') return;
+
+  const { publicKey } = await api('/api/admin/push/public-key');
+  const nuevaSuscripcion = await registro.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: base64UrlAUint8Array(publicKey)
+  });
+  await api('/api/admin/push/suscribir', { method: 'POST', body: JSON.stringify(nuevaSuscripcion.toJSON()) });
+  await actualizarBotonPush();
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(() => actualizarBotonPush()).catch(() => {
+    document.getElementById('push-btn').hidden = true;
+  });
+} else {
+  document.getElementById('push-btn').hidden = true;
+}
+document.getElementById('push-btn').addEventListener('click', alternarPush);
