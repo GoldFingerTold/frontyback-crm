@@ -272,6 +272,9 @@ async function cargarCabecera() {
       : `${data.usuario.nombre} · ${data.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !esGerencia;
   }
+  if (data.cliente) {
+    document.getElementById('nav-salon').hidden = data.cliente.plan !== 'elite';
+  }
 }
 
 async function cerrarSesion() {

@@ -266,7 +266,7 @@ router.put('/clientes/:id/estado-pago', asyncHandler(async (req, res) => {
 // y el tope mensual de audios de WhatsApp - pensado sobre todo para ajustarlo en cuentas
 // que vinieron con un código 100% gratis). Cada campo es opcional: solo se actualiza el que
 // venga en el body, así el formulario del panel puede mandar nada más que lo que cambió.
-const PLANES_VALIDOS = ['esencial', 'completo', 'premium'];
+const PLANES_VALIDOS = ['esencial', 'completo', 'premium', 'elite'];
 router.put('/clientes/:id', asyncHandler(async (req, res) => {
   const { nombre, email_notificacion, plan, precio_pactado, frecuencia_pago, limite_audios_mes } = req.body || {};
   const clienteId = new db.ObjectId(req.params.id);

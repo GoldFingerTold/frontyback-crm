@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM FrontyBack — Plano de salón</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .salon-main { flex: 1; padding: 26px 30px 60px; overflow-y: auto; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .salon-titulo-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .salon-titulo { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; margin: 0; }
+  .salon-acciones { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .salon-leyenda { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; font-size: 12.5px; color: var(--text-secondary); }
+  .salon-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .salon-leyenda i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .salon-canvas-wrap {
+    background: rgba(28,29,31,0.6); border: 1px solid var(--border-subtle); border-radius: 14px;
+    padding: 14px; position: relative; overflow: hidden;
+  }
+  .salon-canvas-wrap.modo-edicion { border-color: var(--accent-gold); }
+  #salon-svg { width: 100%; height: auto; display: block; touch-action: none; }
+  #salon-svg .pared { fill: rgba(255,255,255,0.03); stroke: var(--border-subtle); stroke-width: 3; }
+  #salon-svg .vertice { fill: var(--accent-gold); cursor: grab; }
+  #salon-svg .vertice:active { cursor: grabbing; }
+  #salon-svg .mid-punto { fill: rgba(240,220,160,0.35); cursor: copy; }
+  #salon-svg .mesa { cursor: pointer; stroke: rgba(0,0,0,0.35); stroke-width: 1.5; }
+  #salon-svg .mesa-libre { fill: #1f8f52; }
+  #salon-svg .mesa-ocupada { fill: #c23b3b; }
+  #salon-svg .mesa-reservada { fill: #c98500; }
+  #salon-svg .mesa-label { font-size: 12px; fill: #fff; text-anchor: middle; pointer-events: none; font-family: 'Plus Jakarta Sans', sans-serif; }
+  #salon-svg .mesa-cap { font-size: 9.5px; fill: rgba(255,255,255,0.75); text-anchor: middle; pointer-events: none; }
+  #salon-sin-mesas { font-size: 13px; color: var(--text-muted); padding: 10px 2px; }
+
+  .salon-ayuda { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+
+  /* Popover flotante (estado de mesa, o edición de mesa) */
+  .salon-popover {
+    position: fixed; z-index: 60; background: #0e0f10; border: 1px solid var(--border-subtle);
+    border-radius: 12px; padding: 16px 18px; width: 260px; box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  }
+  .salon-popover h3 { margin: 0 0 10px; font-size: 14px; }
+  .salon-popover .estado-btns { display: flex; gap: 6px; margin-bottom: 12px; }
+  .salon-popover .estado-btns button {
+    flex: 1; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.04); color: var(--text-secondary);
+    border-radius: 8px; padding: 7px 4px; font-size: 11.5px; cursor: pointer;
+  }
+  .salon-popover .estado-btns button.activo { border-color: currentColor; font-weight: 700; }
+  .salon-popover .estado-btns button[data-estado="libre"].activo { color: #2bb673; }
+  .salon-popover .estado-btns button[data-estado="ocupada"].activo { color: #e05454; }
+  .salon-popover .estado-btns button[data-estado="reservada"].activo { color: #e0a000; }
+  .salon-popover textarea {
+    width: 100%; min-height: 54px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle);
+    border-radius: 8px; color: var(--text-primary); font-size: 12.5px; padding: 8px; font-family: inherit; resize: vertical;
+  }
+  .salon-popover .popover-botones { display: flex; justify-content: space-between; margin-top: 10px; gap: 8px; }
+  .salon-popover .popover-cerrar { background: none; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer; float: right; }
+  .salon-popover label { font-size: 11.5px; color: var(--text-muted); display: block; margin: 8px 0 4px; }
+  .salon-popover input[type="text"], .salon-popover select {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle);
+    border-radius: 8px; color: var(--text-primary); font-size: 12.5px; padding: 7px 8px; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <div>
+        <div class="brand-container">
+          <div class="brand-logo">F</div>
+          <div class="brand-text">
+            <h1>FrontyBack</h1>
+            <span>CRM Hub</span>
+          </div>
+        </div>
+        <nav class="nav-menu">
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
+          <a href="/salon.html" class="nav-item active" id="nav-salon"><i class="fa-solid fa-chair"></i> Plano de salón</a>
+          <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
+            <i class="fa-solid fa-users"></i> Empleados
+          </button>
+        </nav>
+      </div>
+
+      <div class="user-section">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">•</div>
+          <div class="user-details">
+            <h4 id="user-nombre">—</h4>
+            <span id="user-slug"></span>
+            <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <header>
+        <div class="search-bar" style="visibility: hidden;"></div>
+        <div class="header-actions">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="salon-main">
+        <div class="salon-titulo-row">
+          <h1 class="salon-titulo">Plano de salón</h1>
+          <div class="salon-acciones">
+            <button type="button" id="btn-agregar-mesa" class="btn btn-primary" hidden><i class="fa-solid fa-plus"></i> Agregar mesa</button>
+            <button type="button" id="btn-modo-edicion" class="btn-ghost" hidden><i class="fa-solid fa-pen"></i> Editar salón</button>
+          </div>
+        </div>
+
+        <div class="salon-leyenda">
+          <span><i style="background:#1f8f52"></i> Libre</span>
+          <span><i style="background:#c23b3b"></i> Ocupada</span>
+          <span><i style="background:#c98500"></i> Reservada</span>
+        </div>
+
+        <div class="salon-canvas-wrap" id="salon-canvas-wrap">
+          <svg id="salon-svg" viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg"></svg>
+          <p id="salon-sin-mesas" hidden>Todavía no hay mesas. Entrá en "Editar salón" para agregar la primera.</p>
+        </div>
+        <p class="salon-ayuda" id="salon-ayuda" hidden>
+          Modo edición: arrastrá los puntos dorados para cambiar la forma del salón. Doble clic en un borde agrega
+          un punto nuevo; doble clic en un punto lo borra (si quedan más de 3). Arrastrá las mesas para ubicarlas.
+        </p>
+      </main>
+    </div>
+  </div>
+
+  <!-- Empleados (mismo overlay reusado en tablero.html / estadisticas.html) -->
+  <div id="empleados-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 480px;">
+      <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <div id="empleados-lista" class="sa-columnas-lista"></div>
+      <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
+        <div>
+          <label for="emp-nombre">Nombre</label>
+          <input type="text" id="emp-nombre" required>
+        </div>
+        <div>
+          <label for="emp-usuario">Usuario (para el login)</label>
+          <input type="text" id="emp-usuario" required>
+        </div>
+        <div>
+          <label for="emp-password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+        </div>
+        <div>
+          <label for="emp-departamento">Departamento</label>
+          <select id="emp-departamento" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+      </form>
+      <p class="form-status" id="empleado-status"></p>
+    </div>
+  </div>
+
+  <script src="/js/salon.js"></script>
+</body>
+</html>

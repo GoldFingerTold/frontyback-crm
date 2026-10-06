@@ -228,7 +228,7 @@ router.post(
 const MENSAJE_AUTORESPUESTA = 'Recibimos tu consulta, en breve te vamos a contactar. ¡Gracias por escribirnos!';
 
 // Planes que incluyen WhatsApp con audio (transcripción + respuesta con voz) - Esencial no.
-const PLANES_CON_AUDIO = ['completo', 'premium'];
+const PLANES_CON_AUDIO = ['completo', 'premium', 'elite'];
 
 async function procesarEventoWhatsapp(body) {
   const entry = body.entry?.[0];

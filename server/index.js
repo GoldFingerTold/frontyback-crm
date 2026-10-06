@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const superadminRoutes = require('./routes/superadmin');
 const publicRoutes = require('./routes/public');
+const salonRoutes = require('./routes/salon');
 const cicloPagos = require('./services/ciclo-pagos');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/superadmin', superadminRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/salon', salonRoutes);
 
 // La landing de ventas pasó de /planes.html a la raíz (mejor para SEO: el dominio raíz es
 // lo que Google indexa con más fuerza, y es la URL que la gente comparte/recuerda).

@@ -228,8 +228,8 @@ router.get('/estadisticas', requireGerencia, asyncHandler(async (req, res) => {
   const clienteId = new db.ObjectId(req.session.clienteId);
   const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
 
-  if (cliente.plan !== 'premium') {
-    return res.status(403).json({ error: 'Las estadísticas son exclusivas del plan Premium.' });
+  if (cliente.plan !== 'premium' && cliente.plan !== 'elite') {
+    return res.status(403).json({ error: 'Las estadísticas son exclusivas de los planes Premium y Elite.' });
   }
 
   const fichasCol = mongo.collection('fichas');

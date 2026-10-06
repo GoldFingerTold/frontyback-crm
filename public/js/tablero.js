@@ -192,7 +192,9 @@ function actualizarCabecera() {
       ? 'Gerencia · ve todo'
       : `${ESTADO.usuario.nombre} · ${ESTADO.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !esGerencia;
-    document.getElementById('nav-estadisticas').hidden = !(esGerencia && ESTADO.cliente?.plan === 'premium');
+    const planConEstadisticas = ESTADO.cliente?.plan === 'premium' || ESTADO.cliente?.plan === 'elite';
+    document.getElementById('nav-estadisticas').hidden = !(esGerencia && planConEstadisticas);
+    document.getElementById('nav-salon').hidden = !(ESTADO.cliente?.plan === 'elite');
     document.getElementById('aviso-lead-label').hidden = !esGerencia;
     // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
     // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.

@@ -5,6 +5,7 @@
 
 const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -48,6 +49,7 @@ async function ensureIndexes() {
   await db.collection('usuarios').createIndex({ cliente_id: 1 });
   await db.collection('push_subscriptions').createIndex({ endpoint: 1 }, { unique: true });
   await db.collection('push_subscriptions').createIndex({ usuario_id: 1 });
+  await db.collection('salones').createIndex({ cliente_id: 1 }, { unique: true });
 }
 
 // Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en
@@ -92,6 +94,17 @@ const PLANES_DEFAULT = [
     max_whatsapp: 20,
     descripcion: 'Todo lo del plan Profesional, pensado para negocios con varias sucursales o líneas de WhatsApp.',
     features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
+  },
+  {
+    id: 'elite',
+    nombre: 'Elite',
+    precio_ars: 60000,
+    precio_usd_ref: 40,
+    precio_ars_anual: 600000,
+    precio_usd_ref_anual: 400,
+    max_whatsapp: 20,
+    descripcion: 'Todo lo del plan Premium, más el Plano de salón: organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo.',
+    features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
   }
 ];
 
@@ -317,6 +330,79 @@ function departamentosDeCliente(cliente) {
   return [...new Set(etiquetas)];
 }
 
+// ---------- Plano de salón (exclusivo del plan Elite) ----------
+// Un documento por cliente, en su propia colección (no mezclado con "clientes" ni con
+// "fichas") a propósito: la forma del salón (un polígono, no un rectángulo fijo, para que
+// cada local pueda tener la forma real que tiene) y la lista de mesas que tiene adentro.
+// Separarlo así hace que el día de mañana, si esto se vende como producto aparte en un
+// subdominio propio, la colección se pueda migrar sola sin tocar el resto del CRM.
+const FORMA_SALON_DEFAULT = [
+  { x: 60, y: 60 }, { x: 740, y: 60 }, { x: 740, y: 500 }, { x: 60, y: 500 }
+];
+
+function normalizarClienteId(clienteId) {
+  return typeof clienteId === 'string' ? new ObjectId(clienteId) : clienteId;
+}
+
+async function getSalon(clienteId) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  let salon = await col.findOne({ cliente_id: id });
+  if (!salon) {
+    const doc = { cliente_id: id, forma: FORMA_SALON_DEFAULT, mesas: [], updated_at: new Date() };
+    const { insertedId } = await col.insertOne(doc);
+    salon = { ...doc, _id: insertedId };
+  }
+  return salon;
+}
+
+async function guardarFormaSalon(clienteId, forma) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  await getSalon(id);
+  await col.updateOne({ cliente_id: id }, { $set: { forma, updated_at: new Date() } });
+  return getSalon(id);
+}
+
+async function agregarMesa(clienteId, mesa) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  await getSalon(id);
+  const nueva = {
+    id: crypto.randomUUID(),
+    nombre: mesa.nombre || 'Mesa',
+    x: Number(mesa.x) || 100,
+    y: Number(mesa.y) || 100,
+    ancho: Number(mesa.ancho) || 80,
+    alto: Number(mesa.alto) || 80,
+    tipo: mesa.tipo === 'circulo' ? 'circulo' : 'rect',
+    capacidad: Number(mesa.capacidad) || 4,
+    estado: 'libre',
+    nota: ''
+  };
+  await col.updateOne({ cliente_id: id }, { $push: { mesas: nueva }, $set: { updated_at: new Date() } });
+  return getSalon(id);
+}
+
+// "cambios" lo arma la ruta (admin.js / salon.js) con solo los campos que quiere tocar -
+// nunca se le pasa el body entero, para no poder pisar un campo de la mesa que no
+// corresponde.
+async function actualizarMesa(clienteId, mesaId, cambios) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  const set = { updated_at: new Date() };
+  for (const [k, v] of Object.entries(cambios)) set[`mesas.$.${k}`] = v;
+  await col.updateOne({ cliente_id: id, 'mesas.id': mesaId }, { $set: set });
+  return getSalon(id);
+}
+
+async function eliminarMesa(clienteId, mesaId) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  await col.updateOne({ cliente_id: id }, { $pull: { mesas: { id: mesaId } }, $set: { updated_at: new Date() } });
+  return getSalon(id);
+}
+
 module.exports = {
   connect,
   getDb,
@@ -332,5 +418,10 @@ module.exports = {
   cortarPorFaltaDePago,
   contarUsoAudioEsteMes,
   registrarUsoAudio,
-  departamentosDeCliente
+  departamentosDeCliente,
+  getSalon,
+  guardarFormaSalon,
+  agregarMesa,
+  actualizarMesa,
+  eliminarMesa
 };
