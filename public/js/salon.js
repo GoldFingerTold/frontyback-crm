@@ -32,6 +32,13 @@ const svg = document.getElementById('salon-svg');
 
 const ESTADO = { salon: null, modoEdicion: false, esGerencia: false };
 
+const PUNTO_INFO = {
+  entrada: { letra: 'E', nombre: 'Entrada' },
+  salida: { letra: 'S', nombre: 'Salida' },
+  cocina: { letra: 'C', nombre: 'Cocina' },
+  baño: { letra: 'B', nombre: 'Baño' }
+};
+
 function distancia(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
 function puntoSVG(evt) {
@@ -119,6 +126,28 @@ function renderSalon() {
     g.appendChild(cap);
 
     hacerArrastrableMesa(g, mesa);
+    svg.appendChild(g);
+  });
+
+  (salon.puntos || []).forEach((punto) => {
+    const info = PUNTO_INFO[punto.tipo] || { letra: '?', nombre: punto.tipo };
+    const g = elSVG('g', { class: 'punto-grupo' });
+
+    const circulo = elSVG('circle', { cx: punto.x, cy: punto.y, r: 13, class: `punto-marca punto-${punto.tipo}` });
+    g.appendChild(circulo);
+
+    const letra = elSVG('text', { x: punto.x, y: punto.y + 4, class: 'punto-letra' });
+    letra.textContent = info.letra;
+    g.appendChild(letra);
+
+    const label = elSVG('text', { x: punto.x, y: punto.y + 26, class: 'punto-label' });
+    label.textContent = punto.nombre ? `${info.nombre} · ${punto.nombre}` : info.nombre;
+    g.appendChild(label);
+
+    if (ESTADO.modoEdicion && ESTADO.esGerencia) {
+      g.style.cursor = 'pointer';
+      hacerArrastrablePunto(g, punto);
+    }
     svg.appendChild(g);
   });
 }
@@ -315,6 +344,125 @@ async function borrarMesa(id) {
   }
 }
 
+// ---------- Arrastre de marcadores (entrada/salida/cocina/baño, solo edición) ----------
+function hacerArrastrablePunto(g, punto) {
+  g.addEventListener('pointerdown', (evt) => {
+    g.setPointerCapture(evt.pointerId);
+    const inicio = puntoSVG(evt);
+    const offX = punto.x - inicio.x;
+    const offY = punto.y - inicio.y;
+    let movio = false;
+
+    function mover(e2) {
+      const p = puntoSVG(e2);
+      if (!movio && distancia(p, inicio) <= 3) return;
+      movio = true;
+      punto.x = Math.round(p.x + offX);
+      punto.y = Math.round(p.y + offY);
+      const circulo = g.querySelector('circle');
+      circulo.setAttribute('cx', punto.x);
+      circulo.setAttribute('cy', punto.y);
+      const textos = g.querySelectorAll('text');
+      textos[0].setAttribute('x', punto.x);
+      textos[0].setAttribute('y', punto.y + 4);
+      textos[1].setAttribute('x', punto.x);
+      textos[1].setAttribute('y', punto.y + 26);
+    }
+    function soltar(e2) {
+      g.removeEventListener('pointermove', mover);
+      g.removeEventListener('pointerup', soltar);
+      if (movio) {
+        guardarPunto(punto.id, { x: punto.x, y: punto.y });
+      } else {
+        abrirPopoverPunto(punto, e2);
+      }
+    }
+    g.addEventListener('pointermove', mover);
+    g.addEventListener('pointerup', soltar);
+  });
+}
+
+async function guardarPunto(id, cambios) {
+  try {
+    ESTADO.salon = await api(`/api/salon/puntos/${id}`, { method: 'PUT', body: JSON.stringify(cambios) });
+    renderSalon();
+  } catch (err) {
+    alert('No se pudo guardar: ' + err.message);
+    cargarSalon();
+  }
+}
+
+async function borrarPunto(id) {
+  try {
+    ESTADO.salon = await api(`/api/salon/puntos/${id}`, { method: 'DELETE' });
+    renderSalon();
+  } catch (err) {
+    alert('No se pudo borrar el marcador: ' + err.message);
+  }
+}
+
+function abrirPopoverPunto(punto, evt) {
+  cerrarPopover();
+  const info = PUNTO_INFO[punto.tipo] || { nombre: punto.tipo };
+  const pop = document.createElement('div');
+  pop.className = 'salon-popover';
+  pop.innerHTML = `
+    <button class="popover-cerrar" type="button">&times;</button>
+    <h3>${esc(info.nombre)}</h3>
+    <label>Aclaración (opcional)</label>
+    <input type="text" id="pop-punto-nombre" value="${esc(punto.nombre || '')}" placeholder="Ej: Baño mujeres" maxlength="40">
+    <div class="popover-botones">
+      <button type="button" class="btn-ghost" id="pop-punto-borrar" style="color:#e05454;">Borrar</button>
+      <button type="button" class="btn btn-primary" id="pop-punto-guardar">Guardar</button>
+    </div>
+  `;
+  posicionarPopover(pop, evt);
+  popoverActual = pop;
+  pop.querySelector('.popover-cerrar').addEventListener('click', cerrarPopover);
+  pop.querySelector('#pop-punto-guardar').addEventListener('click', () => {
+    guardarPunto(punto.id, { nombre: pop.querySelector('#pop-punto-nombre').value.trim() });
+    cerrarPopover();
+  });
+  pop.querySelector('#pop-punto-borrar').addEventListener('click', () => {
+    if (confirm(`¿Borrar "${info.nombre}"?`)) borrarPunto(punto.id);
+    cerrarPopover();
+  });
+}
+
+function abrirPopoverAgregarPunto(evt) {
+  cerrarPopover();
+  const pop = document.createElement('div');
+  pop.className = 'salon-popover';
+  pop.style.width = '220px';
+  pop.innerHTML = `
+    <button class="popover-cerrar" type="button">&times;</button>
+    <h3>¿Qué marcador?</h3>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      ${Object.entries(PUNTO_INFO).map(([tipo, info]) => `
+        <button type="button" class="btn-ghost" data-tipo-punto="${tipo}">${esc(info.nombre)}</button>
+      `).join('')}
+    </div>
+  `;
+  posicionarPopover(pop, evt);
+  popoverActual = pop;
+  pop.querySelector('.popover-cerrar').addEventListener('click', cerrarPopover);
+  pop.querySelectorAll('[data-tipo-punto]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const n = (ESTADO.salon.puntos || []).length;
+      try {
+        ESTADO.salon = await api('/api/salon/puntos', {
+          method: 'POST',
+          body: JSON.stringify({ tipo: btn.dataset.tipoPunto, x: 100 + (n % 5) * 60, y: 540 })
+        });
+        renderSalon();
+      } catch (err) {
+        alert('No se pudo agregar el marcador: ' + err.message);
+      }
+      cerrarPopover();
+    });
+  });
+}
+
 // ---------- Popovers ----------
 let popoverActual = null;
 function cerrarPopover() {
@@ -401,7 +549,7 @@ function abrirPopoverMesa(mesa, evt) {
 }
 
 document.addEventListener('pointerdown', (evt) => {
-  if (popoverActual && !popoverActual.contains(evt.target) && !evt.target.closest('.mesa-grupo')) {
+  if (popoverActual && !popoverActual.contains(evt.target) && !evt.target.closest('.mesa-grupo') && !evt.target.closest('.punto-grupo')) {
     cerrarPopover();
   }
 });
@@ -414,6 +562,7 @@ document.getElementById('btn-modo-edicion').addEventListener('click', () => {
     ? '<i class="fa-solid fa-check"></i> Listo'
     : '<i class="fa-solid fa-pen"></i> Editar salón';
   document.getElementById('btn-agregar-mesa').hidden = !ESTADO.modoEdicion;
+  document.getElementById('btn-agregar-punto').hidden = !ESTADO.modoEdicion;
   document.getElementById('btn-reiniciar-salon').hidden = !ESTADO.modoEdicion;
   document.getElementById('salon-ayuda').hidden = !ESTADO.modoEdicion;
   document.getElementById('salon-canvas-wrap').classList.toggle('modo-edicion', ESTADO.modoEdicion);
@@ -444,6 +593,10 @@ document.getElementById('btn-agregar-mesa').addEventListener('click', async () =
   } catch (err) {
     alert('No se pudo agregar la mesa: ' + err.message);
   }
+});
+
+document.getElementById('btn-agregar-punto').addEventListener('click', (evt) => {
+  abrirPopoverAgregarPunto(evt);
 });
 
 // ---------- Sesión / Empleados (mismo comportamiento que estadisticas.js) ----------

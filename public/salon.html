@@ -38,6 +38,14 @@
   #salon-svg .mesa-cap { font-size: 9.5px; fill: rgba(255,255,255,0.75); text-anchor: middle; pointer-events: none; }
   #salon-sin-mesas { font-size: 13px; color: var(--text-muted); padding: 10px 2px; }
 
+  #salon-svg .punto-marca { stroke: rgba(0,0,0,0.35); stroke-width: 1.5; }
+  #salon-svg .punto-entrada { fill: #3987e5; }
+  #salon-svg .punto-salida { fill: #d95926; }
+  #salon-svg .punto-cocina { fill: #e0a000; }
+  #salon-svg .punto-baño { fill: #9085e9; }
+  #salon-svg .punto-letra { font-size: 11px; fill: #fff; text-anchor: middle; pointer-events: none; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif; }
+  #salon-svg .punto-label { font-size: 9.5px; fill: var(--text-secondary); text-anchor: middle; pointer-events: none; font-family: 'Plus Jakarta Sans', sans-serif; }
+
   .salon-ayuda { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
 
   /* Popover flotante (estado de mesa, o edición de mesa) */
@@ -117,6 +125,7 @@
           <h1 class="salon-titulo">Plano de salón</h1>
           <div class="salon-acciones">
             <button type="button" id="btn-agregar-mesa" class="btn btn-primary" hidden><i class="fa-solid fa-plus"></i> Agregar mesa</button>
+            <button type="button" id="btn-agregar-punto" class="btn-ghost" hidden><i class="fa-solid fa-map-pin"></i> Agregar marcador</button>
             <button type="button" id="btn-reiniciar-salon" class="btn-ghost" style="color:#e05454;" hidden><i class="fa-solid fa-trash-can"></i> Reiniciar salón</button>
             <button type="button" id="btn-modo-edicion" class="btn-ghost" hidden><i class="fa-solid fa-pen"></i> Editar salón</button>
           </div>

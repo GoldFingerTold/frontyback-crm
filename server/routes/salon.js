@@ -96,6 +96,38 @@ router.delete('/mesas/:id', requireGerencia, asyncHandler(async (req, res) => {
   res.json(salon);
 }));
 
+// Marcadores de referencia (entrada, salida, cocina, baño) - solo Gerencia, no tienen
+// estado ni los toca el día a día como las mesas.
+const TIPOS_PUNTO = ['entrada', 'salida', 'cocina', 'baño'];
+
+router.post('/puntos', requireGerencia, asyncHandler(async (req, res) => {
+  const { tipo, nombre, x, y } = req.body || {};
+  if (!TIPOS_PUNTO.includes(tipo)) return res.status(400).json({ error: 'Tipo de marcador inválido.' });
+  const salon = await db.agregarPunto(req.session.clienteId, {
+    tipo,
+    nombre: String(nombre || '').trim().slice(0, 40),
+    x: Math.min(Math.max(Number(x) || 100, 0), 2000),
+    y: Math.min(Math.max(Number(y) || 100, 0), 2000)
+  });
+  res.json(salon);
+}));
+
+router.put('/puntos/:id', requireGerencia, asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  const cambios = {};
+  if (body.nombre !== undefined) cambios.nombre = String(body.nombre).trim().slice(0, 40);
+  if (body.x !== undefined) cambios.x = Math.min(Math.max(Number(body.x) || 0, 0), 2000);
+  if (body.y !== undefined) cambios.y = Math.min(Math.max(Number(body.y) || 0, 0), 2000);
+  if (Object.keys(cambios).length === 0) return res.status(400).json({ error: 'Nada para actualizar.' });
+  const salon = await db.actualizarPunto(req.session.clienteId, req.params.id, cambios);
+  res.json(salon);
+}));
+
+router.delete('/puntos/:id', requireGerencia, asyncHandler(async (req, res) => {
+  const salon = await db.eliminarPunto(req.session.clienteId, req.params.id);
+  res.json(salon);
+}));
+
 // Reiniciar: vuelve el salón al rectángulo en blanco, sin mesas. Gerencia lo puede hacer
 // solo/a, sin pedirlo - pensado para cuando se quiere empezar el diseño de cero.
 router.delete('/', requireGerencia, asyncHandler(async (req, res) => {

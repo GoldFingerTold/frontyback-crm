@@ -349,10 +349,11 @@ async function getSalon(clienteId) {
   const id = normalizarClienteId(clienteId);
   let salon = await col.findOne({ cliente_id: id });
   if (!salon) {
-    const doc = { cliente_id: id, forma: FORMA_SALON_DEFAULT, mesas: [], updated_at: new Date() };
+    const doc = { cliente_id: id, forma: FORMA_SALON_DEFAULT, mesas: [], puntos: [], updated_at: new Date() };
     const { insertedId } = await col.insertOne(doc);
     salon = { ...doc, _id: insertedId };
   }
+  if (!salon.puntos) salon.puntos = []; // salones creados antes de que existieran los marcadores
   return salon;
 }
 
@@ -403,6 +404,39 @@ async function eliminarMesa(clienteId, mesaId) {
   return getSalon(id);
 }
 
+// Marcadores de referencia (entrada, salida, cocina, baño): solo una posición en el plano,
+// sin plano propio ni estado - Gerencia los pone una vez y casi no los vuelve a tocar.
+async function agregarPunto(clienteId, punto) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  await getSalon(id);
+  const nuevo = {
+    id: crypto.randomUUID(),
+    tipo: punto.tipo,
+    nombre: (punto.nombre || '').slice(0, 40),
+    x: Number(punto.x) || 100,
+    y: Number(punto.y) || 100
+  };
+  await col.updateOne({ cliente_id: id }, { $push: { puntos: nuevo }, $set: { updated_at: new Date() } });
+  return getSalon(id);
+}
+
+async function actualizarPunto(clienteId, puntoId, cambios) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  const set = { updated_at: new Date() };
+  for (const [k, v] of Object.entries(cambios)) set[`puntos.$.${k}`] = v;
+  await col.updateOne({ cliente_id: id, 'puntos.id': puntoId }, { $set: set });
+  return getSalon(id);
+}
+
+async function eliminarPunto(clienteId, puntoId) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  await col.updateOne({ cliente_id: id }, { $pull: { puntos: { id: puntoId } }, $set: { updated_at: new Date() } });
+  return getSalon(id);
+}
+
 // Vuelve el salón al rectángulo por defecto, sin mesas - para que Gerencia pueda empezar
 // de cero sin tener que pedirlo por fuera del CRM.
 async function reiniciarSalon(clienteId) {
@@ -433,5 +467,8 @@ module.exports = {
   agregarMesa,
   actualizarMesa,
   eliminarMesa,
-  reiniciarSalon
+  reiniciarSalon,
+  agregarPunto,
+  actualizarPunto,
+  eliminarPunto
 };
