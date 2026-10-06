@@ -553,3 +553,37 @@ if ('serviceWorker' in navigator) {
   document.getElementById('push-btn').hidden = true;
 }
 document.getElementById('push-btn').addEventListener('click', alternarPush);
+
+// ---------- Botón "Instalar la app" ----------
+// Sin esto, instalar la PWA depende de que alguien encuentre la opción escondida en el
+// menú del navegador - casi nadie la busca. Chrome/Android avisan con este evento cuando
+// la página ya es instalable, y ahí mostramos nuestro propio botón bien visible en vez de
+// esperar a que lo encuentren solos. En iPhone (Safari) este evento no existe - ahí se
+// muestran instrucciones en vez de un botón, porque Safari no deja disparar la instalación
+// por código, solo a mano desde "Compartir".
+let promptDeInstalacion = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  promptDeInstalacion = e;
+  document.getElementById('instalar-btn').hidden = false;
+});
+document.getElementById('instalar-btn').addEventListener('click', async () => {
+  if (!promptDeInstalacion) return;
+  promptDeInstalacion.prompt();
+  await promptDeInstalacion.userChoice;
+  promptDeInstalacion = null;
+  document.getElementById('instalar-btn').hidden = true;
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('instalar-btn').hidden = true;
+});
+
+const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+const yaInstalada = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+if (esIOS && !yaInstalada) {
+  // En iPhone no existe "beforeinstallprompt" - Safari no deja disparar la instalación por
+  // código, así que acá solo se puede mostrar la instrucción, no un botón que instale solo.
+  const boton = document.getElementById('instalar-btn');
+  boton.hidden = false;
+  boton.innerHTML = '<i class="fa-solid fa-download"></i> Instalar: tocá Compartir y "Agregar a inicio"';
+}

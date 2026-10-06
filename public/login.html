@@ -30,6 +30,9 @@
     <p style="text-align: center; margin: 18px 0 0; font-size: 13px; color: var(--text-muted);">
       ¿Todavía no tenés cuenta? <a href="/">Mirá los planes</a>
     </p>
+    <button type="button" id="instalar-btn" class="btn-ghost" style="margin-top: 14px; width: 100%; font-size: 12.5px;" hidden>
+      <i class="fa-solid fa-download"></i> <span id="instalar-btn-texto">Instalar la app</span>
+    </button>
   </form>
 
   <script>
@@ -58,6 +61,33 @@
     });
 
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+    // Botón "Instalar la app" bien visible, en vez de depender de que alguien encuentre la
+    // opción escondida en el menú del navegador - ver public/js/tablero.js para la misma
+    // lógica explicada en más detalle.
+    let promptDeInstalacion = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      promptDeInstalacion = e;
+      document.getElementById('instalar-btn').hidden = false;
+    });
+    document.getElementById('instalar-btn').addEventListener('click', async () => {
+      if (!promptDeInstalacion) return;
+      promptDeInstalacion.prompt();
+      await promptDeInstalacion.userChoice;
+      promptDeInstalacion = null;
+      document.getElementById('instalar-btn').hidden = true;
+    });
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('instalar-btn').hidden = true;
+    });
+
+    const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const yaInstalada = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (esIOS && !yaInstalada) {
+      document.getElementById('instalar-btn').hidden = false;
+      document.getElementById('instalar-btn-texto').textContent = 'Instalar: tocá Compartir y "Agregar a inicio"';
+    }
   </script>
 </body>
 </html>
