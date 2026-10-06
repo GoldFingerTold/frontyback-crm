@@ -89,7 +89,7 @@ function renderSalon() {
       const mx = (p.x + q.x) / 2;
       const my = (p.y + q.y) / 2;
       const mid = elSVG('circle', { cx: mx, cy: my, r: 6, class: 'mid-punto' });
-      mid.addEventListener('click', (e) => { e.stopPropagation(); agregarVertice(i); });
+      mid.addEventListener('click', (e) => { e.stopPropagation(); abrirPopoverBorde(i, e); });
       svg.appendChild(mid);
     });
     salon.forma.forEach((p, i) => {
@@ -184,6 +184,75 @@ function borrarVertice(index) {
   forma.splice(index, 1);
   renderSalon();
   guardarForma();
+}
+
+function centroidePoligono(forma) {
+  let x = 0;
+  let y = 0;
+  forma.forEach((p) => { x += p.x; y += p.y; });
+  return { x: x / forma.length, y: y / forma.length };
+}
+
+function clamp2000(n) { return Math.min(Math.max(Math.round(n), 0), 2000); }
+
+// Reemplaza el segmento recto entre dos puntos por un arco (curva de Bézier cuadrática,
+// aproximada con varios puntos rectos - como cualquier curva en una pantalla). El arco
+// "abulta" hacia afuera del salón por default; para ajustar cuánto se curva, después se
+// arrastra cualquiera de los puntos nuevos como un punto normal.
+function curvarBorde(index) {
+  const forma = ESTADO.salon.forma;
+  const N = 6;
+  if (forma.length + N > 40) {
+    alert('El salón ya tiene demasiados puntos como para curvar otro borde (máximo 40).');
+    return;
+  }
+  const p = forma[index];
+  const q = forma[(index + 1) % forma.length];
+  const centro = centroidePoligono(forma);
+  const mx = (p.x + q.x) / 2;
+  const my = (p.y + q.y) / 2;
+  const dx = q.x - p.x;
+  const dy = q.y - p.y;
+  const largo = Math.hypot(dx, dy) || 1;
+  let perpX = -dy / largo;
+  let perpY = dx / largo;
+  const haciaFueraX = mx - centro.x;
+  const haciaFueraY = my - centro.y;
+  if (perpX * haciaFueraX + perpY * haciaFueraY < 0) { perpX = -perpX; perpY = -perpY; }
+  const bulge = largo * 0.5;
+  const cx = mx + perpX * bulge;
+  const cy = my + perpY * bulge;
+
+  const nuevos = [];
+  for (let i = 1; i <= N; i++) {
+    const t = i / (N + 1);
+    const x = (1 - t) * (1 - t) * p.x + 2 * (1 - t) * t * cx + t * t * q.x;
+    const y = (1 - t) * (1 - t) * p.y + 2 * (1 - t) * t * cy + t * t * q.y;
+    nuevos.push({ x: clamp2000(x), y: clamp2000(y) });
+  }
+  forma.splice(index + 1, 0, ...nuevos);
+  renderSalon();
+  guardarForma();
+}
+
+function abrirPopoverBorde(index, evt) {
+  cerrarPopover();
+  const pop = document.createElement('div');
+  pop.className = 'salon-popover';
+  pop.style.width = '220px';
+  pop.innerHTML = `
+    <button class="popover-cerrar" type="button">&times;</button>
+    <h3>Este borde</h3>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button type="button" class="btn-ghost" id="pop-punto">+ Agregar un punto</button>
+      <button type="button" class="btn btn-primary" id="pop-curvar">Curvar este borde</button>
+    </div>
+  `;
+  posicionarPopover(pop, evt);
+  popoverActual = pop;
+  pop.querySelector('.popover-cerrar').addEventListener('click', cerrarPopover);
+  pop.querySelector('#pop-punto').addEventListener('click', () => { agregarVertice(index); cerrarPopover(); });
+  pop.querySelector('#pop-curvar').addEventListener('click', () => { curvarBorde(index); cerrarPopover(); });
 }
 
 async function guardarForma() {
