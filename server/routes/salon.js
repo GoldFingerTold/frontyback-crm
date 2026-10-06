@@ -96,4 +96,11 @@ router.delete('/mesas/:id', requireGerencia, asyncHandler(async (req, res) => {
   res.json(salon);
 }));
 
+// Reiniciar: vuelve el salón al rectángulo en blanco, sin mesas. Gerencia lo puede hacer
+// solo/a, sin pedirlo - pensado para cuando se quiere empezar el diseño de cero.
+router.delete('/', requireGerencia, asyncHandler(async (req, res) => {
+  const salon = await db.reiniciarSalon(req.session.clienteId);
+  res.json(salon);
+}));
+
 module.exports = router;

@@ -345,10 +345,21 @@ document.getElementById('btn-modo-edicion').addEventListener('click', () => {
     ? '<i class="fa-solid fa-check"></i> Listo'
     : '<i class="fa-solid fa-pen"></i> Editar salón';
   document.getElementById('btn-agregar-mesa').hidden = !ESTADO.modoEdicion;
+  document.getElementById('btn-reiniciar-salon').hidden = !ESTADO.modoEdicion;
   document.getElementById('salon-ayuda').hidden = !ESTADO.modoEdicion;
   document.getElementById('salon-canvas-wrap').classList.toggle('modo-edicion', ESTADO.modoEdicion);
   cerrarPopover();
   renderSalon();
+});
+
+document.getElementById('btn-reiniciar-salon').addEventListener('click', async () => {
+  if (!confirm('¿Reiniciar el salón? Se borran todas las mesas y la forma vuelve a ser un rectángulo en blanco. No se puede deshacer.')) return;
+  try {
+    ESTADO.salon = await api('/api/salon', { method: 'DELETE' });
+    renderSalon();
+  } catch (err) {
+    alert('No se pudo reiniciar el salón: ' + err.message);
+  }
 });
 
 document.getElementById('btn-agregar-mesa').addEventListener('click', async () => {

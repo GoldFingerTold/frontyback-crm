@@ -403,6 +403,15 @@ async function eliminarMesa(clienteId, mesaId) {
   return getSalon(id);
 }
 
+// Vuelve el salón al rectángulo por defecto, sin mesas - para que Gerencia pueda empezar
+// de cero sin tener que pedirlo por fuera del CRM.
+async function reiniciarSalon(clienteId) {
+  const col = db.collection('salones');
+  const id = normalizarClienteId(clienteId);
+  await col.deleteOne({ cliente_id: id });
+  return getSalon(id);
+}
+
 module.exports = {
   connect,
   getDb,
@@ -423,5 +432,6 @@ module.exports = {
   guardarFormaSalon,
   agregarMesa,
   actualizarMesa,
-  eliminarMesa
+  eliminarMesa,
+  reiniciarSalon
 };
