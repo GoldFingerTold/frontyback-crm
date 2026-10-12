@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conectar WhatsApp — FrontyBack CRM</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .cw-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .cw-header { display: flex; align-items: center; padding: 24px 32px; max-width: 1040px; margin: 0 auto; }
+  .cw-brand { display: flex; align-items: center; gap: 10px; }
+  .cw-brand span { font-family: 'Clash Display', sans-serif; font-weight: 600; font-size: 17px; }
+
+  .cw-card {
+    max-width: 480px; margin: 40px auto; padding: 0 24px;
+  }
+  .cw-card-inner {
+    background: rgba(28,29,31,0.8); border: 1px solid var(--border-subtle); border-radius: 16px;
+    padding: 36px; text-align: center;
+  }
+  .cw-card-inner i.fa-whatsapp { font-size: 42px; color: #25d366; margin-bottom: 16px; }
+  .cw-card-inner h1 { font-family: 'Clash Display', sans-serif; font-size: 22px; font-weight: 600; margin: 0 0 10px; }
+  .cw-card-inner p { color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; margin: 0 0 26px; }
+  .cw-nombre { color: var(--accent-gold); font-weight: 600; }
+
+  #cw-btn {
+    width: 100%; padding: 13px; border-radius: 10px; border: none; cursor: pointer;
+    background: var(--accent-gold); color: #141517; font-weight: 700; font-size: 14.5px;
+    font-family: inherit;
+  }
+  #cw-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .cw-estado { margin-top: 20px; font-size: 13.5px; min-height: 1.4em; }
+  .cw-estado.ok { color: #2bb673; }
+  .cw-estado.error { color: var(--danger); }
+  .cw-estado.cargando { color: var(--text-muted); }
+
+  .cw-ayuda { font-size: 12px; color: var(--text-muted); margin-top: 18px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="cw-shell">
+
+  <header class="cw-header">
+    <div class="cw-brand">
+      <div class="brand-logo">F</div>
+      <span>FrontyBack CRM</span>
+    </div>
+  </header>
+
+  <div class="cw-card">
+    <div class="cw-card-inner" id="cw-contenido">
+      <p class="loading">Cargando...</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = (params.get('slug') || '').trim();
+  const cont = document.getElementById('cw-contenido');
+
+  function esc(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  if (!slug) {
+    cont.innerHTML = '<h1>Falta un dato</h1><p>Este link no es válido. Pedile a FrontyBack que te mande el link de conexión de nuevo.</p>';
+  } else {
+    cont.innerHTML = `
+      <i class="fa-brands fa-whatsapp"></i>
+      <h1>Conectá tu WhatsApp</h1>
+      <p>Vas a conectar tu número de WhatsApp Business al CRM de <span class="cw-nombre">${esc(slug)}</span>. Te va a pedir que inicies sesión con Facebook y elijas (o crees) tu cuenta de WhatsApp Business.</p>
+      <button type="button" id="cw-btn">Conectar WhatsApp</button>
+      <p class="cw-estado" id="cw-estado"></p>
+      <p class="cw-ayuda">Importante: una vez conectado, ese número deja de poder usarse con la app normal de WhatsApp en el celular. Usá un número dedicado, no el que usás a diario.</p>
+    `;
+    document.getElementById('cw-btn').addEventListener('click', iniciarConexion);
+  }
+
+  // ---------- SDK de Meta ----------
+  window.fbAsyncInit = function () {
+    FB.init({ appId: '1372277981557588', autoLogAppEvents: true, xfbml: false, version: 'v21.0' });
+  };
+
+  function iniciarConexion() {
+    const btn = document.getElementById('cw-btn');
+    const estado = document.getElementById('cw-estado');
+    btn.disabled = true;
+    estado.className = 'cw-estado cargando';
+    estado.textContent = 'Abriendo la ventana de Meta...';
+
+    if (typeof FB === 'undefined') {
+      estado.className = 'cw-estado error';
+      estado.textContent = 'No se pudo cargar el inicio de sesión de Meta. Recargá la página e intentá de nuevo.';
+      btn.disabled = false;
+      return;
+    }
+
+    FB.login((response) => {
+      // El resultado real (waba_id, phone_number_id) llega por postMessage, ver abajo.
+      // Este callback solo sirve de red de seguridad: si la ventana se cerró sin que
+      // llegara ningún postMessage (por ejemplo, el usuario la cerró a mano), reactivamos
+      // el botón en vez de dejarlo colgado para siempre.
+      setTimeout(() => {
+        if (!conexionCompletada) {
+          btn.disabled = false;
+          if (!response.authResponse) {
+            estado.className = 'cw-estado error';
+            estado.textContent = 'No se completó la conexión. Podés volver a intentarlo.';
+          }
+        }
+      }, 1500);
+    }, {
+      config_id: '1771533280635110',
+      response_type: 'code',
+      override_default_response_type: true,
+      extras: { setup: {}, featureType: '', sessionInfoVersion: '3' }
+    });
+  }
+
+  let conexionCompletada = false;
+
+  window.addEventListener('message', (event) => {
+    if (!event.origin.endsWith('facebook.com')) return;
+    let data;
+    try { data = JSON.parse(event.data); } catch { return; }
+    if (data.type !== 'WA_EMBEDDED_SIGNUP') return;
+
+    const estado = document.getElementById('cw-estado');
+    const btn = document.getElementById('cw-btn');
+
+    if (data.event === 'FINISH' || data.event === 'FINISH_ONLY_WABA') {
+      conexionCompletada = true;
+      const { waba_id, phone_number_id } = data.data || {};
+      estado.className = 'cw-estado cargando';
+      estado.textContent = 'Terminando de conectar del lado del CRM...';
+      registrarConexion(waba_id, phone_number_id);
+    } else if (data.event === 'CANCEL') {
+      conexionCompletada = true;
+      btn.disabled = false;
+      estado.className = 'cw-estado error';
+      estado.textContent = 'Cancelaste la conexión antes de terminar. Podés volver a intentarlo cuando quieras.';
+    } else if (data.event === 'ERROR') {
+      conexionCompletada = true;
+      btn.disabled = false;
+      estado.className = 'cw-estado error';
+      estado.textContent = 'Meta devolvió un error conectando tu WhatsApp. Probá de nuevo o avisale a FrontyBack.';
+    }
+  });
+
+  async function registrarConexion(wabaId, phoneNumberId) {
+    const estado = document.getElementById('cw-estado');
+    const btn = document.getElementById('cw-btn');
+    try {
+      const res = await fetch('/api/public/whatsapp/conectar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, waba_id: wabaId, phone_number_id: phoneNumberId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo registrar la conexión.');
+      estado.className = 'cw-estado ok';
+      estado.textContent = '¡Listo! Tu WhatsApp quedó conectado al CRM.';
+      btn.textContent = 'Conectado ✓';
+    } catch (err) {
+      estado.className = 'cw-estado error';
+      estado.textContent = `Tu WhatsApp se conectó en Meta, pero hubo un problema terminándolo acá: ${err.message}. Avisale a FrontyBack, ya les llegó un aviso para completarlo a mano.`;
+      btn.disabled = false;
+    }
+  }
+</script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+</body>
+</html>

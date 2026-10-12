@@ -125,22 +125,15 @@ router.post('/clientes', asyncHandler(async (req, res) => {
   });
 }));
 
-// Link personalizado del Embedded Signup alojado por Meta: la página donde el cliente
-// autoriza su WhatsApp con un par de clics. El "state" lleva el slug para que
-// server/routes/public.js (GET /whatsapp/callback) sepa a qué cliente conectarlo cuando
-// Meta redirige de vuelta.
+// Link personalizado para que el cliente conecte su WhatsApp solo: nuestra propia página
+// (public/conectar-whatsapp.html), que usa el SDK de JavaScript de Meta - probado en vivo
+// que el link hosteado por Meta (business.facebook.com/messaging/whatsapp/onboard) nunca
+// redirige de vuelta, así que no sirve para esto.
 router.get('/clientes/:id/whatsapp-link', asyncHandler(async (req, res) => {
   const cliente = await db.getDb().collection('clientes').findOne({ _id: new db.ObjectId(req.params.id) });
   if (!cliente) return res.status(404).json({ error: 'No existe ese cliente.' });
 
-  const params = new URLSearchParams({
-    app_id: process.env.WHATSAPP_APP_ID || '',
-    config_id: process.env.WHATSAPP_CONFIG_ID || '',
-    redirect_uri: 'https://crm.frontyback.com/api/public/whatsapp/callback',
-    response_type: 'code',
-    state: cliente.slug
-  });
-  res.json({ link: `https://business.facebook.com/messaging/whatsapp/onboard/?${params}` });
+  res.json({ link: `https://crm.frontyback.com/conectar-whatsapp.html?slug=${encodeURIComponent(cliente.slug)}` });
 }));
 
 router.post('/clientes/:id/whatsapp', asyncHandler(async (req, res) => {

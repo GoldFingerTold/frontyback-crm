@@ -129,12 +129,18 @@ router.post(
   })
 );
 
-// ---------- Embedded Signup de WhatsApp (alojado por Meta) ----------
-// El super-admin genera un link personalizado por cliente (ver server/routes/superadmin.js,
-// GET /clientes/:id/whatsapp-link) con el slug del cliente en "state". Cuando esa persona
-// termina de conectar su WhatsApp en la página alojada por Meta, el navegador vuelve acá con
-// un "code" (para canjear por un token) y el mismo "state", así sabemos a qué cliente
-// corresponde.
+// ---------- Embedded Signup de WhatsApp ----------
+// Probado en vivo: la página alojada por Meta (business.facebook.com/messaging/whatsapp/
+// onboard) nunca redirige de vuelta a nuestro sitio, pase lo que pase - está pensada para
+// que el dueño del negocio se quede siempre adentro de Meta. Por eso el cliente ahora pasa
+// por /conectar-whatsapp.html (nuestra propia página, con el SDK de JavaScript de Meta
+// embebido), que recibe waba_id/phone_number_id directo en el navegador vía postMessage y
+// se los manda a POST /whatsapp/conectar, más abajo.
+//
+// El código de acá abajo (GET /whatsapp/callback, a partir del "code"/"state" de un
+// redirect) se deja sin usar por ahora - lo armamos antes de probar en vivo y descubrir que
+// ese flujo hosteado por Meta no redirige. Queda por si en algún momento se arma otro flujo
+// (por ejemplo, un login de Facebook para empresas tradicional) que sí lo necesite.
 const WHATSAPP_CALLBACK_URL = 'https://crm.frontyback.com/api/public/whatsapp/callback';
 
 function paginaWhatsapp(mensaje, { error = false } = {}) {
@@ -254,6 +260,46 @@ router.get('/whatsapp/callback', asyncHandler(async (req, res) => {
 
   console.log(`WhatsApp conectado OK para "${slug}": WABA ${wabaId}, número ${phoneNumberId} (${displayPhone}).`);
   res.send(paginaWhatsapp('Tu WhatsApp quedó conectado. Ya podés cerrar esta ventana.'));
+}));
+
+// Flujo real en uso: lo llama public/conectar-whatsapp.html con el waba_id y phone_number_id
+// que llegaron directo del SDK de JavaScript de Meta (postMessage) - no hace falta canjear
+// ningún código ni inspeccionar tokens, Meta ya nos los entrega resueltos.
+router.post('/whatsapp/conectar', asyncHandler(async (req, res) => {
+  const slug = String(req.body?.slug || '').trim();
+  const wabaId = String(req.body?.waba_id || '').trim();
+  const phoneNumberId = String(req.body?.phone_number_id || '').trim();
+
+  const cliente = slug ? await db.getDb().collection('clientes').findOne({ slug }) : null;
+  if (!cliente) return res.status(404).json({ error: 'No pudimos identificar a qué cuenta pertenece esta conexión.' });
+  if (!wabaId || !phoneNumberId) return res.status(400).json({ error: 'Faltan datos de la conexión (Meta no mandó la WABA o el número).' });
+
+  try {
+    await fetch(`https://graph.facebook.com/v21.0/${wabaId}/subscribed_apps`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` }
+    });
+  } catch (err) {
+    console.error(`No se pudo suscribir la WABA ${wabaId} a los webhooks (seguimos igual, se puede reintentar a mano):`, err.message);
+  }
+
+  try {
+    await db.agregarWhatsappNumero(cliente._id, { phone_number_id: phoneNumberId, etiqueta: '' });
+  } catch (err) {
+    try {
+      await email.enviarAvisoConexionManual({
+        nombreCliente: cliente.nombre,
+        slug: cliente.slug,
+        motivo: `El número ${phoneNumberId} (WABA ${wabaId}) llegó del SDK pero no se pudo guardar: ${err.message}`
+      });
+    } catch (mailErr) {
+      console.error('No se pudo mandar el aviso de conexión manual:', mailErr.message);
+    }
+    return res.status(400).json({ error: err.message });
+  }
+
+  console.log(`WhatsApp conectado OK (SDK) para "${slug}": WABA ${wabaId}, número ${phoneNumberId}.`);
+  res.json({ ok: true });
 }));
 
 module.exports = router;
