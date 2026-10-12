@@ -55,6 +55,8 @@ async function ensureIndexes() {
   await db.collection('uso_turnos_mensual').createIndex({ cliente_id: 1, mes: 1 }, { unique: true });
   await db.collection('catalogo_config').createIndex({ cliente_id: 1 }, { unique: true });
   await db.collection('catalogo_items').createIndex({ cliente_id: 1, categoria: 1, posicion: 1 });
+  await db.collection('fidelidad_config').createIndex({ cliente_id: 1 }, { unique: true });
+  await db.collection('fidelidad_clientes').createIndex({ cliente_id: 1, codigo: 1 }, { unique: true });
 }
 
 // Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en
@@ -76,8 +78,8 @@ const PLANES_DEFAULT = [
     precio_usd_ref_anual: 100,
     max_whatsapp: 1,
     limite_turnos_mensajes_mes: 150,
-    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp y tablero de seguimiento.',
-    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Catálogo con pedidos directo por WhatsApp', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
+    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp, tarjeta de fidelización con QR y tablero de seguimiento.',
+    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Catálogo con pedidos directo por WhatsApp', 'Tarjeta de fidelización digital con QR', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
   },
   {
     id: 'completo',
@@ -148,6 +150,12 @@ async function sembrarPlanes() {
   // texto de turnos agregado.
   await col.updateOne(
     { id: 'esencial', descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online y tablero de seguimiento.' },
+    { $set: { descripcion: PLANES_DEFAULT[0].descripcion, features: PLANES_DEFAULT[0].features } }
+  );
+  // Mismo criterio: sumamos "fidelización con QR" después de que Esencial ya tenía el
+  // texto de catálogo agregado.
+  await col.updateOne(
+    { id: 'esencial', descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp y tablero de seguimiento.' },
     { $set: { descripcion: PLANES_DEFAULT[0].descripcion, features: PLANES_DEFAULT[0].features } }
   );
   // El plan "completo" pasó a llamarse "Profesional" (ahora que el diferencial principal
@@ -788,6 +796,109 @@ async function eliminarItemCatalogo(clienteId, itemId) {
   await getDb().collection('catalogo_items').deleteOne({ _id: new ObjectId(itemId), cliente_id: id });
 }
 
+// ---------- Tarjeta de fidelización digital con QR (incluido desde el plan Esencial) ----------
+// El negocio escanea el QR del cliente al cobrarle (no al revés), para que cada sello
+// corresponda a una compra real. El QR en sí solo contiene el "codigo" único del cliente -
+// no hace falta ninguna API de WhatsApp Business ni de Meta para nada de esto.
+function generarCodigoFidelidad() {
+  return crypto.randomBytes(5).toString('base64url').toUpperCase().slice(0, 7);
+}
+
+async function getFidelidadConfig(clienteId) {
+  const col = db.collection('fidelidad_config');
+  const id = normalizarClienteId(clienteId);
+  let config = await col.findOne({ cliente_id: id });
+  if (!config) {
+    const doc = { cliente_id: id, meta_sellos: 10, premio_descripcion: 'Un producto gratis', updated_at: new Date() };
+    const { insertedId } = await col.insertOne(doc);
+    config = { ...doc, _id: insertedId };
+  }
+  return config;
+}
+
+async function guardarFidelidadConfig(clienteId, { meta_sellos, premio_descripcion }) {
+  const col = db.collection('fidelidad_config');
+  const id = normalizarClienteId(clienteId);
+  await getFidelidadConfig(id);
+  await col.updateOne(
+    { cliente_id: id },
+    {
+      $set: {
+        meta_sellos: Math.min(Math.max(parseInt(meta_sellos, 10) || 10, 2), 100),
+        premio_descripcion: String(premio_descripcion || '').trim().slice(0, 120) || 'Un producto gratis',
+        updated_at: new Date()
+      }
+    }
+  );
+  return getFidelidadConfig(id);
+}
+
+async function registrarClienteFidelidad(clienteId, { nombre, telefono }) {
+  const id = normalizarClienteId(clienteId);
+  const nombreLimpio = String(nombre || '').trim().slice(0, 120);
+  const telefonoLimpio = String(telefono || '').trim().slice(0, 30);
+  if (!nombreLimpio) throw new Error('Falta el nombre.');
+
+  let codigo;
+  let col = getDb().collection('fidelidad_clientes');
+  do {
+    codigo = generarCodigoFidelidad();
+  } while (await col.findOne({ cliente_id: id, codigo }));
+
+  const doc = {
+    cliente_id: id,
+    codigo,
+    nombre: nombreLimpio,
+    telefono: telefonoLimpio,
+    sellos: 0,
+    premios_canjeados: 0,
+    created_at: new Date(),
+    updated_at: new Date()
+  };
+  const { insertedId } = await col.insertOne(doc);
+  return { _id: insertedId, ...doc };
+}
+
+async function getTarjetaFidelidad(clienteId, codigo) {
+  const id = normalizarClienteId(clienteId);
+  const tarjeta = await getDb().collection('fidelidad_clientes').findOne({ cliente_id: id, codigo });
+  if (!tarjeta) throw new Error('No encontramos esa tarjeta.');
+  return tarjeta;
+}
+
+async function sellarTarjeta(clienteId, codigo) {
+  const id = normalizarClienteId(clienteId);
+  const config = await getFidelidadConfig(id);
+  const tarjeta = await getTarjetaFidelidad(id, codigo);
+  if (tarjeta.sellos >= config.meta_sellos) {
+    throw new Error('Esta tarjeta ya llegó al premio - canjealo antes de seguir sumando sellos.');
+  }
+  await getDb().collection('fidelidad_clientes').updateOne(
+    { _id: tarjeta._id },
+    { $inc: { sellos: 1 }, $set: { updated_at: new Date() } }
+  );
+  return getTarjetaFidelidad(id, codigo);
+}
+
+async function canjearPremioFidelidad(clienteId, codigo) {
+  const id = normalizarClienteId(clienteId);
+  const config = await getFidelidadConfig(id);
+  const tarjeta = await getTarjetaFidelidad(id, codigo);
+  if (tarjeta.sellos < config.meta_sellos) {
+    throw new Error('Esta tarjeta todavía no llegó al premio.');
+  }
+  await getDb().collection('fidelidad_clientes').updateOne(
+    { _id: tarjeta._id },
+    { $set: { sellos: 0, updated_at: new Date() }, $inc: { premios_canjeados: 1 } }
+  );
+  return getTarjetaFidelidad(id, codigo);
+}
+
+async function listarClientesFidelidad(clienteId) {
+  const id = normalizarClienteId(clienteId);
+  return getDb().collection('fidelidad_clientes').find({ cliente_id: id }).sort({ updated_at: -1 }).toArray();
+}
+
 module.exports = {
   connect,
   getDb,
@@ -830,5 +941,12 @@ module.exports = {
   listarCatalogo,
   agregarItemCatalogo,
   actualizarItemCatalogo,
-  eliminarItemCatalogo
+  eliminarItemCatalogo,
+  getFidelidadConfig,
+  guardarFidelidadConfig,
+  registrarClienteFidelidad,
+  getTarjetaFidelidad,
+  sellarTarjeta,
+  canjearPremioFidelidad,
+  listarClientesFidelidad
 };

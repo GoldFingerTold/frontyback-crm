@@ -409,4 +409,49 @@ router.get('/catalogo/:slug', asyncHandler(async (req, res) => {
   });
 }));
 
+// ---------- Tarjeta de fidelización pública (public/fidelizacion.html) ----------
+const fidelidadRegistroLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  message: { error: 'Demasiados registros seguidos desde acá. Probá de nuevo más tarde.' }
+});
+
+router.post('/fidelidad/:slug/registrar', fidelidadRegistroLimiter, asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
+  if (String(req.body?._hp || '').trim()) return res.json({ ok: true, codigo: null }); // trampa para bots
+
+  try {
+    const tarjeta = await db.registrarClienteFidelidad(cliente._id, req.body || {});
+    res.json({ ok: true, codigo: tarjeta.codigo });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}));
+
+router.get('/fidelidad/:slug/tarjeta/:codigo', asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
+
+  try {
+    const [config, tarjeta] = await Promise.all([
+      db.getFidelidadConfig(cliente._id),
+      db.getTarjetaFidelidad(cliente._id, req.params.codigo)
+    ]);
+    res.json({
+      nombre_negocio: cliente.nombre,
+      nombre_cliente: tarjeta.nombre,
+      sellos: tarjeta.sellos,
+      meta_sellos: config.meta_sellos,
+      premio_descripcion: config.premio_descripcion,
+      premio_disponible: tarjeta.sellos >= config.meta_sellos
+    });
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+}));
+
 module.exports = router;

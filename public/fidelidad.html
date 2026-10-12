@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM FrontyBack — Fidelización</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .fd-main { flex: 1; padding: 26px 30px 60px; overflow-y: auto; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .fd-titulo-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .fd-titulo { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; margin: 0; }
+  .fd-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .fd-fila {
+    display: flex; align-items: center; gap: 14px; background: rgba(28,29,31,0.6);
+    border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px;
+  }
+  .fd-fila .fd-info { flex: 1; min-width: 0; }
+  .fd-fila .fd-nombre { font-size: 13.5px; font-weight: 600; }
+  .fd-fila .fd-tel { font-size: 12px; color: var(--text-muted); }
+  .fd-fila .fd-sellos { font-family: 'Clash Display', sans-serif; font-weight: 600; font-size: 14px; color: var(--accent-gold); flex: none; }
+  .fd-fila .fd-sellos.premio { color: #2bb673; }
+  #fd-vacio { font-size: 13px; color: var(--text-muted); padding: 10px 2px; }
+
+  /* Escáner */
+  #scanner-overlay .ficha-detail { max-width: 420px; text-align: center; }
+  #scanner-video { width: 100%; border-radius: 12px; background: #000; margin: 10px 0; }
+  #scanner-resultado { min-height: 90px; }
+  .fd-resultado-ok { padding: 16px; }
+  .fd-resultado-ok .nom { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .fd-resultado-ok .progreso { font-family: 'Clash Display', sans-serif; font-size: 26px; font-weight: 600; color: var(--accent-gold); }
+  .fd-resultado-ok .premio-banner { background: rgba(43,182,115,0.1); border: 1px solid rgba(43,182,115,0.3); color: #2bb673; border-radius: 10px; padding: 10px; margin-top: 12px; font-size: 13.5px; font-weight: 600; }
+
+  .fd-form label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 12px 0 6px; }
+  .fd-form input { width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; font-size: 0.88rem; font-family: inherit; color: var(--text-primary); outline: none; }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <div>
+        <div class="brand-container">
+          <div class="brand-logo">F</div>
+          <div class="brand-text">
+            <h1>FrontyBack</h1>
+            <span>CRM Hub</span>
+          </div>
+        </div>
+        <nav class="nav-menu">
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
+          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> Plano de salón</a>
+          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
+          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> Catálogo</a>
+          <a href="/fidelidad.html" class="nav-item active"><i class="fa-solid fa-stamp"></i> Fidelidad</a>
+          <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
+            <i class="fa-solid fa-users"></i> Empleados
+          </button>
+        </nav>
+      </div>
+
+      <div class="user-section">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">•</div>
+          <div class="user-details">
+            <h4 id="user-nombre">—</h4>
+            <span id="user-slug"></span>
+            <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <header>
+        <div class="search-bar" style="visibility: hidden;"></div>
+        <div class="header-actions">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="fd-main">
+        <div class="fd-titulo-row">
+          <h1 class="fd-titulo">Fidelidad</h1>
+          <div class="fd-acciones">
+            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> Copiar link de registro</button>
+            <button type="button" id="btn-config" class="btn-ghost" hidden><i class="fa-solid fa-gear"></i> Configuración</button>
+            <button type="button" id="btn-escanear" class="btn btn-primary"><i class="fa-solid fa-qrcode"></i> Escanear cliente</button>
+          </div>
+        </div>
+
+        <div id="fd-lista"><p class="loading">Cargando...</p></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Escáner -->
+  <div id="scanner-overlay" class="overlay" hidden>
+    <div class="ficha-detail">
+      <button id="scanner-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Escanear QR del cliente</h2>
+      <video id="scanner-video" muted playsinline></video>
+      <canvas id="scanner-canvas" hidden></canvas>
+      <div id="scanner-resultado"><p class="loading">Apuntá la cámara al QR del cliente...</p></div>
+    </div>
+  </div>
+
+  <!-- Configuración -->
+  <div id="config-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 420px;">
+      <button id="config-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Configuración</h2>
+      <div class="fd-form">
+        <label for="config-meta">Sellos para ganar el premio</label>
+        <input type="number" id="config-meta" min="2" max="100">
+        <label for="config-premio">Premio</label>
+        <input type="text" id="config-premio" placeholder="Ej: Un café gratis" maxlength="120">
+      </div>
+      <button type="button" id="config-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Guardar</button>
+      <p class="form-status" id="config-status"></p>
+    </div>
+  </div>
+
+  <!-- Empleados (mismo overlay reusado en el resto del CRM) -->
+  <div id="empleados-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 480px;">
+      <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <div id="empleados-lista" class="sa-columnas-lista"></div>
+      <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
+        <div>
+          <label for="emp-nombre">Nombre</label>
+          <input type="text" id="emp-nombre" required>
+        </div>
+        <div>
+          <label for="emp-usuario">Usuario (para el login)</label>
+          <input type="text" id="emp-usuario" required>
+        </div>
+        <div>
+          <label for="emp-password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+        </div>
+        <div>
+          <label for="emp-departamento">Departamento</label>
+          <select id="emp-departamento" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+      </form>
+      <p class="form-status" id="empleado-status"></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+  <script src="/js/fidelidad.js"></script>
+</body>
+</html>

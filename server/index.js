@@ -14,6 +14,7 @@ const publicRoutes = require('./routes/public');
 const salonRoutes = require('./routes/salon');
 const turnosRoutes = require('./routes/turnos');
 const catalogoRoutes = require('./routes/catalogo');
+const fidelidadRoutes = require('./routes/fidelidad');
 const cicloPagos = require('./services/ciclo-pagos');
 const cicloTurnos = require('./services/ciclo-turnos');
 
@@ -52,6 +53,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/salon', salonRoutes);
 app.use('/api/turnos', turnosRoutes);
 app.use('/api/catalogo', catalogoRoutes);
+app.use('/api/fidelidad', fidelidadRoutes);
 
 // La landing de ventas pasó de /planes.html a la raíz (mejor para SEO: el dominio raíz es
 // lo que Google indexa con más fuerza, y es la URL que la gente comparte/recuerda).

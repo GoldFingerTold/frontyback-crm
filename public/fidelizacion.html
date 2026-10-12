@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarjeta de fidelización — FrontyBack</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .fz-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .fz-header { display: flex; align-items: center; justify-content: center; padding: 24px 32px; }
+  .fz-card { max-width: 420px; margin: 10px auto 40px; padding: 0 24px; }
+  .fz-card-inner {
+    background: rgba(28,29,31,0.8); border: 1px solid var(--border-subtle); border-radius: 16px;
+    padding: 32px; text-align: center;
+  }
+  .fz-card-inner h1 { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; margin: 0 0 6px; }
+  .fz-card-inner p.sub { color: var(--text-muted); font-size: 13px; margin: 0 0 22px; }
+
+  .fz-form label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 6px; text-align: left; }
+  .fz-form input { width: 100%; padding: 11px 13px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; font-size: 0.9rem; font-family: inherit; color: var(--text-primary); outline: none; margin-bottom: 14px; }
+  #fz-btn-registrar { width: 100%; padding: 13px; border-radius: 10px; border: none; cursor: pointer; background: var(--accent-gold); color: #141517; font-weight: 700; font-size: 14.5px; font-family: inherit; }
+  #fz-btn-registrar:disabled { opacity: 0.6; }
+
+  .fz-qr { background: #fff; padding: 14px; border-radius: 14px; display: inline-block; margin-bottom: 18px; }
+  .fz-qr img { display: block; width: 190px; height: 190px; }
+  .fz-nombre-cliente { font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
+
+  .fz-sellos { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 16px 0; }
+  .fz-sello { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; }
+  .fz-sello.lleno { background: var(--accent-gold); border-color: var(--accent-gold); color: #141517; }
+  .fz-sello i { font-size: 12px; }
+
+  .fz-progreso-texto { font-family: 'Clash Display', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .fz-premio { color: var(--text-muted); font-size: 13px; }
+  .fz-banner-premio {
+    background: rgba(43,182,115,0.1); border: 1px solid rgba(43,182,115,0.3); color: #2bb673;
+    border-radius: 10px; padding: 12px; margin-top: 16px; font-size: 13.5px; font-weight: 600;
+  }
+  .fz-estado { margin-top: 14px; font-size: 13px; color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="fz-shell">
+  <header class="fz-header">
+    <div class="brand-logo" style="width: 30px; height: 30px; font-size: 15px;">F</div>
+  </header>
+
+  <div class="fz-card">
+    <div class="fz-card-inner" id="fz-contenido">
+      <p class="loading">Cargando...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = (params.get('slug') || '').trim();
+  const cont = document.getElementById('fz-contenido');
+
+  function esc(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  const CLAVE_LOCAL = `frontyback_fidelidad_${slug}`;
+
+  async function init() {
+    if (!slug) {
+      cont.innerHTML = '<h1>Link inválido</h1>';
+      return;
+    }
+    const codigoUrl = params.get('codigo');
+    const codigoGuardado = localStorage.getItem(CLAVE_LOCAL);
+    const codigo = codigoUrl || codigoGuardado;
+
+    if (codigo) {
+      const ok = await mostrarTarjeta(codigo);
+      if (ok) return;
+    }
+    mostrarFormulario();
+  }
+
+  function mostrarFormulario() {
+    cont.innerHTML = `
+      <h1>Sumate a la tarjeta</h1>
+      <p class="sub">Cargá tus datos una sola vez y después mostrá tu QR en cada visita.</p>
+      <form class="fz-form" id="fz-form">
+        <input type="text" id="fz-hp" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
+        <label for="fz-nombre">Tu nombre</label>
+        <input type="text" id="fz-nombre" required maxlength="120">
+        <label for="fz-telefono">Tu WhatsApp (opcional)</label>
+        <input type="text" id="fz-telefono" placeholder="+54 9 11 ...">
+        <button type="submit" id="fz-btn-registrar">Crear mi tarjeta</button>
+      </form>
+      <p class="fz-estado" id="fz-estado"></p>
+    `;
+    document.getElementById('fz-form').addEventListener('submit', registrar);
+  }
+
+  async function registrar(e) {
+    e.preventDefault();
+    const btn = document.getElementById('fz-btn-registrar');
+    const estado = document.getElementById('fz-estado');
+    btn.disabled = true;
+    estado.textContent = '';
+    try {
+      const res = await fetch(`/api/public/fidelidad/${encodeURIComponent(slug)}/registrar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: document.getElementById('fz-nombre').value.trim(),
+          telefono: document.getElementById('fz-telefono').value.trim(),
+          _hp: document.getElementById('fz-hp').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo registrar.');
+      if (!data.codigo) throw new Error('Algo salió mal, probá de nuevo.');
+      localStorage.setItem(CLAVE_LOCAL, data.codigo);
+      await mostrarTarjeta(data.codigo);
+    } catch (err) {
+      estado.textContent = err.message;
+      btn.disabled = false;
+    }
+  }
+
+  async function mostrarTarjeta(codigo) {
+    try {
+      const res = await fetch(`/api/public/fidelidad/${encodeURIComponent(slug)}/tarjeta/${encodeURIComponent(codigo)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No encontramos esa tarjeta.');
+
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(codigo)}`;
+      const sellosHtml = Array.from({ length: data.meta_sellos }, (_, i) => `
+        <div class="fz-sello ${i < data.sellos ? 'lleno' : ''}">${i < data.sellos ? '<i class="fa-solid fa-check"></i>' : ''}</div>
+      `).join('');
+
+      cont.innerHTML = `
+        <h1>${esc(data.nombre_negocio)}</h1>
+        <p class="fz-nombre-cliente">${esc(data.nombre_cliente)}</p>
+        <div class="fz-qr"><img src="${qrUrl}" alt="Tu código QR"></div>
+        <div class="fz-progreso-texto">${data.sellos} / ${data.meta_sellos}</div>
+        <p class="fz-premio">Premio: ${esc(data.premio_descripcion)}</p>
+        <div class="fz-sellos">${sellosHtml}</div>
+        ${data.premio_disponible ? `<div class="fz-banner-premio">🎉 ¡Llegaste al premio! Mostrá esta pantalla para canjearlo.</div>` : ''}
+      `;
+      return true;
+    } catch (err) {
+      localStorage.removeItem(CLAVE_LOCAL);
+      return false;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
