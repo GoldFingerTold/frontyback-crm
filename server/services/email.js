@@ -123,4 +123,24 @@ async function enviarAvisoConexionManual({ nombreCliente, slug, motivo }) {
   });
 }
 
-module.exports = { enviarAutorespuesta, enviarAvisoPago, enviarAvisoLeadNuevo, enviarAvisoConexionManual };
+async function enviarResumenSemanal({ emailDestinatario, nombreCliente, fichasNuevas, turnosNuevos, fidelidadNuevos }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+
+  await getResend().emails.send({
+    from,
+    to: emailDestinatario,
+    subject: `Tu resumen de la semana en ${nombreCliente}`,
+    html: `
+      <p>Hola! Así te fue la última semana:</p>
+      <ul>
+        <li><strong>${fichasNuevas}</strong> consulta${fichasNuevas === 1 ? '' : 's'} nueva${fichasNuevas === 1 ? '' : 's'}</li>
+        <li><strong>${turnosNuevos}</strong> turno${turnosNuevos === 1 ? '' : 's'} reservado${turnosNuevos === 1 ? '' : 's'}</li>
+        <li><strong>${fidelidadNuevos}</strong> cliente${fidelidadNuevos === 1 ? '' : 's'} nuevo${fidelidadNuevos === 1 ? '' : 's'} en tu tarjeta de fidelización</li>
+      </ul>
+      <p><a href="https://crm.frontyback.com/tablero.html" style="display:inline-block;background:#d4af37;color:#141517;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">Ver el tablero</a></p>
+      <p style="color:#888;font-size:12px;">¿No te sirve este resumen? Lo podés apagar desde el tablero.</p>
+    `
+  });
+}
+
+module.exports = { enviarAutorespuesta, enviarAvisoPago, enviarAvisoLeadNuevo, enviarAvisoConexionManual, enviarResumenSemanal };

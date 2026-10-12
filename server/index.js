@@ -17,6 +17,7 @@ const catalogoRoutes = require('./routes/catalogo');
 const fidelidadRoutes = require('./routes/fidelidad');
 const cicloPagos = require('./services/ciclo-pagos');
 const cicloTurnos = require('./services/ciclo-turnos');
+const cicloResumen = require('./services/ciclo-resumen');
 
 const app = express();
 const PORT = process.env.PORT || 3010;
@@ -71,6 +72,7 @@ async function start() {
   await db.connect();
   cicloPagos.iniciar();
   cicloTurnos.iniciar();
+  cicloResumen.iniciar();
   app.listen(PORT, () => {
     console.log(`CRM de FrontyBack corriendo en http://localhost:${PORT}`);
   });

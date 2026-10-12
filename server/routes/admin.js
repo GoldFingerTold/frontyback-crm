@@ -42,7 +42,9 @@ router.get('/tablero', asyncHandler(async (req, res) => {
       estado_pago: cliente.estado_pago,
       prueba_termina: cliente.prueba_termina,
       gracia_termina: cliente.gracia_termina,
-      avisos_lead_email: cliente.avisos_lead_email !== false
+      avisos_lead_email: cliente.avisos_lead_email !== false,
+      resumen_semanal_email: cliente.resumen_semanal_email !== false,
+      google_review_link: cliente.google_review_link || ''
     },
     usuario: {
       nombre: req.session.usuarioNombre || 'Gerencia',
@@ -69,9 +71,13 @@ router.get('/pago/link', asyncHandler(async (req, res) => {
 // Prender/apagar el aviso por email de "lead nuevo" (server/routes/webhooks.js) - útil
 // para cuentas con pocas consultas, un estorbo para las que tienen mucho volumen.
 router.put('/preferencias', requireGerencia, asyncHandler(async (req, res) => {
+  const set = {};
+  if (req.body?.avisos_lead_email !== undefined) set.avisos_lead_email = Boolean(req.body.avisos_lead_email);
+  if (req.body?.resumen_semanal_email !== undefined) set.resumen_semanal_email = Boolean(req.body.resumen_semanal_email);
+  if (req.body?.google_review_link !== undefined) set.google_review_link = String(req.body.google_review_link).trim().slice(0, 300);
   await db.getDb().collection('clientes').updateOne(
     { _id: new db.ObjectId(req.session.clienteId) },
-    { $set: { avisos_lead_email: Boolean(req.body?.avisos_lead_email) } }
+    { $set: set }
   );
   res.json({ ok: true });
 }));

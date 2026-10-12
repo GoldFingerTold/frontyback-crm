@@ -196,10 +196,13 @@ function actualizarCabecera() {
     document.getElementById('nav-estadisticas').hidden = !(esGerencia && planConEstadisticas);
     document.getElementById('nav-salon').hidden = !(ESTADO.cliente?.plan === 'elite');
     document.getElementById('aviso-lead-label').hidden = !esGerencia;
+    document.getElementById('resumen-semanal-label').hidden = !esGerencia;
+    document.getElementById('btn-config-general').hidden = !esGerencia;
     // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
     // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.
     if (!avisoLeadInicializado && esGerencia) {
       document.getElementById('aviso-lead-checkbox').checked = ESTADO.cliente?.avisos_lead_email !== false;
+      document.getElementById('resumen-semanal-checkbox').checked = ESTADO.cliente?.resumen_semanal_email !== false;
       avisoLeadInicializado = true;
     }
   }
@@ -337,6 +340,13 @@ function abrirFicha(fichaId) {
       ${columna ? `<span class="${badgeClase}">${esc(columna.nombre)}</span>` : ''}
     </p>
 
+    ${columna && esColumnaGanada(columna.nombre) && ESTADO.cliente?.google_review_link && /^\+?[\d\s-]{6,20}$/.test(ficha.contacto || '') ? `
+      <a class="btn-ghost" id="btn-pedir-resena" style="display: block; text-align: center; margin: 10px 0; text-decoration: none; color: #2bb673; border-color: rgba(43,182,115,0.3);" target="_blank" rel="noopener"
+         href="https://wa.me/${esc((ficha.contacto || '').replace(/\D/g, ''))}?text=${encodeURIComponent(`¡Hola ${ficha.nombre || ''}! Gracias por confiar en nosotros. Si te gustó, ¿nos dejás una reseña? ${ESTADO.cliente.google_review_link}`)}">
+        <i class="fa-brands fa-google"></i> Pedir reseña por WhatsApp
+      </a>
+    ` : ''}
+
     <div class="ficha-monto">
       <div>
         <label for="monto-input">Valor del negocio</label>
@@ -471,6 +481,56 @@ document.getElementById('aviso-lead-checkbox').addEventListener('change', async 
     e.target.checked = !e.target.checked; // si falló, volvemos el checkbox a como estaba
   }
 });
+document.getElementById('resumen-semanal-checkbox').addEventListener('change', async (e) => {
+  try {
+    await api('/api/admin/preferencias', {
+      method: 'PUT',
+      body: JSON.stringify({ resumen_semanal_email: e.target.checked })
+    });
+  } catch {
+    e.target.checked = !e.target.checked;
+  }
+});
+
+document.getElementById('btn-copiar-enlace').addEventListener('click', async () => {
+  const link = `${location.origin}/enlace.html?slug=${encodeURIComponent(ESTADO.cliente?.slug || '')}`;
+  const btn = document.getElementById('btn-copiar-enlace');
+  try {
+    await navigator.clipboard.writeText(link);
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!';
+    setTimeout(() => { btn.innerHTML = original; }, 2000);
+  } catch {
+    prompt('Copiá este link:', link);
+  }
+});
+
+document.getElementById('btn-config-general').addEventListener('click', () => {
+  document.getElementById('config-general-overlay').hidden = false;
+  document.getElementById('config-general-status').textContent = '';
+  document.getElementById('config-review-link').value = ESTADO.cliente?.google_review_link || '';
+});
+document.getElementById('config-general-close').addEventListener('click', () => {
+  document.getElementById('config-general-overlay').hidden = true;
+});
+document.getElementById('config-general-guardar').addEventListener('click', async () => {
+  const status = document.getElementById('config-general-status');
+  status.textContent = 'Guardando...';
+  status.className = 'form-status';
+  try {
+    await api('/api/admin/preferencias', {
+      method: 'PUT',
+      body: JSON.stringify({ google_review_link: document.getElementById('config-review-link').value.trim() })
+    });
+    if (ESTADO.cliente) ESTADO.cliente.google_review_link = document.getElementById('config-review-link').value.trim();
+    status.textContent = 'Guardado.';
+    setTimeout(() => { document.getElementById('config-general-overlay').hidden = true; }, 700);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});
+
 document.getElementById('empleados-close').addEventListener('click', () => {
   document.getElementById('empleados-overlay').hidden = true;
 });

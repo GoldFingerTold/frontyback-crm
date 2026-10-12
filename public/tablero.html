@@ -51,10 +51,21 @@
         <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
 
+      <button type="button" id="btn-copiar-enlace" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;">
+        <i class="fa-solid fa-link"></i> Copiar mi página
+      </button>
+
       <label id="aviso-lead-label" style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); cursor: pointer;" hidden>
         <input type="checkbox" id="aviso-lead-checkbox" style="margin: 0;">
         Avisarme por email de leads nuevos
       </label>
+      <label id="resumen-semanal-label" style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11.5px; color: var(--text-muted); cursor: pointer;" hidden>
+        <input type="checkbox" id="resumen-semanal-checkbox" style="margin: 0;">
+        Resumen semanal por email
+      </label>
+      <button type="button" id="btn-config-general" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;" hidden>
+        <i class="fa-solid fa-gear"></i> Configuración
+      </button>
       <button type="button" id="push-btn" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;">
         <i class="fa-regular fa-bell"></i> <span id="push-btn-texto">Activar notificaciones</span>
       </button>
@@ -98,6 +109,18 @@
     <div class="ficha-detail">
       <button id="ficha-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
       <div id="ficha-body"></div>
+    </div>
+  </div>
+
+  <div id="config-general-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 440px;">
+      <button id="config-general-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Configuración</h2>
+      <label for="config-review-link" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 14px 0 6px;">Link para dejar reseña en Google</label>
+      <p class="ficha-contacto" style="margin: 0 0 8px;">Lo usamos para ofrecerte pedirle una reseña al cliente cuando marcás una venta como concretada.</p>
+      <input type="text" id="config-review-link" placeholder="https://g.page/r/..." style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem;">
+      <button type="button" id="config-general-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Guardar</button>
+      <p class="form-status" id="config-general-status"></p>
     </div>
   </div>
 

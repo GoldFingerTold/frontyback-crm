@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FrontyBack</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .en-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .en-card { max-width: 400px; width: 100%; text-align: center; }
+  .en-card h1 { font-family: 'Clash Display', sans-serif; font-size: 22px; font-weight: 600; margin: 14px 0 28px; }
+  .en-link {
+    display: flex; align-items: center; gap: 12px; background: rgba(28,29,31,0.7); border: 1px solid var(--border-subtle);
+    border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; text-decoration: none; color: var(--text-primary);
+    font-size: 14.5px; font-weight: 600; transition: border-color .15s, transform .15s;
+  }
+  .en-link:hover { border-color: var(--accent-gold); transform: translateY(-2px); }
+  .en-link i.icono { font-size: 17px; color: var(--accent-gold); width: 22px; text-align: center; flex: none; }
+  .en-link i.flecha { margin-left: auto; color: var(--text-muted); font-size: 12px; }
+  .en-link.wa { border-color: rgba(37,211,102,0.3); }
+  .en-link.wa i.icono { color: #25d366; }
+</style>
+</head>
+<body>
+<div class="en-shell">
+  <div class="en-card" id="en-card">
+    <div class="brand-logo" style="margin: 0 auto;">F</div>
+    <h1 id="en-nombre">Cargando...</h1>
+    <div id="en-links"></div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = (params.get('slug') || '').trim();
+
+  function esc(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  async function init() {
+    if (!slug) {
+      document.getElementById('en-nombre').textContent = 'Link inválido';
+      return;
+    }
+    const [catalogo, turnos] = await Promise.allSettled([
+      fetch(`/api/public/catalogo/${encodeURIComponent(slug)}`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/api/public/turnos/${encodeURIComponent(slug)}/config`).then((r) => (r.ok ? r.json() : null))
+    ]);
+    const datosCatalogo = catalogo.status === 'fulfilled' ? catalogo.value : null;
+    const datosTurnos = turnos.status === 'fulfilled' ? turnos.value : null;
+
+    const nombreNegocio = datosCatalogo?.nombre_negocio || datosTurnos?.nombre_negocio || slug;
+    document.getElementById('en-nombre').textContent = nombreNegocio;
+
+    const links = [];
+    if (datosCatalogo?.telefono_pedidos) {
+      const numero = datosCatalogo.telefono_pedidos.replace(/\D/g, '');
+      links.push({ href: `https://wa.me/${numero}`, icono: 'fa-brands fa-whatsapp', texto: 'Escribinos por WhatsApp', clase: 'wa' });
+    }
+    if (datosCatalogo?.items?.length) {
+      links.push({ href: `/pedir.html?slug=${encodeURIComponent(slug)}`, icono: 'fa-solid fa-book-open', texto: 'Ver catálogo y pedir' });
+    }
+    if (datosTurnos?.servicios?.length) {
+      links.push({ href: `/reservar.html?slug=${encodeURIComponent(slug)}`, icono: 'fa-solid fa-calendar-check', texto: 'Reservar un turno' });
+    }
+    links.push({ href: `/fidelizacion.html?slug=${encodeURIComponent(slug)}`, icono: 'fa-solid fa-stamp', texto: 'Mi tarjeta de puntos' });
+
+    document.getElementById('en-links').innerHTML = links.map((l) => `
+      <a class="en-link ${l.clase || ''}" href="${esc(l.href)}" ${l.href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>
+        <i class="icono ${l.icono}"></i> ${esc(l.texto)} <i class="flecha fa-solid fa-chevron-right"></i>
+      </a>
+    `).join('');
+  }
+
+  init();
+</script>
+</body>
+</html>
