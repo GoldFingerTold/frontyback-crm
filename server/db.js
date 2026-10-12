@@ -176,7 +176,7 @@ async function maxWhatsappDeCliente(cliente) {
 // Agrega un número de WhatsApp a un cliente, respetando el tope de su plan - usado tanto
 // por la carga manual del super-admin como por el Embedded Signup (cuando el cliente se
 // conecta solo). Tira error si ya está conectado o si no hay lugar.
-async function agregarWhatsappNumero(clienteId, { phone_number_id, etiqueta = '' }) {
+async function agregarWhatsappNumero(clienteId, { phone_number_id, waba_id = null, etiqueta = '' }) {
   const mongo = getDb();
   const id = normalizarClienteId(clienteId);
   const cliente = await mongo.collection('clientes').findOne({ _id: id });
@@ -194,7 +194,15 @@ async function agregarWhatsappNumero(clienteId, { phone_number_id, etiqueta = ''
 
   await mongo.collection('clientes').updateOne(
     { _id: id },
-    { $push: { whatsapp_numeros: { phone_number_id, etiqueta: String(etiqueta || '').trim().slice(0, 40) } } }
+    {
+      $push: {
+        whatsapp_numeros: {
+          phone_number_id,
+          waba_id: waba_id || null,
+          etiqueta: String(etiqueta || '').trim().slice(0, 40)
+        }
+      }
+    }
   );
 }
 

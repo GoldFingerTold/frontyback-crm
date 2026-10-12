@@ -107,4 +107,36 @@ async function descargarMedia(mediaId) {
   return { buffer: Buffer.from(arrayBuffer), mimeType: meta.mime_type };
 }
 
-module.exports = { enviarTexto, enviarPlantilla, enviarAudio, descargarMedia };
+// Da de alta una plantilla de mensaje en la WABA de un cliente (para que después se pueda
+// mandar con enviarPlantilla) - Meta todavía tiene que aprobarla, esto solo la manda a
+// revisión. Si ya existe una con ese nombre no es un error real (es justo lo que queremos:
+// que exista), así que se devuelve como éxito silencioso.
+async function crearPlantilla({ wabaId, nombre, idioma = 'es_AR', textoBody, ejemplos = [] }) {
+  const body = {
+    name: nombre,
+    language: idioma,
+    category: 'UTILITY',
+    components: [
+      {
+        type: 'BODY',
+        text: textoBody,
+        ...(ejemplos.length ? { example: { body_text: [ejemplos] } } : {})
+      }
+    ]
+  };
+
+  const res = await fetch(`${GRAPH_BASE}/${wabaId}/message_templates`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const yaExiste = /already exists|ya existe/i.test(data?.error?.message || '');
+    if (yaExiste) return { yaExistia: true };
+    throw new Error(`Error creando la plantilla "${nombre}": ${JSON.stringify(data)}`);
+  }
+  return data;
+}
+
+module.exports = { enviarTexto, enviarPlantilla, enviarAudio, descargarMedia, crearPlantilla };

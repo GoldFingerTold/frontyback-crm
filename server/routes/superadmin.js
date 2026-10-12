@@ -10,6 +10,7 @@ const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 const mercadopago = require('../services/mercadopago');
+const turnosWhatsapp = require('../services/turnos');
 
 const router = express.Router();
 
@@ -139,16 +140,24 @@ router.get('/clientes/:id/whatsapp-link', asyncHandler(async (req, res) => {
 router.post('/clientes/:id/whatsapp', asyncHandler(async (req, res) => {
   const clienteId = new db.ObjectId(req.params.id);
   const phoneNumberId = String(req.body?.phone_number_id || '').trim();
+  const wabaId = String(req.body?.waba_id || '').trim();
   const etiqueta = String(req.body?.etiqueta || '').trim().slice(0, 40);
 
   try {
-    await db.agregarWhatsappNumero(clienteId, { phone_number_id: phoneNumberId, etiqueta });
+    await db.agregarWhatsappNumero(clienteId, { phone_number_id: phoneNumberId, waba_id: wabaId || null, etiqueta });
   } catch (err) {
     const status = err.message === 'No existe ese cliente.' ? 404
       : err.message === 'Ese número ya está conectado a este cliente.' ? 409
       : 400;
     return res.status(status).json({ error: err.message });
   }
+
+  // Si se cargó el WABA ID, de paso le damos de alta las plantillas de turnos - mejor
+  // esfuerzo, no bloquea la respuesta si falla.
+  if (wabaId) {
+    turnosWhatsapp.asegurarPlantillas(wabaId).catch((err) => console.error('Error asegurando plantillas de turnos:', err.message));
+  }
+
   res.json({ ok: true });
 }));
 

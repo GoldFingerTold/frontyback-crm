@@ -344,6 +344,7 @@ function renderWhatsappEditor(cliente) {
   const puedeAgregar = numeros.length < max;
   document.getElementById('whatsapp-agregar-btn').disabled = !puedeAgregar;
   document.getElementById('whatsapp-input').disabled = !puedeAgregar;
+  document.getElementById('whatsapp-waba-input').disabled = !puedeAgregar;
   document.getElementById('whatsapp-etiqueta-input').disabled = !puedeAgregar;
 }
 
@@ -353,15 +354,17 @@ document.getElementById('whatsapp-close').addEventListener('click', () => {
 document.getElementById('whatsapp-agregar-btn').addEventListener('click', async () => {
   const status = document.getElementById('whatsapp-status');
   const phoneNumberId = document.getElementById('whatsapp-input').value.trim();
+  const wabaId = document.getElementById('whatsapp-waba-input').value.trim();
   const etiqueta = document.getElementById('whatsapp-etiqueta-input').value.trim();
   if (!phoneNumberId) return;
   status.textContent = 'Agregando...';
   try {
     await api(`/clientes/${whatsappEditando.clienteId}/whatsapp`, {
       method: 'POST',
-      body: JSON.stringify({ phone_number_id: phoneNumberId, etiqueta })
+      body: JSON.stringify({ phone_number_id: phoneNumberId, waba_id: wabaId, etiqueta })
     });
     document.getElementById('whatsapp-input').value = '';
+    document.getElementById('whatsapp-waba-input').value = '';
     document.getElementById('whatsapp-etiqueta-input').value = '';
     status.textContent = '';
     await cargarClientes();

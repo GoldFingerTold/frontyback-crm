@@ -56,4 +56,31 @@ async function enviarRecordatorio(cliente, turno) {
   });
 }
 
-module.exports = { enviarConfirmacion, enviarRecordatorio };
+// Da de alta las 2 plantillas de turnos en la WABA de un cliente apenas conecta su
+// WhatsApp (Embedded Signup o carga manual del super-admin) - así Hugo no tiene que
+// entrar a mano a Meta por cada cliente nuevo. Mejor esfuerzo: si falla, se loguea pero no
+// rompe la conexión del número (la plantilla se puede crear después a mano si hace falta).
+async function asegurarPlantillas(wabaId) {
+  if (!wabaId) return;
+  const intentos = [
+    {
+      nombre: PLANTILLA_CONFIRMACION,
+      textoBody: 'Hola {{1}}! Tu turno para {{2}} quedó confirmado para el {{3}} a las {{4}}hs. Cualquier cambio, escribinos por acá.',
+      ejemplos: ['Juan', 'Consulta', '15/10', '10:00']
+    },
+    {
+      nombre: PLANTILLA_RECORDATORIO,
+      textoBody: 'Hola {{1}}! Te recordamos tu turno para {{2}} mañana a las {{3}}hs.',
+      ejemplos: ['Juan', 'Consulta', '10:00']
+    }
+  ];
+  for (const plantilla of intentos) {
+    try {
+      await whatsapp.crearPlantilla({ wabaId, ...plantilla });
+    } catch (err) {
+      console.error(`No se pudo crear la plantilla "${plantilla.nombre}" en la WABA ${wabaId}:`, err.message);
+    }
+  }
+}
+
+module.exports = { enviarConfirmacion, enviarRecordatorio, asegurarPlantillas };

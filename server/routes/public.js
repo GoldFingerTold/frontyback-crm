@@ -287,7 +287,7 @@ router.post('/whatsapp/conectar', asyncHandler(async (req, res) => {
   }
 
   try {
-    await db.agregarWhatsappNumero(cliente._id, { phone_number_id: phoneNumberId, etiqueta: '' });
+    await db.agregarWhatsappNumero(cliente._id, { phone_number_id: phoneNumberId, waba_id: wabaId, etiqueta: '' });
   } catch (err) {
     try {
       await email.enviarAvisoConexionManual({
@@ -300,6 +300,10 @@ router.post('/whatsapp/conectar', asyncHandler(async (req, res) => {
     }
     return res.status(400).json({ error: err.message });
   }
+
+  // Da de alta las plantillas de turnos en esta WABA, sin que Hugo tenga que entrar a mano
+  // a Meta por cada cliente nuevo - mejor esfuerzo, no bloquea la respuesta si falla.
+  turnosWhatsapp.asegurarPlantillas(wabaId).catch((err) => console.error('Error asegurando plantillas de turnos:', err.message));
 
   console.log(`WhatsApp conectado OK (SDK) para "${slug}": WABA ${wabaId}, número ${phoneNumberId}.`);
   res.json({ ok: true });
