@@ -102,4 +102,24 @@ async function enviarAvisoLeadNuevo({ emailDestinatario, nombreCliente, nombreCo
   });
 }
 
-module.exports = { enviarAutorespuesta, enviarAvisoPago, enviarAvisoLeadNuevo };
+// Aviso para Hugo (no para el cliente) cuando el Embedded Signup de WhatsApp termina del
+// lado de Meta pero algo impide terminar de registrarlo solo del lado del CRM - así no
+// queda un cliente pensando que ya está conectado cuando en realidad falta un paso a mano.
+async function enviarAvisoConexionManual({ nombreCliente, slug, motivo }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+  const para = process.env.SUPERADMIN_NOTIFY_EMAIL || 'hugoceriani@gmail.com';
+
+  await getResend().emails.send({
+    from,
+    to: para,
+    subject: `Falta terminar a mano la conexión de WhatsApp de ${nombreCliente}`,
+    html: `
+      <p><strong>${escHtml(nombreCliente)}</strong> (usuario: ${escHtml(slug)}) terminó el Embedded Signup de WhatsApp
+      del lado de Meta, pero el CRM no pudo registrar el número solo.</p>
+      <p><strong>Motivo:</strong> ${escHtml(motivo)}</p>
+      <p>Entrá al super-admin y agregá el número a mano (revisá los logs del servidor para ver qué devolvió Meta).</p>
+    `
+  });
+}
+
+module.exports = { enviarAutorespuesta, enviarAvisoPago, enviarAvisoLeadNuevo, enviarAvisoConexionManual };

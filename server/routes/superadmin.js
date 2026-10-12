@@ -125,15 +125,6 @@ router.post('/clientes', asyncHandler(async (req, res) => {
   });
 }));
 
-// Cada plan limita cuántas cuentas de WhatsApp puede tener conectadas un cliente a la vez
-// (server/db.js, PLANES_DEFAULT) - sin plan asignado, se asume el tope más chico (1) para
-// no dejar conectar de más por error antes de que Hugo le asigne un plan de verdad.
-async function maxWhatsappDeCliente(cliente) {
-  if (!cliente.plan) return 1;
-  const planes = await db.getPlanes();
-  return planes[cliente.plan]?.max_whatsapp ?? 1;
-}
-
 // Link personalizado del Embedded Signup alojado por Meta: la página donde el cliente
 // autoriza su WhatsApp con un par de clics. El "state" lleva el slug para que
 // server/routes/public.js (GET /whatsapp/callback) sepa a qué cliente conectarlo cuando
@@ -151,28 +142,18 @@ router.get('/clientes/:id/whatsapp-link', asyncHandler(async (req, res) => {
 }));
 
 router.post('/clientes/:id/whatsapp', asyncHandler(async (req, res) => {
-  const mongo = db.getDb();
   const clienteId = new db.ObjectId(req.params.id);
-  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
-  if (!cliente) return res.status(404).json({ error: 'No existe ese cliente.' });
-
   const phoneNumberId = String(req.body?.phone_number_id || '').trim();
   const etiqueta = String(req.body?.etiqueta || '').trim().slice(0, 40);
-  if (!phoneNumberId) return res.status(400).json({ error: 'Falta el Phone Number ID.' });
 
-  const numeros = cliente.whatsapp_numeros || [];
-  if (numeros.some((n) => n.phone_number_id === phoneNumberId)) {
-    return res.status(409).json({ error: 'Ese número ya está conectado a este cliente.' });
+  try {
+    await db.agregarWhatsappNumero(clienteId, { phone_number_id: phoneNumberId, etiqueta });
+  } catch (err) {
+    const status = err.message === 'No existe ese cliente.' ? 404
+      : err.message === 'Ese número ya está conectado a este cliente.' ? 409
+      : 400;
+    return res.status(status).json({ error: err.message });
   }
-  const max = await maxWhatsappDeCliente(cliente);
-  if (numeros.length >= max) {
-    return res.status(400).json({ error: `Este cliente ya tiene el máximo de ${max} cuenta${max === 1 ? '' : 's'} de WhatsApp de su plan.` });
-  }
-
-  await mongo.collection('clientes').updateOne(
-    { _id: clienteId },
-    { $push: { whatsapp_numeros: { phone_number_id: phoneNumberId, etiqueta } } }
-  );
   res.json({ ok: true });
 }));
 

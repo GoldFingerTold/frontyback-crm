@@ -146,6 +146,40 @@ async function getPlanes() {
   return mapa;
 }
 
+// Cada plan limita cuántas cuentas de WhatsApp puede tener conectadas un cliente a la vez -
+// sin plan asignado, se asume el tope más chico (1) para no dejar conectar de más por error
+// antes de que Hugo le asigne un plan de verdad.
+async function maxWhatsappDeCliente(cliente) {
+  if (!cliente.plan) return 1;
+  const planes = await getPlanes();
+  return planes[cliente.plan]?.max_whatsapp ?? 1;
+}
+
+// Agrega un número de WhatsApp a un cliente, respetando el tope de su plan - usado tanto
+// por la carga manual del super-admin como por el Embedded Signup (cuando el cliente se
+// conecta solo). Tira error si ya está conectado o si no hay lugar.
+async function agregarWhatsappNumero(clienteId, { phone_number_id, etiqueta = '' }) {
+  const mongo = getDb();
+  const id = normalizarClienteId(clienteId);
+  const cliente = await mongo.collection('clientes').findOne({ _id: id });
+  if (!cliente) throw new Error('No existe ese cliente.');
+  if (!phone_number_id) throw new Error('Falta el Phone Number ID.');
+
+  const numeros = cliente.whatsapp_numeros || [];
+  if (numeros.some((n) => n.phone_number_id === phone_number_id)) {
+    throw new Error('Ese número ya está conectado a este cliente.');
+  }
+  const max = await maxWhatsappDeCliente(cliente);
+  if (numeros.length >= max) {
+    throw new Error(`Este cliente ya tiene el máximo de ${max} cuenta${max === 1 ? '' : 's'} de WhatsApp de su plan.`);
+  }
+
+  await mongo.collection('clientes').updateOne(
+    { _id: id },
+    { $push: { whatsapp_numeros: { phone_number_id, etiqueta: String(etiqueta || '').trim().slice(0, 40) } } }
+  );
+}
+
 const DIAS_PRUEBA_GRATIS = 7;
 const DIAS_GRACIA = 7;
 
@@ -470,5 +504,7 @@ module.exports = {
   reiniciarSalon,
   agregarPunto,
   actualizarPunto,
-  eliminarPunto
+  eliminarPunto,
+  maxWhatsappDeCliente,
+  agregarWhatsappNumero
 };

@@ -7,6 +7,7 @@ const express = require('express');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
+const email = require('../services/email');
 
 const router = express.Router();
 
@@ -133,71 +134,126 @@ router.post(
 // GET /clientes/:id/whatsapp-link) con el slug del cliente en "state". Cuando esa persona
 // termina de conectar su WhatsApp en la página alojada por Meta, el navegador vuelve acá con
 // un "code" (para canjear por un token) y el mismo "state", así sabemos a qué cliente
-// corresponde. Primera vez que probamos este flujo en producción, así que de movida queda
-// todo bien logueado - en cuanto Hugo haga la primera conexión real vamos a ver exactamente
-// qué datos manda Meta y terminar de ajustar el descubrimiento del WABA si hace falta.
+// corresponde.
 const WHATSAPP_CALLBACK_URL = 'https://crm.frontyback.com/api/public/whatsapp/callback';
+
+function paginaWhatsapp(mensaje, { error = false } = {}) {
+  return (
+    `<html><body style="font-family: sans-serif; text-align: center; padding: 60px;">` +
+    `<h2>${error ? 'No se pudo completar la conexión' : '¡Listo!'}</h2><p>${mensaje}</p></body></html>`
+  );
+}
 
 router.get('/whatsapp/callback', asyncHandler(async (req, res) => {
   console.log('Callback de WhatsApp Embedded Signup recibido:', JSON.stringify(req.query));
   const { code, state } = req.query;
 
-  const paginaError = (mensaje) =>
-    res.status(400).send(
-      `<html><body style="font-family: sans-serif; text-align: center; padding: 60px;">` +
-      `<h2>No se pudo completar la conexión</h2><p>${mensaje} Avisale a FrontyBack.</p></body></html>`
-    );
-
-  if (!code) return paginaError('Falta el código de autorización de Meta.');
+  if (!code) {
+    return res.status(400).send(paginaWhatsapp('Falta el código de autorización de Meta. Avisale a FrontyBack.', { error: true }));
+  }
 
   const slug = String(state || '').trim();
   const cliente = slug ? await db.getDb().collection('clientes').findOne({ slug }) : null;
   if (!cliente) {
     console.warn(`Callback de WhatsApp sin cliente identificable (state="${state}").`);
-    return paginaError('No pudimos identificar a qué cuenta pertenece esta conexión.');
+    return res.status(400).send(paginaWhatsapp('No pudimos identificar a qué cuenta pertenece esta conexión. Avisale a FrontyBack.', { error: true }));
   }
 
-  const params = new URLSearchParams({
+  // Si algo falla de acá en adelante, Meta ya conectó el WhatsApp de su lado - no tiene
+  // sentido asustar al cliente con un error, mejor le avisamos a Hugo para que lo termine
+  // a mano y al cliente le mostramos el mismo mensaje de éxito.
+  const avisarYMostrarExito = async (motivo) => {
+    console.error(`Embedded Signup de "${slug}" quedó incompleto: ${motivo}`);
+    try {
+      await email.enviarAvisoConexionManual({ nombreCliente: cliente.nombre, slug, motivo });
+    } catch (err) {
+      console.error('No se pudo mandar el aviso de conexión manual:', err.message);
+    }
+    return res.send(paginaWhatsapp('Tu WhatsApp quedó conectado. Ya podés cerrar esta ventana.'));
+  };
+
+  // 1. Canjear el código por un token que representa el permiso que el cliente acaba de dar.
+  const tokenParams = new URLSearchParams({
     client_id: process.env.WHATSAPP_APP_ID || '',
     client_secret: process.env.WHATSAPP_APP_SECRET || '',
     redirect_uri: WHATSAPP_CALLBACK_URL,
     code: String(code)
   });
-
-  let tokenData;
+  let accessToken;
   try {
-    const tokenRes = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?${params}`);
-    tokenData = await tokenRes.json();
-    if (!tokenRes.ok) {
+    const tokenRes = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?${tokenParams}`);
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.access_token) {
       console.error('Error canjeando el código de WhatsApp por un token:', tokenData);
-      return paginaError('Meta rechazó la conexión.');
+      return avisarYMostrarExito(`Meta rechazó el canje del código: ${JSON.stringify(tokenData)}`);
     }
+    accessToken = tokenData.access_token;
   } catch (err) {
-    console.error('Error de red canjeando el código de WhatsApp:', err.message);
-    return paginaError('Hubo un error de red hablando con Meta.');
+    return avisarYMostrarExito(`Error de red canjeando el código: ${err.message}`);
   }
 
-  console.log(`Token de WhatsApp obtenido para cliente "${slug}":`, JSON.stringify(tokenData));
-
-  // Con nuestro propio token (el system user de FrontyBack) buscamos qué WABA nos acaba de
-  // compartir este cliente - se loguea completo porque es la primera vez que vemos la forma
-  // real de esta respuesta en producción.
+  // 2. Inspeccionar ese token para saber EXACTAMENTE qué WABA se acaba de compartir en esta
+  // autorización puntual (los "granular_scopes" listan el target_id de este permiso, a
+  // diferencia de listar todas las WABA que FrontyBack puede ver, que incluiría las de
+  // otros clientes ya conectados).
+  let wabaId;
   try {
-    const businessId = process.env.WHATSAPP_BUSINESS_ID;
-    const wabasRes = await fetch(
-      `https://graph.facebook.com/v21.0/${businessId}/client_whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}&access_token=${process.env.WHATSAPP_TOKEN}`
-    );
-    const wabasData = await wabasRes.json();
-    console.log(`WABAs visibles para FrontyBack tras conectar "${slug}":`, JSON.stringify(wabasData));
+    const debugParams = new URLSearchParams({
+      input_token: accessToken,
+      access_token: `${process.env.WHATSAPP_APP_ID}|${process.env.WHATSAPP_APP_SECRET}`
+    });
+    const debugRes = await fetch(`https://graph.facebook.com/v21.0/debug_token?${debugParams}`);
+    const debugData = await debugRes.json();
+    console.log(`debug_token de WhatsApp para "${slug}":`, JSON.stringify(debugData));
+    const scopes = debugData?.data?.granular_scopes || [];
+    const wabaScope = scopes.find((s) => s.scope === 'whatsapp_business_management') || scopes.find((s) => s.scope === 'whatsapp_business_messaging');
+    wabaId = wabaScope?.target_ids?.[0];
   } catch (err) {
-    console.error('Error consultando las WABA del cliente tras el Embedded Signup:', err.message);
+    return avisarYMostrarExito(`Error inspeccionando el token para encontrar la WABA: ${err.message}`);
+  }
+  if (!wabaId) {
+    return avisarYMostrarExito('No encontramos ninguna WABA en los permisos del token (revisá el log del debug_token).');
   }
 
-  res.send(
-    '<html><body style="font-family: sans-serif; text-align: center; padding: 60px;">' +
-    '<h2>¡Listo! Tu WhatsApp quedó conectado.</h2><p>Ya podés cerrar esta ventana.</p>' +
-    '</body></html>'
-  );
+  // 3. Buscar el número de esa WABA.
+  let phoneNumberId;
+  let displayPhone;
+  try {
+    const numRes = await fetch(
+      `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?access_token=${process.env.WHATSAPP_TOKEN}`
+    );
+    const numData = await numRes.json();
+    console.log(`Números de la WABA ${wabaId} para "${slug}":`, JSON.stringify(numData));
+    const numero = numData?.data?.[0];
+    phoneNumberId = numero?.id;
+    displayPhone = numero?.display_phone_number;
+  } catch (err) {
+    return avisarYMostrarExito(`Error consultando los números de la WABA ${wabaId}: ${err.message}`);
+  }
+  if (!phoneNumberId) {
+    return avisarYMostrarExito(`Encontramos la WABA ${wabaId} pero no tiene ningún número de teléfono cargado.`);
+  }
+
+  // 4. Suscribir nuestra app a los webhooks de esa WABA - sin esto Meta no nos manda los
+  // mensajes que le lleguen a ese número, aunque quede "conectado".
+  try {
+    await fetch(`https://graph.facebook.com/v21.0/${wabaId}/subscribed_apps`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` }
+    });
+  } catch (err) {
+    console.error(`No se pudo suscribir la WABA ${wabaId} a los webhooks (seguimos igual, se puede reintentar a mano):`, err.message);
+  }
+
+  // 5. Guardar el número en el cliente, respetando el tope de WhatsApp del plan.
+  try {
+    await db.agregarWhatsappNumero(cliente._id, { phone_number_id: phoneNumberId, etiqueta: '' });
+  } catch (err) {
+    return avisarYMostrarExito(`El número ${displayPhone || phoneNumberId} (WABA ${wabaId}) se conectó en Meta pero no se pudo guardar: ${err.message}`);
+  }
+
+  console.log(`WhatsApp conectado OK para "${slug}": WABA ${wabaId}, número ${phoneNumberId} (${displayPhone}).`);
+  res.send(paginaWhatsapp('Tu WhatsApp quedó conectado. Ya podés cerrar esta ventana.'));
 }));
 
 module.exports = router;
