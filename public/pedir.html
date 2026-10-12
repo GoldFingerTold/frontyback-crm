@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo — FrontyBack</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .pd-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); padding-bottom: 90px; }
+  .pd-header { text-align: center; padding: 28px 24px 10px; }
+  .pd-header h1 { font-family: 'Clash Display', sans-serif; font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .pd-header p { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+  .pd-contenido { max-width: 560px; margin: 0 auto; padding: 10px 20px; }
+  .pd-categoria { font-size: 13px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.04em; margin: 24px 0 12px; }
+  .pd-categoria:first-of-type { margin-top: 10px; }
+
+  .pd-item {
+    display: flex; align-items: center; gap: 12px; background: rgba(28,29,31,0.6);
+    border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .pd-item-info { flex: 1; min-width: 0; }
+  .pd-item-info .nom { font-size: 14px; font-weight: 600; }
+  .pd-item-info .desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .pd-item-info .precio { font-family: 'Clash Display', sans-serif; font-weight: 600; color: var(--accent-gold); font-size: 13.5px; margin-top: 4px; }
+
+  .pd-stepper { display: flex; align-items: center; gap: 10px; flex: none; }
+  .pd-stepper button {
+    width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border-subtle);
+    background: rgba(255,255,255,0.03); color: var(--text-primary); font-size: 15px; cursor: pointer;
+  }
+  .pd-stepper button:disabled { opacity: 0.3; cursor: default; }
+  .pd-stepper .cant { min-width: 18px; text-align: center; font-size: 14px; font-weight: 600; }
+
+  .pd-barra {
+    position: fixed; bottom: 0; left: 0; right: 0; background: #0e0f10; border-top: 1px solid var(--border-subtle);
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .pd-barra .resumen { font-size: 13px; color: var(--text-secondary); }
+  .pd-barra .total { font-family: 'Clash Display', sans-serif; font-weight: 600; color: var(--accent-gold); font-size: 16px; }
+  .pd-barra button {
+    background: #25d366; color: #06231a; font-weight: 700; border: none; border-radius: 999px;
+    padding: 11px 20px; font-size: 13.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit;
+  }
+  .pd-barra button:disabled { opacity: 0.4; cursor: default; }
+</style>
+</head>
+<body>
+<div class="pd-shell">
+  <div class="pd-header">
+    <div class="brand-logo" style="margin: 0 auto 10px;">F</div>
+    <h1 id="pd-nombre">Cargando...</h1>
+    <p>Elegí lo que querés y lo pedís directo por WhatsApp</p>
+  </div>
+
+  <div class="pd-contenido" id="pd-contenido"></div>
+</div>
+
+<div class="pd-barra" id="pd-barra" hidden>
+  <div>
+    <div class="resumen" id="pd-resumen">0 productos</div>
+    <div class="total" id="pd-total">$0</div>
+  </div>
+  <button type="button" id="pd-btn-pedir" disabled>
+    <i class="fa-brands fa-whatsapp"></i> Pedir por WhatsApp
+  </button>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = (params.get('slug') || '').trim();
+  const cont = document.getElementById('pd-contenido');
+
+  function esc(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function formatearARS(n) {
+    return '$' + Math.round(n || 0).toLocaleString('es-AR');
+  }
+
+  const CARRITO = {}; // { nombreItem: cantidad }
+  let CONFIG = null;
+
+  async function init() {
+    if (!slug) {
+      document.getElementById('pd-nombre').textContent = 'Link inválido';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/public/catalogo/${encodeURIComponent(slug)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cargar el catálogo.');
+      CONFIG = data;
+      document.getElementById('pd-nombre').textContent = data.nombre_negocio;
+      renderCatalogo();
+    } catch (err) {
+      document.getElementById('pd-nombre').textContent = 'No disponible';
+      cont.innerHTML = `<p class="loading">${esc(err.message)}</p>`;
+    }
+  }
+
+  function renderCatalogo() {
+    if (!CONFIG.items.length) {
+      cont.innerHTML = '<p class="loading">Todavía no hay productos cargados.</p>';
+      return;
+    }
+    const porCategoria = {};
+    CONFIG.items.forEach((i) => { (porCategoria[i.categoria] ||= []).push(i); });
+
+    cont.innerHTML = Object.entries(porCategoria).map(([categoria, lista]) => `
+      <h2 class="pd-categoria">${esc(categoria)}</h2>
+      ${lista.map((i) => `
+        <div class="pd-item" data-nombre="${esc(i.nombre)}">
+          <div class="pd-item-info">
+            <div class="nom">${esc(i.nombre)}</div>
+            ${i.descripcion ? `<div class="desc">${esc(i.descripcion)}</div>` : ''}
+            <div class="precio">${formatearARS(i.precio)}</div>
+          </div>
+          <div class="pd-stepper">
+            <button type="button" class="menos" data-nombre="${esc(i.nombre)}">−</button>
+            <span class="cant" data-cant="${esc(i.nombre)}">0</span>
+            <button type="button" class="mas" data-nombre="${esc(i.nombre)}" data-precio="${i.precio}">+</button>
+          </div>
+        </div>
+      `).join('')}
+    `).join('');
+
+    cont.querySelectorAll('.mas').forEach((btn) => {
+      btn.addEventListener('click', () => cambiarCantidad(btn.dataset.nombre, 1));
+    });
+    cont.querySelectorAll('.menos').forEach((btn) => {
+      btn.addEventListener('click', () => cambiarCantidad(btn.dataset.nombre, -1));
+    });
+  }
+
+  function cambiarCantidad(nombre, delta) {
+    CARRITO[nombre] = Math.max((CARRITO[nombre] || 0) + delta, 0);
+    document.querySelector(`[data-cant="${CSS.escape(nombre)}"]`).textContent = CARRITO[nombre];
+    actualizarBarra();
+  }
+
+  function actualizarBarra() {
+    const items = Object.entries(CARRITO).filter(([, cant]) => cant > 0);
+    const barra = document.getElementById('pd-barra');
+    const btn = document.getElementById('pd-btn-pedir');
+    if (items.length === 0) {
+      barra.hidden = true;
+      btn.disabled = true;
+      return;
+    }
+    barra.hidden = false;
+    btn.disabled = false;
+    const totalItems = items.reduce((sum, [, cant]) => sum + cant, 0);
+    const totalPlata = items.reduce((sum, [nombre, cant]) => {
+      const item = CONFIG.items.find((i) => i.nombre === nombre);
+      return sum + (item ? item.precio * cant : 0);
+    }, 0);
+    document.getElementById('pd-resumen').textContent = `${totalItems} producto${totalItems === 1 ? '' : 's'}`;
+    document.getElementById('pd-total').textContent = formatearARS(totalPlata);
+  }
+
+  document.getElementById('pd-btn-pedir').addEventListener('click', () => {
+    if (!CONFIG.telefono_pedidos) {
+      alert('Este negocio todavía no configuró un número para recibir pedidos. Probá escribiéndole directamente.');
+      return;
+    }
+    const items = Object.entries(CARRITO).filter(([, cant]) => cant > 0);
+    let total = 0;
+    const lineas = items.map(([nombre, cant]) => {
+      const item = CONFIG.items.find((i) => i.nombre === nombre);
+      const subtotal = item.precio * cant;
+      total += subtotal;
+      return `- ${cant}x ${nombre} (${formatearARS(subtotal)})`;
+    });
+    const texto = `Hola! Quiero hacer un pedido:\n${lineas.join('\n')}\n\nTotal: ${formatearARS(total)}`;
+    const numero = CONFIG.telefono_pedidos.replace(/\D/g, '');
+    window.location.href = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+  });
+
+  init();
+</script>
+</body>
+</html>

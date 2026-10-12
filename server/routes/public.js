@@ -386,4 +386,27 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
   res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre } });
 }));
 
+// ---------- Catálogo público (public/pedir.html) ----------
+// No usa la API de WhatsApp de Meta para nada: el pedido se arma como un link wa.me común,
+// lo manda el cliente final desde su propio WhatsApp. Por eso alcanza con el estado de
+// pago para decidir si se muestra el catálogo - no depende de tener un número conectado.
+router.get('/catalogo/:slug', asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
+  if (!db.estadoPermiteCaptura(cliente.estado_pago)) {
+    return res.status(404).json({ error: 'Este catálogo no está disponible en este momento.' });
+  }
+
+  const [config, items] = await Promise.all([
+    db.getCatalogoConfig(cliente._id),
+    db.listarCatalogo(cliente._id, { soloDisponibles: true })
+  ]);
+
+  res.json({
+    nombre_negocio: cliente.nombre,
+    telefono_pedidos: config.telefono_pedidos || '',
+    items: items.map((i) => ({ nombre: i.nombre, descripcion: i.descripcion, precio: i.precio, categoria: i.categoria }))
+  });
+}));
+
 module.exports = router;

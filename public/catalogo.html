@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM FrontyBack — Catálogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .ct-main { flex: 1; padding: 26px 30px 60px; overflow-y: auto; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .ct-titulo-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .ct-titulo { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; margin: 0; }
+  .ct-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .ct-categoria { font-size: 13px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.04em; margin: 22px 0 10px; }
+  .ct-categoria:first-of-type { margin-top: 0; }
+  .ct-fila {
+    display: flex; align-items: center; gap: 14px; background: rgba(28,29,31,0.6);
+    border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px;
+  }
+  .ct-fila.no-disponible { opacity: 0.5; }
+  .ct-fila .ct-info { flex: 1; min-width: 0; }
+  .ct-fila .ct-nombre { font-size: 13.5px; font-weight: 600; }
+  .ct-fila .ct-desc { font-size: 12px; color: var(--text-muted); }
+  .ct-fila .ct-precio { font-family: 'Clash Display', sans-serif; font-weight: 600; font-size: 14px; color: var(--accent-gold); flex: none; }
+  .ct-fila .ct-botones { display: flex; gap: 6px; flex: none; }
+  .ct-fila .ct-botones button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; padding: 6px; }
+  .ct-fila .ct-botones button:hover { color: var(--text-primary); }
+  #ct-vacio { font-size: 13px; color: var(--text-muted); padding: 10px 2px; }
+
+  .ct-form label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 12px 0 6px; }
+  .ct-form input[type="text"], .ct-form input[type="number"], .ct-form textarea {
+    width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: 9px; font-size: 0.88rem; font-family: inherit; color: var(--text-primary); outline: none;
+  }
+  .ct-form textarea { resize: vertical; min-height: 54px; }
+  .ct-form .ct-check-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <div>
+        <div class="brand-container">
+          <div class="brand-logo">F</div>
+          <div class="brand-text">
+            <h1>FrontyBack</h1>
+            <span>CRM Hub</span>
+          </div>
+        </div>
+        <nav class="nav-menu">
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
+          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> Plano de salón</a>
+          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
+          <a href="/catalogo.html" class="nav-item active"><i class="fa-solid fa-book-open"></i> Catálogo</a>
+          <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
+            <i class="fa-solid fa-users"></i> Empleados
+          </button>
+        </nav>
+      </div>
+
+      <div class="user-section">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">•</div>
+          <div class="user-details">
+            <h4 id="user-nombre">—</h4>
+            <span id="user-slug"></span>
+            <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <header>
+        <div class="search-bar" style="visibility: hidden;"></div>
+        <div class="header-actions">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="ct-main">
+        <div class="ct-titulo-row">
+          <h1 class="ct-titulo">Catálogo</h1>
+          <div class="ct-acciones">
+            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> Copiar link de pedidos</button>
+            <button type="button" id="btn-telefono" class="btn-ghost" hidden><i class="fa-solid fa-phone"></i> Teléfono de pedidos</button>
+            <button type="button" id="btn-agregar-item" class="btn btn-primary" hidden><i class="fa-solid fa-plus"></i> Agregar producto</button>
+          </div>
+        </div>
+
+        <div id="ct-lista"><p class="loading">Cargando...</p></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Agregar / editar producto -->
+  <div id="item-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 440px;">
+      <button id="item-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="item-titulo">Agregar producto</h2>
+      <form class="ct-form" id="item-form">
+        <label for="item-nombre">Nombre</label>
+        <input type="text" id="item-nombre" required maxlength="100">
+        <label for="item-descripcion">Descripción (opcional)</label>
+        <textarea id="item-descripcion" maxlength="300"></textarea>
+        <label for="item-precio">Precio (ARS)</label>
+        <input type="number" id="item-precio" min="0" step="1" required>
+        <label for="item-categoria">Categoría</label>
+        <input type="text" id="item-categoria" placeholder="Ej: Bebidas, Platos principales" maxlength="40">
+        <div class="ct-check-row">
+          <input type="checkbox" id="item-disponible" checked>
+          <label for="item-disponible" style="margin: 0; text-transform: none; font-size: 13px; color: var(--text-primary); letter-spacing: normal;">Disponible</label>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 18px;">Guardar</button>
+      </form>
+      <p class="form-status" id="item-status"></p>
+    </div>
+  </div>
+
+  <!-- Teléfono de pedidos -->
+  <div id="telefono-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 420px;">
+      <button id="telefono-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Teléfono de pedidos</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;">A este número le va a llegar el mensaje de WhatsApp cuando alguien arme un pedido. Puede ser distinto del WhatsApp conectado al CRM.</p>
+      <label for="telefono-input" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">WhatsApp (con código de país, ej: +5491122334455)</label>
+      <input type="text" id="telefono-input" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.9rem;">
+      <button type="button" id="telefono-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Guardar</button>
+      <p class="form-status" id="telefono-status"></p>
+    </div>
+  </div>
+
+  <!-- Empleados (mismo overlay reusado en el resto del CRM) -->
+  <div id="empleados-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 480px;">
+      <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <div id="empleados-lista" class="sa-columnas-lista"></div>
+      <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
+        <div>
+          <label for="emp-nombre">Nombre</label>
+          <input type="text" id="emp-nombre" required>
+        </div>
+        <div>
+          <label for="emp-usuario">Usuario (para el login)</label>
+          <input type="text" id="emp-usuario" required>
+        </div>
+        <div>
+          <label for="emp-password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+        </div>
+        <div>
+          <label for="emp-departamento">Departamento</label>
+          <select id="emp-departamento" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+      </form>
+      <p class="form-status" id="empleado-status"></p>
+    </div>
+  </div>
+
+  <script src="/js/catalogo.js"></script>
+</body>
+</html>

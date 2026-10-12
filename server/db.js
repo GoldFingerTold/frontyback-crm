@@ -53,6 +53,8 @@ async function ensureIndexes() {
   await db.collection('turnos_config').createIndex({ cliente_id: 1 }, { unique: true });
   await db.collection('turnos').createIndex({ cliente_id: 1, fecha: 1 });
   await db.collection('uso_turnos_mensual').createIndex({ cliente_id: 1, mes: 1 }, { unique: true });
+  await db.collection('catalogo_config').createIndex({ cliente_id: 1 }, { unique: true });
+  await db.collection('catalogo_items').createIndex({ cliente_id: 1, categoria: 1, posicion: 1 });
 }
 
 // Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en
@@ -74,8 +76,8 @@ const PLANES_DEFAULT = [
     precio_usd_ref_anual: 100,
     max_whatsapp: 1,
     limite_turnos_mensajes_mes: 150,
-    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online y tablero de seguimiento.',
-    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
+    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp y tablero de seguimiento.',
+    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Catálogo con pedidos directo por WhatsApp', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
   },
   {
     id: 'completo',
@@ -140,6 +142,12 @@ async function sembrarPlanes() {
   // Hugo ya lo editó a mano por otro motivo.
   await col.updateOne(
     { id: 'esencial', descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, y tablero de seguimiento.' },
+    { $set: { descripcion: PLANES_DEFAULT[0].descripcion, features: PLANES_DEFAULT[0].features } }
+  );
+  // Mismo criterio: sumamos "catálogo con pedidos" después de que Esencial ya tenía el
+  // texto de turnos agregado.
+  await col.updateOne(
+    { id: 'esencial', descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online y tablero de seguimiento.' },
     { $set: { descripcion: PLANES_DEFAULT[0].descripcion, features: PLANES_DEFAULT[0].features } }
   );
   // El plan "completo" pasó a llamarse "Profesional" (ahora que el diferencial principal
@@ -704,6 +712,82 @@ async function registrarUsoTurno(clienteId) {
   );
 }
 
+// ---------- Catálogo + pedidos por WhatsApp (incluido desde el plan Esencial) ----------
+// Pensado para que no haga falta tener WhatsApp Business conectado vía Meta: el pedido se
+// arma como un link de WhatsApp normal (wa.me) con el mensaje prellenado, lo manda el
+// cliente final desde su propio WhatsApp - cero costo, cero plantillas, cero API de Meta.
+// El teléfono de pedidos es independiente del WhatsApp conectado al CRM, por si el
+// negocio quiere que los pedidos lleguen a otro número/persona.
+async function getCatalogoConfig(clienteId) {
+  const col = db.collection('catalogo_config');
+  const id = normalizarClienteId(clienteId);
+  let config = await col.findOne({ cliente_id: id });
+  if (!config) {
+    const doc = { cliente_id: id, telefono_pedidos: '', updated_at: new Date() };
+    const { insertedId } = await col.insertOne(doc);
+    config = { ...doc, _id: insertedId };
+  }
+  return config;
+}
+
+async function guardarTelefonoPedidos(clienteId, telefono) {
+  const col = db.collection('catalogo_config');
+  const id = normalizarClienteId(clienteId);
+  await getCatalogoConfig(id);
+  await col.updateOne({ cliente_id: id }, { $set: { telefono_pedidos: telefono, updated_at: new Date() } });
+  return getCatalogoConfig(id);
+}
+
+async function listarCatalogo(clienteId, { soloDisponibles = false } = {}) {
+  const id = normalizarClienteId(clienteId);
+  const filtro = { cliente_id: id };
+  if (soloDisponibles) filtro.disponible = true;
+  return getDb().collection('catalogo_items').find(filtro).sort({ categoria: 1, posicion: 1 }).toArray();
+}
+
+async function siguientePosicionCatalogo(clienteId, categoria) {
+  const ultimo = await getDb().collection('catalogo_items')
+    .find({ cliente_id: clienteId, categoria })
+    .sort({ posicion: -1 })
+    .limit(1)
+    .toArray();
+  return ultimo.length > 0 ? ultimo[0].posicion + 1 : 0;
+}
+
+async function agregarItemCatalogo(clienteId, item) {
+  const id = normalizarClienteId(clienteId);
+  const categoria = String(item.categoria || '').trim().slice(0, 40) || 'General';
+  const doc = {
+    cliente_id: id,
+    nombre: String(item.nombre || '').trim().slice(0, 100),
+    descripcion: String(item.descripcion || '').trim().slice(0, 300),
+    precio: Math.max(Number(item.precio) || 0, 0),
+    categoria,
+    disponible: item.disponible !== false,
+    posicion: await siguientePosicionCatalogo(id, categoria),
+    created_at: new Date()
+  };
+  if (!doc.nombre) throw new Error('Falta el nombre del producto.');
+  const { insertedId } = await getDb().collection('catalogo_items').insertOne(doc);
+  return { _id: insertedId, ...doc };
+}
+
+async function actualizarItemCatalogo(clienteId, itemId, cambios) {
+  const id = normalizarClienteId(clienteId);
+  const set = {};
+  if (cambios.nombre !== undefined) set.nombre = String(cambios.nombre).trim().slice(0, 100);
+  if (cambios.descripcion !== undefined) set.descripcion = String(cambios.descripcion).trim().slice(0, 300);
+  if (cambios.precio !== undefined) set.precio = Math.max(Number(cambios.precio) || 0, 0);
+  if (cambios.categoria !== undefined) set.categoria = String(cambios.categoria).trim().slice(0, 40) || 'General';
+  if (cambios.disponible !== undefined) set.disponible = !!cambios.disponible;
+  await getDb().collection('catalogo_items').updateOne({ _id: new ObjectId(itemId), cliente_id: id }, { $set: set });
+}
+
+async function eliminarItemCatalogo(clienteId, itemId) {
+  const id = normalizarClienteId(clienteId);
+  await getDb().collection('catalogo_items').deleteOne({ _id: new ObjectId(itemId), cliente_id: id });
+}
+
 module.exports = {
   connect,
   getDb,
@@ -740,5 +824,11 @@ module.exports = {
   listarTurnos,
   maxTurnosMensajesDeCliente,
   contarUsoTurnosEsteMes,
-  registrarUsoTurno
+  registrarUsoTurno,
+  getCatalogoConfig,
+  guardarTelefonoPedidos,
+  listarCatalogo,
+  agregarItemCatalogo,
+  actualizarItemCatalogo,
+  eliminarItemCatalogo
 };
