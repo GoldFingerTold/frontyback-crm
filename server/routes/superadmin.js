@@ -136,6 +136,8 @@ router.get('/clientes/:id/whatsapp-link', asyncHandler(async (req, res) => {
   const params = new URLSearchParams({
     app_id: process.env.WHATSAPP_APP_ID || '',
     config_id: process.env.WHATSAPP_CONFIG_ID || '',
+    redirect_uri: 'https://crm.frontyback.com/api/public/whatsapp/callback',
+    response_type: 'code',
     state: cliente.slug
   });
   res.json({ link: `https://business.facebook.com/messaging/whatsapp/onboard/?${params}` });
