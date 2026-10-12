@@ -59,15 +59,16 @@ async function cargarClientes() {
       cont.innerHTML = '<p id="fd-vacio">Todavía no hay clientes registrados. Compartí el link de registro.</p>';
       return;
     }
+    const maximo = config.premios.length ? config.premios[config.premios.length - 1].puntos_necesarios : 0;
     cont.innerHTML = clientes.map((c) => {
-      const premio = c.sellos >= config.meta_sellos;
+      const tienePremio = config.premios.some((p) => c.puntos >= p.puntos_necesarios);
       return `
         <div class="fd-fila">
           <div class="fd-info">
             <div class="fd-nombre">${esc(c.nombre)}</div>
             <div class="fd-tel">${esc(c.telefono || '')}</div>
           </div>
-          <div class="fd-sellos ${premio ? 'premio' : ''}">${premio ? '¡Premio! ' : ''}${c.sellos}/${config.meta_sellos}</div>
+          <div class="fd-sellos ${tienePremio ? 'premio' : ''}">${tienePremio ? '¡Premio! ' : ''}${c.puntos} pts${maximo ? ` / ${maximo}` : ''}</div>
         </div>
       `;
     }).join('');
@@ -91,30 +92,65 @@ document.getElementById('btn-copiar-link').addEventListener('click', async () =>
 });
 
 // ---------- Configuración ----------
+function filaPremio(premio) {
+  const div = document.createElement('div');
+  div.className = 'fd-premio-fila';
+  div.innerHTML = `
+    <input type="number" class="premio-puntos" placeholder="Puntos" value="${premio.puntos_necesarios || ''}" min="1" max="1000">
+    <input type="text" class="premio-desc" placeholder="Ej: Café gratis" value="${esc(premio.descripcion || '')}" maxlength="120">
+    <button type="button" class="btn-ghost premio-borrar" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+  `;
+  div.querySelector('.premio-borrar').addEventListener('click', () => div.remove());
+  return div;
+}
+
+function actualizarVisibilidadMonto() {
+  document.getElementById('config-monto-wrap').hidden = document.getElementById('config-modo').value !== 'monto';
+}
+document.getElementById('config-modo').addEventListener('change', actualizarVisibilidadMonto);
+
 document.getElementById('btn-config').addEventListener('click', async () => {
   document.getElementById('config-overlay').hidden = false;
   document.getElementById('config-status').textContent = '';
+  const lista = document.getElementById('config-premios-lista');
+  lista.innerHTML = '<p class="loading">Cargando...</p>';
   try {
     const config = await api('/api/fidelidad/config');
-    document.getElementById('config-meta').value = config.meta_sellos;
-    document.getElementById('config-premio').value = config.premio_descripcion;
+    document.getElementById('config-modo').value = config.modo;
+    document.getElementById('config-monto').value = config.monto_por_punto;
+    actualizarVisibilidadMonto();
+    lista.innerHTML = '';
+    (config.premios.length ? config.premios : [{ puntos_necesarios: 10, descripcion: '' }]).forEach((p) => {
+      lista.appendChild(filaPremio(p));
+    });
   } catch (err) {
-    document.getElementById('config-status').textContent = err.message;
+    lista.innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
   }
 });
 document.getElementById('config-close').addEventListener('click', () => {
   document.getElementById('config-overlay').hidden = true;
 });
+document.getElementById('config-premio-agregar').addEventListener('click', () => {
+  document.getElementById('config-premios-lista').appendChild(filaPremio({ puntos_necesarios: '', descripcion: '' }));
+});
 document.getElementById('config-guardar').addEventListener('click', async () => {
   const status = document.getElementById('config-status');
+  const premios = [...document.querySelectorAll('#config-premios-lista .fd-premio-fila')]
+    .map((fila) => ({
+      puntos_necesarios: parseInt(fila.querySelector('.premio-puntos').value, 10) || 0,
+      descripcion: fila.querySelector('.premio-desc').value.trim()
+    }))
+    .filter((p) => p.descripcion && p.puntos_necesarios > 0);
+
   status.textContent = 'Guardando...';
   status.className = 'form-status';
   try {
     await api('/api/fidelidad/config', {
       method: 'PUT',
       body: JSON.stringify({
-        meta_sellos: document.getElementById('config-meta').value,
-        premio_descripcion: document.getElementById('config-premio').value
+        modo: document.getElementById('config-modo').value,
+        monto_por_punto: document.getElementById('config-monto').value,
+        premios
       })
     });
     status.textContent = 'Guardado.';
@@ -176,35 +212,66 @@ function cicloEscaneo() {
 
 async function procesarCodigo(codigo) {
   const cont = document.getElementById('scanner-resultado');
-  cont.innerHTML = '<p class="loading">Sellando...</p>';
-  try {
-    const { tarjeta, meta_sellos, premio_descripcion } = await api('/api/fidelidad/sellar', {
-      method: 'POST',
-      body: JSON.stringify({ codigo })
+
+  if (CONFIG_ACTUAL && CONFIG_ACTUAL.modo === 'monto') {
+    cont.innerHTML = `
+      <div class="fd-resultado-ok">
+        <p>¿Cuánto gastó el cliente?</p>
+        <div class="fd-monto-row">
+          <input type="number" id="monto-input" min="1" placeholder="Ej: 3500" autofocus>
+          <button type="button" id="btn-sumar-monto">Sumar</button>
+        </div>
+        <button type="button" class="btn-ghost" id="btn-cancelar-monto" style="width: 100%;">Cancelar</button>
+      </div>
+    `;
+    document.getElementById('btn-cancelar-monto').addEventListener('click', () => {
+      escaneando = true;
+      cont.innerHTML = '<p class="loading">Apuntá la cámara al QR del cliente...</p>';
+      requestAnimationFrame(cicloEscaneo);
     });
-    const premio = tarjeta.sellos >= meta_sellos;
+    document.getElementById('btn-sumar-monto').addEventListener('click', () => {
+      const monto = document.getElementById('monto-input').value;
+      sellarYMostrar(codigo, monto);
+    });
+    return;
+  }
+
+  await sellarYMostrar(codigo);
+}
+
+async function sellarYMostrar(codigo, monto) {
+  const cont = document.getElementById('scanner-resultado');
+  cont.innerHTML = '<p class="loading">Sumando puntos...</p>';
+  try {
+    const { tarjeta, premios } = await api('/api/fidelidad/sellar', {
+      method: 'POST',
+      body: JSON.stringify({ codigo, monto })
+    });
+    const disponibles = premios.filter((p) => tarjeta.puntos >= p.puntos_necesarios);
     cont.innerHTML = `
       <div class="fd-resultado-ok">
         <div class="nom">${esc(tarjeta.nombre)}</div>
-        <div class="progreso">${tarjeta.sellos}/${meta_sellos}</div>
-        ${premio ? `
-          <div class="premio-banner">🎉 ¡Llegó al premio! ${esc(premio_descripcion)}</div>
-          <button type="button" class="btn btn-primary" id="btn-canjear-ahora" style="width: 100%; margin-top: 12px;">Entregar y canjear</button>
-        ` : ''}
+        <div class="progreso">${tarjeta.puntos} puntos</div>
+        ${disponibles.map((p) => `
+          <div class="premio-fila-canje">
+            <span>🎉 ${esc(p.descripcion)} (${p.puntos_necesarios} pts)</span>
+            <button type="button" class="btn-canjear-premio" data-premio-id="${p.id}">Canjear</button>
+          </div>
+        `).join('')}
         <button type="button" class="btn-ghost" id="btn-seguir-escaneando" style="width: 100%; margin-top: 10px;">Escanear otro</button>
       </div>
     `;
-    if (premio) {
-      document.getElementById('btn-canjear-ahora').addEventListener('click', async () => {
+    cont.querySelectorAll('.btn-canjear-premio').forEach((btn) => {
+      btn.addEventListener('click', async () => {
         try {
-          await api('/api/fidelidad/canjear', { method: 'POST', body: JSON.stringify({ codigo }) });
+          await api('/api/fidelidad/canjear', { method: 'POST', body: JSON.stringify({ codigo, premio_id: btn.dataset.premioId }) });
           cargarClientes();
           cerrarEscaner();
         } catch (err) {
           alert('No se pudo canjear: ' + err.message);
         }
       });
-    }
+    });
     document.getElementById('btn-seguir-escaneando').addEventListener('click', () => {
       escaneando = true;
       cont.innerHTML = '<p class="loading">Apuntá la cámara al QR del cliente...</p>';

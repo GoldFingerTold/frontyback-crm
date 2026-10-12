@@ -797,11 +797,35 @@ async function eliminarItemCatalogo(clienteId, itemId) {
 }
 
 // ---------- Tarjeta de fidelización digital con QR (incluido desde el plan Esencial) ----------
-// El negocio escanea el QR del cliente al cobrarle (no al revés), para que cada sello
+// El negocio escanea el QR del cliente al cobrarle (no al revés), para que cada punto
 // corresponda a una compra real. El QR en sí solo contiene el "codigo" único del cliente -
 // no hace falta ninguna API de WhatsApp Business ni de Meta para nada de esto.
+//
+// Dos modos de sumar puntos (a elección del negocio):
+// - "visita": cada escaneo suma 1 punto fijo, sin pedir nada más (rápido para el mostrador).
+// - "monto": el empleado carga cuánto gastó el cliente, y los puntos salen de dividir ese
+//   monto por "monto_por_punto" (ej. $1000 por punto).
+// Puede haber varios premios a distintos niveles de puntos a la vez (no uno solo) - al
+// canjear uno, se le restan sus puntos al cliente (no se resetea todo a cero), para que lo
+// que le sobró le siga sumando para el próximo premio.
 function generarCodigoFidelidad() {
   return crypto.randomBytes(5).toString('base64url').toUpperCase().slice(0, 7);
+}
+
+function generarIdPremio() {
+  return crypto.randomBytes(4).toString('hex');
+}
+
+function limpiarPremios(premios) {
+  const limpio = (Array.isArray(premios) ? premios : [])
+    .map((p) => ({
+      id: p.id || generarIdPremio(),
+      puntos_necesarios: Math.min(Math.max(parseInt(p.puntos_necesarios, 10) || 1, 1), 1000),
+      descripcion: String(p.descripcion || '').trim().slice(0, 120)
+    }))
+    .filter((p) => p.descripcion);
+  limpio.sort((a, b) => a.puntos_necesarios - b.puntos_necesarios);
+  return limpio;
 }
 
 async function getFidelidadConfig(clienteId) {
@@ -809,23 +833,33 @@ async function getFidelidadConfig(clienteId) {
   const id = normalizarClienteId(clienteId);
   let config = await col.findOne({ cliente_id: id });
   if (!config) {
-    const doc = { cliente_id: id, meta_sellos: 10, premio_descripcion: 'Un producto gratis', updated_at: new Date() };
+    const doc = {
+      cliente_id: id,
+      modo: 'visita',
+      monto_por_punto: 1000,
+      premios: [{ id: generarIdPremio(), puntos_necesarios: 10, descripcion: 'Un producto gratis' }],
+      updated_at: new Date()
+    };
     const { insertedId } = await col.insertOne(doc);
     config = { ...doc, _id: insertedId };
   }
   return config;
 }
 
-async function guardarFidelidadConfig(clienteId, { meta_sellos, premio_descripcion }) {
+async function guardarFidelidadConfig(clienteId, { modo, monto_por_punto, premios }) {
   const col = db.collection('fidelidad_config');
   const id = normalizarClienteId(clienteId);
   await getFidelidadConfig(id);
+  const premiosLimpios = limpiarPremios(premios);
+  if (premiosLimpios.length === 0) throw new Error('Cargá al menos un premio.');
+
   await col.updateOne(
     { cliente_id: id },
     {
       $set: {
-        meta_sellos: Math.min(Math.max(parseInt(meta_sellos, 10) || 10, 2), 100),
-        premio_descripcion: String(premio_descripcion || '').trim().slice(0, 120) || 'Un producto gratis',
+        modo: modo === 'monto' ? 'monto' : 'visita',
+        monto_por_punto: Math.max(Number(monto_por_punto) || 1000, 1),
+        premios: premiosLimpios,
         updated_at: new Date()
       }
     }
@@ -850,7 +884,7 @@ async function registrarClienteFidelidad(clienteId, { nombre, telefono }) {
     codigo,
     nombre: nombreLimpio,
     telefono: telefonoLimpio,
-    sellos: 0,
+    puntos: 0,
     premios_canjeados: 0,
     created_at: new Date(),
     updated_at: new Date()
@@ -866,30 +900,38 @@ async function getTarjetaFidelidad(clienteId, codigo) {
   return tarjeta;
 }
 
-async function sellarTarjeta(clienteId, codigo) {
+async function sellarTarjeta(clienteId, codigo, { monto } = {}) {
   const id = normalizarClienteId(clienteId);
   const config = await getFidelidadConfig(id);
   const tarjeta = await getTarjetaFidelidad(id, codigo);
-  if (tarjeta.sellos >= config.meta_sellos) {
-    throw new Error('Esta tarjeta ya llegó al premio - canjealo antes de seguir sumando sellos.');
+
+  let puntosASumar = 1;
+  if (config.modo === 'monto') {
+    const montoNum = Number(monto) || 0;
+    if (montoNum <= 0) throw new Error('Cargá cuánto gastó el cliente.');
+    puntosASumar = Math.floor(montoNum / config.monto_por_punto);
+    if (puntosASumar < 1) throw new Error(`Hacen falta al menos $${config.monto_por_punto} para sumar un punto.`);
   }
+
   await getDb().collection('fidelidad_clientes').updateOne(
     { _id: tarjeta._id },
-    { $inc: { sellos: 1 }, $set: { updated_at: new Date() } }
+    { $inc: { puntos: puntosASumar }, $set: { updated_at: new Date() } }
   );
   return getTarjetaFidelidad(id, codigo);
 }
 
-async function canjearPremioFidelidad(clienteId, codigo) {
+async function canjearPremioFidelidad(clienteId, codigo, premioId) {
   const id = normalizarClienteId(clienteId);
   const config = await getFidelidadConfig(id);
   const tarjeta = await getTarjetaFidelidad(id, codigo);
-  if (tarjeta.sellos < config.meta_sellos) {
-    throw new Error('Esta tarjeta todavía no llegó al premio.');
+  const premio = config.premios.find((p) => p.id === premioId);
+  if (!premio) throw new Error('Ese premio no existe.');
+  if (tarjeta.puntos < premio.puntos_necesarios) {
+    throw new Error('Esta tarjeta todavía no llegó a ese premio.');
   }
   await getDb().collection('fidelidad_clientes').updateOne(
     { _id: tarjeta._id },
-    { $set: { sellos: 0, updated_at: new Date() }, $inc: { premios_canjeados: 1 } }
+    { $inc: { puntos: -premio.puntos_necesarios, premios_canjeados: 1 }, $set: { updated_at: new Date() } }
   );
   return getTarjetaFidelidad(id, codigo);
 }

@@ -29,9 +29,9 @@ router.post('/sellar', asyncHandler(async (req, res) => {
   const codigo = String(req.body?.codigo || '').trim();
   if (!codigo) return res.status(400).json({ error: 'Falta el código.' });
   try {
-    const tarjeta = await db.sellarTarjeta(req.session.clienteId, codigo);
+    const tarjeta = await db.sellarTarjeta(req.session.clienteId, codigo, { monto: req.body?.monto });
     const config = await db.getFidelidadConfig(req.session.clienteId);
-    res.json({ tarjeta, meta_sellos: config.meta_sellos, premio_descripcion: config.premio_descripcion });
+    res.json({ tarjeta, premios: config.premios });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -39,9 +39,10 @@ router.post('/sellar', asyncHandler(async (req, res) => {
 
 router.post('/canjear', asyncHandler(async (req, res) => {
   const codigo = String(req.body?.codigo || '').trim();
-  if (!codigo) return res.status(400).json({ error: 'Falta el código.' });
+  const premioId = String(req.body?.premio_id || '').trim();
+  if (!codigo || !premioId) return res.status(400).json({ error: 'Falta el código o el premio.' });
   try {
-    const tarjeta = await db.canjearPremioFidelidad(req.session.clienteId, codigo);
+    const tarjeta = await db.canjearPremioFidelidad(req.session.clienteId, codigo, premioId);
     res.json({ tarjeta });
   } catch (err) {
     res.status(400).json({ error: err.message });

@@ -38,6 +38,16 @@
 
   .fd-form label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 12px 0 6px; }
   .fd-form input { width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; font-size: 0.88rem; font-family: inherit; color: var(--text-primary); outline: none; }
+  .fd-premio-fila { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .fd-premio-fila input[type="text"] { flex: 1; }
+  .fd-premio-fila input[type="number"] { width: 90px; }
+  .fd-premio-fila input { padding: 9px 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; font-family: inherit; }
+  .fd-resultado-ok .premio-fila-canje { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(43,182,115,0.08); border: 1px solid rgba(43,182,115,0.25); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+  .fd-resultado-ok .premio-fila-canje span { font-size: 13px; color: #2bb673; text-align: left; }
+  .fd-resultado-ok .premio-fila-canje button { background: #2bb673; color: #06231a; border: none; border-radius: 8px; padding: 7px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; flex: none; }
+  .fd-monto-row { display: flex; gap: 8px; margin: 14px 0; }
+  .fd-monto-row input { flex: 1; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.9rem; }
+  .fd-monto-row button { background: var(--accent-gold); color: #141517; border: none; border-radius: 9px; padding: 10px 16px; font-weight: 700; font-size: 13px; cursor: pointer; flex: none; }
 </style>
 </head>
 <body>
@@ -115,16 +125,24 @@
 
   <!-- Configuración -->
   <div id="config-overlay" class="overlay" hidden>
-    <div class="ficha-detail" style="max-width: 420px;">
+    <div class="ficha-detail" style="max-width: 460px;">
       <button id="config-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
       <h2>Configuración</h2>
       <div class="fd-form">
-        <label for="config-meta">Sellos para ganar el premio</label>
-        <input type="number" id="config-meta" min="2" max="100">
-        <label for="config-premio">Premio</label>
-        <input type="text" id="config-premio" placeholder="Ej: Un café gratis" maxlength="120">
+        <label for="config-modo">¿Cómo se suman los puntos?</label>
+        <select id="config-modo" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; font-family: inherit;">
+          <option value="visita">1 punto por visita (rápido)</option>
+          <option value="monto">Según cuánto gastó el cliente</option>
+        </select>
+        <div id="config-monto-wrap" hidden>
+          <label for="config-monto">Pesos gastados por cada punto</label>
+          <input type="number" id="config-monto" min="1" placeholder="Ej: 1000">
+        </div>
       </div>
-      <button type="button" id="config-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Guardar</button>
+      <label style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 18px 0 8px;">Premios</label>
+      <div id="config-premios-lista"></div>
+      <button type="button" id="config-premio-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar premio</button>
+      <button type="button" id="config-guardar" class="btn btn-primary" style="width: 100%; margin-top: 18px;">Guardar</button>
       <p class="form-status" id="config-status"></p>
     </div>
   </div>

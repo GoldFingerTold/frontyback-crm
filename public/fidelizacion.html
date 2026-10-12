@@ -32,6 +32,10 @@
   .fz-nombre-cliente { font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
 
   .fz-sellos { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 16px 0; }
+  .fz-premios-lista { margin: 18px 0 0; text-align: left; }
+  .fz-premio-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 9px; margin-bottom: 8px; font-size: 13px; }
+  .fz-premio-fila.lista { border-color: rgba(43,182,115,0.3); background: rgba(43,182,115,0.07); }
+  .fz-premio-fila .pts { color: var(--text-muted); font-size: 12px; flex: none; }
   .fz-sello { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; }
   .fz-sello.lleno { background: var(--accent-gold); border-color: var(--accent-gold); color: #141517; }
   .fz-sello i { font-size: 12px; }
@@ -136,18 +140,21 @@
       if (!res.ok) throw new Error(data.error || 'No encontramos esa tarjeta.');
 
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(codigo)}`;
-      const sellosHtml = Array.from({ length: data.meta_sellos }, (_, i) => `
-        <div class="fz-sello ${i < data.sellos ? 'lleno' : ''}">${i < data.sellos ? '<i class="fa-solid fa-check"></i>' : ''}</div>
+      const premiosHtml = data.premios.map((p) => `
+        <div class="fz-premio-fila ${p.disponible ? 'lista' : ''}">
+          <span>${p.disponible ? '✅' : '🔒'} ${esc(p.descripcion)}</span>
+          <span class="pts">${p.puntos_necesarios} pts</span>
+        </div>
       `).join('');
+      const hayDisponible = data.premios.some((p) => p.disponible);
 
       cont.innerHTML = `
         <h1>${esc(data.nombre_negocio)}</h1>
         <p class="fz-nombre-cliente">${esc(data.nombre_cliente)}</p>
         <div class="fz-qr"><img src="${qrUrl}" alt="Tu código QR"></div>
-        <div class="fz-progreso-texto">${data.sellos} / ${data.meta_sellos}</div>
-        <p class="fz-premio">Premio: ${esc(data.premio_descripcion)}</p>
-        <div class="fz-sellos">${sellosHtml}</div>
-        ${data.premio_disponible ? `<div class="fz-banner-premio">🎉 ¡Llegaste al premio! Mostrá esta pantalla para canjearlo.</div>` : ''}
+        <div class="fz-progreso-texto">${data.puntos} puntos</div>
+        <div class="fz-premios-lista">${premiosHtml}</div>
+        ${hayDisponible ? `<div class="fz-banner-premio">🎉 ¡Tenés un premio disponible! Mostrá esta pantalla para canjearlo.</div>` : ''}
       `;
       return true;
     } catch (err) {

@@ -444,10 +444,8 @@ router.get('/fidelidad/:slug/tarjeta/:codigo', asyncHandler(async (req, res) => 
     res.json({
       nombre_negocio: cliente.nombre,
       nombre_cliente: tarjeta.nombre,
-      sellos: tarjeta.sellos,
-      meta_sellos: config.meta_sellos,
-      premio_descripcion: config.premio_descripcion,
-      premio_disponible: tarjeta.sellos >= config.meta_sellos
+      puntos: tarjeta.puntos,
+      premios: config.premios.map((p) => ({ ...p, disponible: tarjeta.puntos >= p.puntos_necesarios }))
     });
   } catch (err) {
     res.status(404).json({ error: err.message });
