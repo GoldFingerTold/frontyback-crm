@@ -50,6 +50,9 @@ async function ensureIndexes() {
   await db.collection('push_subscriptions').createIndex({ endpoint: 1 }, { unique: true });
   await db.collection('push_subscriptions').createIndex({ usuario_id: 1 });
   await db.collection('salones').createIndex({ cliente_id: 1 }, { unique: true });
+  await db.collection('turnos_config').createIndex({ cliente_id: 1 }, { unique: true });
+  await db.collection('turnos').createIndex({ cliente_id: 1, fecha: 1 });
+  await db.collection('uso_turnos_mensual').createIndex({ cliente_id: 1, mes: 1 }, { unique: true });
 }
 
 // Planes públicos que se muestran en la landing de ventas (index.html) y se ofrecen en
@@ -70,8 +73,9 @@ const PLANES_DEFAULT = [
     precio_ars_anual: 150000,
     precio_usd_ref_anual: 100,
     max_whatsapp: 1,
-    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, y tablero de seguimiento.',
-    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
+    limite_turnos_mensajes_mes: 150,
+    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online y tablero de seguimiento.',
+    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
   },
   {
     id: 'completo',
@@ -81,6 +85,7 @@ const PLANES_DEFAULT = [
     precio_ars_anual: 300000,
     precio_usd_ref_anual: 200,
     max_whatsapp: 5,
+    limite_turnos_mensajes_mes: 300,
     descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio, columnas a medida y hasta 5 cuentas de WhatsApp.',
     features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas', 'Hasta 5 cuentas de WhatsApp conectadas']
   },
@@ -92,6 +97,7 @@ const PLANES_DEFAULT = [
     precio_ars_anual: 450000,
     precio_usd_ref_anual: 300,
     max_whatsapp: 20,
+    limite_turnos_mensajes_mes: 450,
     descripcion: 'Todo lo del plan Profesional, pensado para negocios con varias sucursales o líneas de WhatsApp.',
     features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
   },
@@ -103,6 +109,7 @@ const PLANES_DEFAULT = [
     precio_ars_anual: 600000,
     precio_usd_ref_anual: 400,
     max_whatsapp: 20,
+    limite_turnos_mensajes_mes: 600,
     descripcion: 'Todo lo del plan Premium, más el Plano de salón: organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo.',
     features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
   }
@@ -123,7 +130,18 @@ async function sembrarPlanes() {
       { id: plan.id, max_whatsapp: { $exists: false } },
       { $set: { max_whatsapp: plan.max_whatsapp } }
     );
+    await col.updateOne(
+      { id: plan.id, limite_turnos_mensajes_mes: { $exists: false } },
+      { $set: { limite_turnos_mensajes_mes: plan.limite_turnos_mensajes_mes } }
+    );
   }
+  // Sumamos "turnos online" a la descripción/features de Esencial después de que ese plan
+  // ya existía en la base - solo si todavía tiene el texto viejo exacto, para no pisar si
+  // Hugo ya lo editó a mano por otro motivo.
+  await col.updateOne(
+    { id: 'esencial', descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, y tablero de seguimiento.' },
+    { $set: { descripcion: PLANES_DEFAULT[0].descripcion, features: PLANES_DEFAULT[0].features } }
+  );
   // El plan "completo" pasó a llamarse "Profesional" (ahora que el diferencial principal
   // frente a Esencial es la cantidad de cuentas de WhatsApp, no solo el audio) - una sola
   // vez, no pisa el nombre si Hugo ya lo cambió a otra cosa.
@@ -480,6 +498,204 @@ async function reiniciarSalon(clienteId) {
   return getSalon(id);
 }
 
+// ---------- Turnos / reservas (incluido desde el plan Esencial) ----------
+// Un documento de configuración por cliente (servicios + disponibilidad semanal) y una
+// colección de turnos reservados. El horario es uno solo para todo el negocio (no por
+// servicio ni por empleado) - a propósito, para mantener la v1 simple: el negocio solo
+// puede atender una cosa a la vez, así que todos los servicios compiten por el mismo
+// horario.
+const DIA_NOMBRE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+const DISPONIBILIDAD_DEFAULT = [0, 1, 2, 3, 4, 5, 6].map((dia) => ({
+  dia,
+  activo: dia >= 1 && dia <= 5,
+  desde: '09:00',
+  hasta: '18:00'
+}));
+
+// Argentina es UTC-3 todo el año (sin horario de verano) - calculamos "ahora" con ese
+// desplazamiento fijo en vez de confiar en la zona horaria configurada en el VPS (que
+// puede estar en UTC), así los días/horarios de los turnos siempre quedan en hora de
+// Buenos Aires sin importar dónde corra el servidor.
+const ARG_OFFSET_MS = -3 * 60 * 60 * 1000;
+function ahoraArgentina() {
+  return new Date(Date.now() + ARG_OFFSET_MS);
+}
+
+function horaAMinutos(hhmm) {
+  const [h, m] = String(hhmm).split(':').map(Number);
+  return h * 60 + m;
+}
+function minutosAHora(min) {
+  const h = Math.floor(min / 60).toString().padStart(2, '0');
+  const m = (min % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+async function getTurnosConfig(clienteId) {
+  const col = db.collection('turnos_config');
+  const id = normalizarClienteId(clienteId);
+  let config = await col.findOne({ cliente_id: id });
+  if (!config) {
+    const doc = { cliente_id: id, servicios: [], disponibilidad: DISPONIBILIDAD_DEFAULT, updated_at: new Date() };
+    const { insertedId } = await col.insertOne(doc);
+    config = { ...doc, _id: insertedId };
+  }
+  return config;
+}
+
+async function guardarServicios(clienteId, servicios) {
+  const col = db.collection('turnos_config');
+  const id = normalizarClienteId(clienteId);
+  await getTurnosConfig(id);
+  await col.updateOne({ cliente_id: id }, { $set: { servicios, updated_at: new Date() } });
+  return getTurnosConfig(id);
+}
+
+async function guardarDisponibilidad(clienteId, disponibilidad) {
+  const col = db.collection('turnos_config');
+  const id = normalizarClienteId(clienteId);
+  await getTurnosConfig(id);
+  await col.updateOne({ cliente_id: id }, { $set: { disponibilidad, updated_at: new Date() } });
+  return getTurnosConfig(id);
+}
+
+// Arma los horarios libres de los próximos N días para un servicio: genera todos los
+// bloques posibles según la disponibilidad semanal, y descarta los que se pisan con un
+// turno ya confirmado (sin importar de qué servicio sea ese otro turno).
+async function horariosDisponibles(clienteId, { servicioId, dias = 14 }) {
+  const id = normalizarClienteId(clienteId);
+  const config = await getTurnosConfig(id);
+  const servicio = config.servicios.find((s) => s.id === servicioId);
+  if (!servicio) throw new Error('Ese servicio no existe.');
+
+  const ahora = ahoraArgentina();
+  const desdeStr = ahora.toISOString().slice(0, 10);
+  const hastaStr = new Date(ahora.getTime() + dias * 86400000).toISOString().slice(0, 10);
+
+  const turnosExistentes = await getDb().collection('turnos').find({
+    cliente_id: id,
+    estado: 'confirmado',
+    fecha: { $gte: desdeStr, $lte: hastaStr }
+  }).toArray();
+
+  const porFecha = {};
+  for (const t of turnosExistentes) {
+    (porFecha[t.fecha] ||= []).push(t);
+  }
+
+  const ahoraMin = ahora.getUTCHours() * 60 + ahora.getUTCMinutes();
+  const resultado = [];
+  for (let i = 0; i < dias; i++) {
+    const fecha = new Date(ahora.getTime() + i * 86400000);
+    const fechaStr = fecha.toISOString().slice(0, 10);
+    const diaSemana = fecha.getUTCDay();
+    const disp = config.disponibilidad.find((d) => d.dia === diaSemana);
+    if (!disp || !disp.activo) continue;
+
+    const inicioDia = horaAMinutos(disp.desde);
+    const finDia = horaAMinutos(disp.hasta);
+    const ocupados = porFecha[fechaStr] || [];
+
+    const horarios = [];
+    for (let inicio = inicioDia; inicio + servicio.duracion_min <= finDia; inicio += servicio.duracion_min) {
+      const fin = inicio + servicio.duracion_min;
+      if (i === 0 && inicio <= ahoraMin + 30) continue; // hoy: no ofrecer horarios que ya pasaron (30 min de margen)
+      const choca = ocupados.some((t) => {
+        const tInicio = horaAMinutos(t.hora_inicio);
+        const tFin = horaAMinutos(t.hora_fin);
+        return inicio < tFin && fin > tInicio;
+      });
+      if (!choca) horarios.push({ hora_inicio: minutosAHora(inicio), hora_fin: minutosAHora(fin) });
+    }
+    if (horarios.length) resultado.push({ fecha: fechaStr, dia_nombre: DIA_NOMBRE[diaSemana], horarios });
+  }
+  return resultado;
+}
+
+// Vuelve a chequear el choque de horarios al confirmar (no solo al mostrar los horarios
+// libres), para la carrera de dos personas reservando el mismo horario casi al mismo
+// tiempo - no es a prueba de balas (no hay lock), pero para el volumen de un negocio
+// chico esto alcanza de sobra.
+async function crearTurno(clienteId, datos) {
+  const id = normalizarClienteId(clienteId);
+  const config = await getTurnosConfig(id);
+  const servicio = config.servicios.find((s) => s.id === datos.servicio_id);
+  if (!servicio) throw new Error('Ese servicio no existe.');
+
+  const inicio = horaAMinutos(datos.hora_inicio);
+  const fin = inicio + servicio.duracion_min;
+
+  const existentes = await getDb().collection('turnos').find({
+    cliente_id: id,
+    fecha: datos.fecha,
+    estado: 'confirmado'
+  }).toArray();
+  const choca = existentes.some((t) => {
+    const tInicio = horaAMinutos(t.hora_inicio);
+    const tFin = horaAMinutos(t.hora_fin);
+    return inicio < tFin && fin > tInicio;
+  });
+  if (choca) throw new Error('Ese horario ya no está disponible, elegí otro.');
+
+  const doc = {
+    cliente_id: id,
+    servicio_id: servicio.id,
+    servicio_nombre: servicio.nombre,
+    fecha: datos.fecha,
+    hora_inicio: datos.hora_inicio,
+    hora_fin: minutosAHora(fin),
+    nombre_contacto: String(datos.nombre_contacto || '').trim().slice(0, 120),
+    telefono_contacto: String(datos.telefono_contacto || '').trim().slice(0, 30),
+    estado: 'confirmado',
+    recordatorio_enviado: false,
+    created_at: new Date()
+  };
+  const { insertedId } = await getDb().collection('turnos').insertOne(doc);
+  return { _id: insertedId, ...doc };
+}
+
+async function cancelarTurno(clienteId, turnoId) {
+  const id = normalizarClienteId(clienteId);
+  await getDb().collection('turnos').updateOne(
+    { _id: new ObjectId(turnoId), cliente_id: id },
+    { $set: { estado: 'cancelado' } }
+  );
+}
+
+async function listarTurnos(clienteId, { desde, hasta } = {}) {
+  const id = normalizarClienteId(clienteId);
+  const filtro = { cliente_id: id };
+  if (desde || hasta) {
+    filtro.fecha = {};
+    if (desde) filtro.fecha.$gte = desde;
+    if (hasta) filtro.fecha.$lte = hasta;
+  }
+  return getDb().collection('turnos').find(filtro).sort({ fecha: 1, hora_inicio: 1 }).toArray();
+}
+
+// Cada plan tiene un tope mensual de mensajes de WhatsApp de turnos (confirmación +
+// recordatorio juntos) para no exponernos a lo que cobra Meta por plantilla fuera de la
+// ventana de 24hs - calculado con la tarifa más cara posible, para no perder plata nunca.
+async function maxTurnosMensajesDeCliente(cliente) {
+  if (!cliente.plan) return 0;
+  const planes = await getPlanes();
+  return planes[cliente.plan]?.limite_turnos_mensajes_mes ?? 0;
+}
+
+async function contarUsoTurnosEsteMes(clienteId) {
+  const doc = await getDb().collection('uso_turnos_mensual').findOne({ cliente_id: clienteId, mes: mesActual() });
+  return doc?.cantidad || 0;
+}
+
+async function registrarUsoTurno(clienteId) {
+  await getDb().collection('uso_turnos_mensual').updateOne(
+    { cliente_id: clienteId, mes: mesActual() },
+    { $inc: { cantidad: 1 } },
+    { upsert: true }
+  );
+}
+
 module.exports = {
   connect,
   getDb,
@@ -506,5 +722,15 @@ module.exports = {
   actualizarPunto,
   eliminarPunto,
   maxWhatsappDeCliente,
-  agregarWhatsappNumero
+  agregarWhatsappNumero,
+  getTurnosConfig,
+  guardarServicios,
+  guardarDisponibilidad,
+  horariosDisponibles,
+  crearTurno,
+  cancelarTurno,
+  listarTurnos,
+  maxTurnosMensajesDeCliente,
+  contarUsoTurnosEsteMes,
+  registrarUsoTurno
 };

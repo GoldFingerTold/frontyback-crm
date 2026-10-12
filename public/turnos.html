@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM FrontyBack — Turnos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tn-main { flex: 1; padding: 26px 30px 60px; overflow-y: auto; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .tn-titulo-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tn-titulo { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; margin: 0; }
+  .tn-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .tn-fecha-grupo { margin-bottom: 22px; }
+  .tn-fecha-titulo { font-size: 13px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 10px; }
+  .tn-fila {
+    display: flex; align-items: center; gap: 14px; background: rgba(28,29,31,0.6);
+    border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px;
+  }
+  .tn-fila .tn-hora { font-family: 'Clash Display', sans-serif; font-weight: 600; font-size: 15px; width: 54px; flex: none; }
+  .tn-fila .tn-detalle { flex: 1; min-width: 0; }
+  .tn-fila .tn-detalle .tn-servicio { font-size: 13.5px; font-weight: 600; }
+  .tn-fila .tn-detalle .tn-contacto { font-size: 12px; color: var(--text-muted); }
+  .tn-fila .tn-cancelar { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 13px; padding: 6px 8px; }
+  #tn-vacio { font-size: 13px; color: var(--text-muted); padding: 10px 2px; }
+
+  .tn-disp-fila { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+  .tn-disp-fila:last-child { border-bottom: none; }
+  .tn-disp-fila label.dia { width: 90px; flex: none; font-size: 13px; }
+  .tn-disp-fila input[type="time"] { background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 6px; color: var(--text-primary); padding: 5px 7px; font-size: 12.5px; width: 100px; }
+
+  .tn-servicio-fila { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .tn-servicio-fila input[type="text"] { flex: 1; }
+  .tn-servicio-fila input[type="number"] { width: 72px; }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <div>
+        <div class="brand-container">
+          <div class="brand-logo">F</div>
+          <div class="brand-text">
+            <h1>FrontyBack</h1>
+            <span>CRM Hub</span>
+          </div>
+        </div>
+        <nav class="nav-menu">
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
+          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> Plano de salón</a>
+          <a href="/turnos.html" class="nav-item active"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
+          <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
+            <i class="fa-solid fa-users"></i> Empleados
+          </button>
+        </nav>
+      </div>
+
+      <div class="user-section">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">•</div>
+          <div class="user-details">
+            <h4 id="user-nombre">—</h4>
+            <span id="user-slug"></span>
+            <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <header>
+        <div class="search-bar" style="visibility: hidden;"></div>
+        <div class="header-actions">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="tn-main">
+        <div class="tn-titulo-row">
+          <h1 class="tn-titulo">Turnos</h1>
+          <div class="tn-acciones">
+            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> Copiar link de reservas</button>
+            <button type="button" id="btn-servicios" class="btn-ghost" hidden><i class="fa-solid fa-list"></i> Servicios</button>
+            <button type="button" id="btn-disponibilidad" class="btn btn-primary" hidden><i class="fa-solid fa-clock"></i> Disponibilidad</button>
+          </div>
+        </div>
+
+        <div id="tn-lista"><p class="loading">Cargando...</p></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Servicios -->
+  <div id="servicios-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 460px;">
+      <button id="servicios-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Servicios</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;">Lo que tus clientes pueden reservar, con la duración de cada uno.</p>
+      <div id="servicios-lista"></div>
+      <button type="button" id="servicio-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar servicio</button>
+      <button type="button" id="servicios-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
+      <p class="form-status" id="servicios-status"></p>
+    </div>
+  </div>
+
+  <!-- Disponibilidad -->
+  <div id="disponibilidad-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 460px;">
+      <button id="disponibilidad-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Disponibilidad semanal</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;">Un solo horario para todo el negocio - los turnos se reparten dentro de esta ventana.</p>
+      <div id="disponibilidad-lista"></div>
+      <button type="button" id="disponibilidad-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
+      <p class="form-status" id="disponibilidad-status"></p>
+    </div>
+  </div>
+
+  <!-- Empleados (mismo overlay reusado en el resto del CRM) -->
+  <div id="empleados-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 480px;">
+      <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <div id="empleados-lista" class="sa-columnas-lista"></div>
+      <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
+        <div>
+          <label for="emp-nombre">Nombre</label>
+          <input type="text" id="emp-nombre" required>
+        </div>
+        <div>
+          <label for="emp-usuario">Usuario (para el login)</label>
+          <input type="text" id="emp-usuario" required>
+        </div>
+        <div>
+          <label for="emp-password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+        </div>
+        <div>
+          <label for="emp-departamento">Departamento</label>
+          <select id="emp-departamento" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+      </form>
+      <p class="form-status" id="empleado-status"></p>
+    </div>
+  </div>
+
+  <script src="/js/turnos.js"></script>
+</body>
+</html>

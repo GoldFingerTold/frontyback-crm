@@ -8,6 +8,9 @@ const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 const email = require('../services/email');
+const fichas = require('../services/fichas');
+const turnosWhatsapp = require('../services/turnos');
+const { avisarLeadNuevo } = require('./webhooks');
 
 const router = express.Router();
 
@@ -300,6 +303,83 @@ router.post('/whatsapp/conectar', asyncHandler(async (req, res) => {
 
   console.log(`WhatsApp conectado OK (SDK) para "${slug}": WABA ${wabaId}, número ${phoneNumberId}.`);
   res.json({ ok: true });
+}));
+
+// ---------- Reserva pública de turnos (public/reservar.html) ----------
+const TELEFONO_RE = /^\+?[\d\s-]{6,20}$/;
+
+router.get('/turnos/:slug/config', asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
+  const config = await db.getTurnosConfig(cliente._id);
+  res.json({ nombre_negocio: cliente.nombre, servicios: config.servicios });
+}));
+
+router.get('/turnos/:slug/horarios', asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
+  const servicioId = String(req.query.servicio_id || '');
+  if (!servicioId) return res.status(400).json({ error: 'Falta el servicio.' });
+
+  try {
+    const dias = await db.horariosDisponibles(cliente._id, { servicioId });
+    res.json({ dias });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}));
+
+const reservaLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  message: { error: 'Demasiadas reservas seguidas desde acá. Probá de nuevo más tarde.' }
+});
+
+router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
+  if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
+  if (!db.estadoPermiteCaptura(cliente.estado_pago)) {
+    return res.status(400).json({ error: 'Este negocio no está aceptando reservas en este momento.' });
+  }
+
+  const body = req.body || {};
+  if (String(body._hp || '').trim()) return res.json({ ok: true }); // trampa para bots
+
+  const nombre = String(body.nombre || '').trim().slice(0, 120);
+  const telefono = String(body.telefono || '').trim();
+  if (!nombre) return res.status(400).json({ error: 'Falta el nombre.' });
+  if (!TELEFONO_RE.test(telefono)) return res.status(400).json({ error: 'El teléfono no es válido.' });
+
+  let turno;
+  try {
+    turno = await db.crearTurno(cliente._id, {
+      servicio_id: String(body.servicio_id || ''),
+      fecha: String(body.fecha || ''),
+      hora_inicio: String(body.hora_inicio || ''),
+      nombre_contacto: nombre,
+      telefono_contacto: telefono
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  const columnaInicial = cliente.columnas[0].id;
+  const ficha = await fichas.registrarConsulta({
+    clienteId: cliente._id,
+    columnaInicial,
+    contacto: telefono,
+    nombre,
+    origen: 'turno',
+    mensaje: `Reservó: ${turno.servicio_nombre}, ${turno.fecha} a las ${turno.hora_inicio}hs.`
+  });
+  await avisarLeadNuevo(cliente, ficha, { nombreContacto: nombre, contacto: telefono, origen: 'turno', mensaje: `Reservó ${turno.servicio_nombre} para el ${turno.fecha} a las ${turno.hora_inicio}hs.` });
+
+  await turnosWhatsapp.enviarConfirmacion(cliente, turno);
+
+  res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre } });
 }));
 
 module.exports = router;

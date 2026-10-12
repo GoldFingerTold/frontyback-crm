@@ -42,6 +42,27 @@ async function enviarTexto({ phoneNumberId, para, texto }) {
   return data;
 }
 
+// Mensaje de plantilla (con costo, cobrado por Meta) - a diferencia de enviarTexto, esto
+// funciona aunque hayan pasado más de 24hs desde el último mensaje del cliente, porque no
+// depende de la ventana de sesión gratis. Usado para los turnos (confirmación y
+// recordatorio), que se mandan de forma proactiva y no como respuesta a algo que el
+// cliente escribió. La plantilla tiene que existir y estar aprobada por Meta de antemano.
+async function enviarPlantilla({ phoneNumberId, para, nombrePlantilla, idioma = 'es_AR', parametros = [] }) {
+  const payload = {
+    type: 'template',
+    template: {
+      name: nombrePlantilla,
+      language: { code: idioma },
+      components: parametros.length
+        ? [{ type: 'body', parameters: parametros.map((texto) => ({ type: 'text', text: String(texto) })) }]
+        : []
+    }
+  };
+  const { res, data } = await postMensaje(phoneNumberId, para, payload);
+  if (!res.ok) throw new Error(`Error enviando plantilla de WhatsApp "${nombrePlantilla}": ${JSON.stringify(data)}`);
+  return data;
+}
+
 // Sube un archivo de audio (buffer) a los servidores de Meta y devuelve el media_id que
 // hace falta para poder enviarlo como mensaje de voz.
 async function subirAudio({ phoneNumberId, buffer, mimeType = 'audio/ogg; codecs=opus' }) {
@@ -86,4 +107,4 @@ async function descargarMedia(mediaId) {
   return { buffer: Buffer.from(arrayBuffer), mimeType: meta.mime_type };
 }
 
-module.exports = { enviarTexto, enviarAudio, descargarMedia };
+module.exports = { enviarTexto, enviarPlantilla, enviarAudio, descargarMedia };

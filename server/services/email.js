@@ -76,7 +76,8 @@ async function enviarAvisoPago({ emailDestinatario, tipo, link }) {
 const ORIGEN_LABEL = {
   whatsapp_texto: 'WhatsApp',
   whatsapp_audio: 'WhatsApp (audio)',
-  formulario: 'el formulario del sitio'
+  formulario: 'el formulario del sitio',
+  turno: 'una reserva de turno'
 };
 
 // Aviso al dueño del negocio cada vez que entra un lead NUEVO (no en cada mensaje de

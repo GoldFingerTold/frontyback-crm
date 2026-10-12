@@ -12,7 +12,9 @@ const authRoutes = require('./routes/auth');
 const superadminRoutes = require('./routes/superadmin');
 const publicRoutes = require('./routes/public');
 const salonRoutes = require('./routes/salon');
+const turnosRoutes = require('./routes/turnos');
 const cicloPagos = require('./services/ciclo-pagos');
+const cicloTurnos = require('./services/ciclo-turnos');
 
 const app = express();
 const PORT = process.env.PORT || 3010;
@@ -47,6 +49,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/superadmin', superadminRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/salon', salonRoutes);
+app.use('/api/turnos', turnosRoutes);
 
 // La landing de ventas pasó de /planes.html a la raíz (mejor para SEO: el dominio raíz es
 // lo que Google indexa con más fuerza, y es la URL que la gente comparte/recuerda).
@@ -63,6 +66,7 @@ app.use((err, req, res, next) => {
 async function start() {
   await db.connect();
   cicloPagos.iniciar();
+  cicloTurnos.iniciar();
   app.listen(PORT, () => {
     console.log(`CRM de FrontyBack corriendo en http://localhost:${PORT}`);
   });

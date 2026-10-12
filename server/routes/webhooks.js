@@ -16,7 +16,7 @@ const push = require('../services/push');
 
 const router = express.Router();
 
-const ORIGEN_LABEL_CORTO = { whatsapp_texto: 'WhatsApp', whatsapp_audio: 'WhatsApp (audio)', formulario: 'el formulario' };
+const ORIGEN_LABEL_CORTO = { whatsapp_texto: 'WhatsApp', whatsapp_audio: 'WhatsApp (audio)', formulario: 'el formulario', turno: 'un turno' };
 
 // Avisa por email y por notificación push (a quien instaló el CRM como PWA) al dueño del
 // negocio cuando entra un lead NUEVO (no en cada mensaje de seguimiento). El email se
@@ -374,3 +374,4 @@ async function procesarNotificacionMercadoPago(body, query) {
 }
 
 module.exports = router;
+module.exports.avisarLeadNuevo = avisarLeadNuevo;
