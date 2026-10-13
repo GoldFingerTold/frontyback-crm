@@ -234,7 +234,15 @@ async function procesarEventoWhatsapp(body) {
   const entry = body.entry?.[0];
   const cambio = entry?.changes?.[0]?.value;
   const mensajes = cambio?.messages;
-  if (!mensajes || mensajes.length === 0) return; // puede ser un evento de "status" (entregado/leído), no un mensaje nuevo
+  if (!mensajes || mensajes.length === 0) {
+    // Evento de "status" (enviado/entregado/leído/falló) en vez de un mensaje nuevo - se
+    // loguean los que fallan, para poder ver por qué sin tener que adivinar.
+    const statusesFallidos = (cambio?.statuses || []).filter((s) => s.status === 'failed');
+    if (statusesFallidos.length) {
+      console.error('Estado de mensaje de WhatsApp FALLIDO:', JSON.stringify(statusesFallidos));
+    }
+    return;
+  }
 
   const phoneNumberId = cambio.metadata.phone_number_id;
   const cliente = await db.getDb().collection('clientes').findOne({ 'whatsapp_numeros.phone_number_id': phoneNumberId });
