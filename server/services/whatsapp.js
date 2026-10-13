@@ -139,4 +139,19 @@ async function crearPlantilla({ wabaId, nombre, idioma = 'es_AR', textoBody, eje
   return data;
 }
 
-module.exports = { enviarTexto, enviarPlantilla, enviarAudio, descargarMedia, crearPlantilla };
+// Registra el número para la API de mensajería - un paso aparte de la verificación del
+// Embedded Signup que Meta exige antes de poder mandar CUALQUIER mensaje (error 133010
+// "Account not registered" si se omite). El PIN es de 2 pasos propio de Meta, lo define
+// quien registra - no hace falta guardarlo, no se vuelve a pedir para mandar mensajes.
+async function registrarNumero({ phoneNumberId, pin }) {
+  const res = await fetch(`${GRAPH_BASE}/${phoneNumberId}/register`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ messaging_product: 'whatsapp', pin })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Error registrando el número ${phoneNumberId}: ${JSON.stringify(data)}`);
+  return data;
+}
+
+module.exports = { enviarTexto, enviarPlantilla, enviarAudio, descargarMedia, crearPlantilla, registrarNumero };

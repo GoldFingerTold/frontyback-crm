@@ -10,6 +10,7 @@ const asyncHandler = require('../asyncHandler');
 const email = require('../services/email');
 const fichas = require('../services/fichas');
 const turnosWhatsapp = require('../services/turnos');
+const whatsapp = require('../services/whatsapp');
 const { avisarLeadNuevo } = require('./webhooks');
 
 const router = express.Router();
@@ -301,8 +302,12 @@ router.post('/whatsapp/conectar', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: err.message });
   }
 
-  // Da de alta las plantillas de turnos en esta WABA, sin que Hugo tenga que entrar a mano
-  // a Meta por cada cliente nuevo - mejor esfuerzo, no bloquea la respuesta si falla.
+  // Registra el número para poder mandar mensajes (paso aparte de la verificación del
+  // Embedded Signup, si se omite da error 133010 "Account not registered" recién al
+  // intentar mandar algo) y da de alta las plantillas de turnos en esta WABA - todo mejor
+  // esfuerzo, no bloquea la respuesta si falla.
+  const pin = String(Math.floor(100000 + Math.random() * 900000));
+  whatsapp.registrarNumero({ phoneNumberId, pin }).catch((err) => console.error('Error registrando el número para mensajería:', err.message));
   turnosWhatsapp.asegurarPlantillas(wabaId).catch((err) => console.error('Error asegurando plantillas de turnos:', err.message));
 
   console.log(`WhatsApp conectado OK (SDK) para "${slug}": WABA ${wabaId}, número ${phoneNumberId}.`);

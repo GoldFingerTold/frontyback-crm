@@ -11,6 +11,7 @@ const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 const mercadopago = require('../services/mercadopago');
 const turnosWhatsapp = require('../services/turnos');
+const whatsapp = require('../services/whatsapp');
 
 const router = express.Router();
 
@@ -152,8 +153,11 @@ router.post('/clientes/:id/whatsapp', asyncHandler(async (req, res) => {
     return res.status(status).json({ error: err.message });
   }
 
-  // Si se cargó el WABA ID, de paso le damos de alta las plantillas de turnos - mejor
-  // esfuerzo, no bloquea la respuesta si falla.
+  // Registra el número para poder mandar mensajes (si no, da error 133010 "Account not
+  // registered" recién al intentar mandar algo) y, si se cargó el WABA ID, de paso le
+  // damos de alta las plantillas de turnos - todo mejor esfuerzo, no bloquea la respuesta.
+  const pin = String(Math.floor(100000 + Math.random() * 900000));
+  whatsapp.registrarNumero({ phoneNumberId, pin }).catch((err) => console.error('Error registrando el número para mensajería:', err.message));
   if (wabaId) {
     turnosWhatsapp.asegurarPlantillas(wabaId).catch((err) => console.error('Error asegurando plantillas de turnos:', err.message));
   }
