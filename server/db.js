@@ -78,8 +78,8 @@ const PLANES_DEFAULT = [
     precio_usd_ref_anual: 100,
     max_whatsapp: 1,
     limite_turnos_mensajes_mes: 150,
-    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp, tarjeta de fidelización con QR y tablero de seguimiento.',
-    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Catálogo con pedidos directo por WhatsApp', 'Tarjeta de fidelización digital con QR', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
+    descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp, tarjeta de fidelización con QR, página única con todos tus links y tablero de seguimiento.',
+    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Catálogo con pedidos directo por WhatsApp', 'Tarjeta de fidelización digital con QR', 'Página única con todos tus links, para tu bio de redes', 'Resumen semanal por email y pedido de reseñas en un click', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
   },
   {
     id: 'completo',
@@ -156,6 +156,12 @@ async function sembrarPlanes() {
   // texto de catálogo agregado.
   await col.updateOne(
     { id: 'esencial', descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp y tablero de seguimiento.' },
+    { $set: { descripcion: PLANES_DEFAULT[0].descripcion, features: PLANES_DEFAULT[0].features } }
+  );
+  // Mismo criterio: sumamos "página única" + "resumen semanal" después de que Esencial ya
+  // tenía el texto de fidelización agregado.
+  await col.updateOne(
+    { id: 'esencial', descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp, tarjeta de fidelización con QR y tablero de seguimiento.' },
     { $set: { descripcion: PLANES_DEFAULT[0].descripcion, features: PLANES_DEFAULT[0].features } }
   );
   // El plan "completo" pasó a llamarse "Profesional" (ahora que el diferencial principal
