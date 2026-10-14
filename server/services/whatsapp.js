@@ -59,7 +59,11 @@ async function enviarPlantilla({ phoneNumberId, para, nombrePlantilla, idioma = 
     }
   };
   const { res, data } = await postMensaje(phoneNumberId, para, payload);
-  if (!res.ok) throw new Error(`Error enviando plantilla de WhatsApp "${nombrePlantilla}": ${JSON.stringify(data)}`);
+  if (!res.ok) {
+    const err = new Error(`Error enviando plantilla de WhatsApp "${nombrePlantilla}": ${JSON.stringify(data)}`);
+    err.codigoMeta = data?.error?.code;
+    throw err;
+  }
   return data;
 }
 

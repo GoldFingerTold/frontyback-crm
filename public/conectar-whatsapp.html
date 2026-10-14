@@ -42,6 +42,15 @@
   .cw-estado.cargando { color: var(--text-muted); }
 
   .cw-ayuda { font-size: 12px; color: var(--text-muted); margin-top: 18px; line-height: 1.5; }
+
+  .cw-pago-aviso {
+    margin-top: 22px; padding: 14px 16px; border-radius: 10px; text-align: left;
+    background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.3);
+    font-size: 12.5px; color: var(--text-secondary); line-height: 1.6;
+  }
+  .cw-pago-aviso strong { color: var(--text-primary); }
+  .cw-pago-aviso ol { margin: 8px 0 0; padding-left: 18px; }
+  .cw-pago-aviso li { margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -156,6 +165,23 @@
     }
   });
 
+  // Tu plan incluye un número de recordatorios de turno por WhatsApp sin costo extra;
+  // superado eso, Meta te cobra directo a la tarjeta que cargues acá (no a FrontyBack) -
+  // por eso lo mostramos recién al terminar de conectar, como un paso más del onboarding.
+  function mostrarAvisoPago() {
+    const aviso = document.createElement('div');
+    aviso.className = 'cw-pago-aviso';
+    aviso.innerHTML = `
+      <strong>Un paso más (opcional, pero recomendado):</strong> tu plan incluye un número de recordatorios de turno por WhatsApp sin costo. Si en algún mes los superás, Meta te va a cobrar el resto directo a vos — no a FrontyBack — así que conviene cargar un método de pago en tu propia cuenta:
+      <ol>
+        <li>Entrá a <strong>business.facebook.com/settings</strong></li>
+        <li>Cuentas → <strong>Cuentas de mensajes</strong></li>
+        <li>Elegí la que tiene tu número → <strong>Configuración de pagos</strong></li>
+      </ol>
+    `;
+    document.getElementById('cw-contenido').appendChild(aviso);
+  }
+
   async function registrarConexion(wabaId, phoneNumberId) {
     const estado = document.getElementById('cw-estado');
     const btn = document.getElementById('cw-btn');
@@ -170,6 +196,7 @@
       estado.className = 'cw-estado ok';
       estado.textContent = '¡Listo! Tu WhatsApp quedó conectado al CRM.';
       btn.textContent = 'Conectado ✓';
+      mostrarAvisoPago();
     } catch (err) {
       estado.className = 'cw-estado error';
       estado.textContent = `Tu WhatsApp se conectó en Meta, pero hubo un problema terminándolo acá: ${err.message}. Avisale a FrontyBack, ya les llegó un aviso para completarlo a mano.`;

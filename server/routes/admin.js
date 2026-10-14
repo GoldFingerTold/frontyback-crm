@@ -32,6 +32,9 @@ router.get('/tablero', asyncHandler(async (req, res) => {
     .sort({ posicion: 1 })
     .toArray();
 
+  const turnosMensajesLimiteMes = await db.maxTurnosMensajesDeCliente(cliente);
+  const turnosMensajesUsadosMes = turnosMensajesLimiteMes > 0 ? await db.contarUsoTurnosEsteMes(cliente._id) : 0;
+
   res.json({
     columnas: cliente.columnas,
     fichas,
@@ -44,7 +47,10 @@ router.get('/tablero', asyncHandler(async (req, res) => {
       gracia_termina: cliente.gracia_termina,
       avisos_lead_email: cliente.avisos_lead_email !== false,
       resumen_semanal_email: cliente.resumen_semanal_email !== false,
-      google_review_link: cliente.google_review_link || ''
+      google_review_link: cliente.google_review_link || '',
+      whatsapp_pago_pendiente: cliente.whatsapp_pago_pendiente === true,
+      turnos_mensajes_limite_mes: turnosMensajesLimiteMes,
+      turnos_mensajes_usados_mes: turnosMensajesUsadosMes
     },
     usuario: {
       nombre: req.session.usuarioNombre || 'Gerencia',

@@ -240,6 +240,12 @@ async function procesarEventoWhatsapp(body) {
     const statusesFallidos = (cambio?.statuses || []).filter((s) => s.status === 'failed');
     if (statusesFallidos.length) {
       console.error('Estado de mensaje de WhatsApp FALLIDO:', JSON.stringify(statusesFallidos));
+      const esPorFaltaDePago = statusesFallidos.some((s) => s.errors?.some((e) => e.code === 131042));
+      const phoneNumberId = cambio?.metadata?.phone_number_id;
+      if (esPorFaltaDePago && phoneNumberId) {
+        const cliente = await db.getDb().collection('clientes').findOne({ 'whatsapp_numeros.phone_number_id': phoneNumberId });
+        if (cliente) await db.marcarWhatsappPagoPendiente(cliente._id, true);
+      }
     }
     return;
   }

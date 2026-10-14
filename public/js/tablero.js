@@ -249,6 +249,16 @@ function renderEstadoBanner() {
     `;
     banner.hidden = false;
     document.getElementById('btn-reactivar').addEventListener('click', abrirLinkDePago);
+  } else if (ESTADO.cliente?.whatsapp_pago_pendiente) {
+    banner.className = 'estado-banner pago-pendiente';
+    banner.innerHTML = `
+      <span>Tus recordatorios de turno por WhatsApp se cortaron: superaste lo incluido en tu plan y todavía no cargaste un método de pago en tu cuenta de WhatsApp Business de Meta para cubrir el resto. <strong>Los turnos se siguen guardando igual</strong>, solo no se manda el mensaje.</span>
+      <button type="button" class="btn-reactivar" id="btn-ayuda-pago-whatsapp">¿Cómo lo soluciono?</button>
+    `;
+    banner.hidden = false;
+    document.getElementById('btn-ayuda-pago-whatsapp').addEventListener('click', () => {
+      window.open(`https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Me aparece un aviso de que tengo que cargar un método de pago en mi WhatsApp Business de Meta. ¿Me ayudás?')}`, '_blank', 'noopener');
+    });
   } else {
     banner.hidden = true;
   }
@@ -509,6 +519,16 @@ document.getElementById('btn-config-general').addEventListener('click', () => {
   document.getElementById('config-general-overlay').hidden = false;
   document.getElementById('config-general-status').textContent = '';
   document.getElementById('config-review-link').value = ESTADO.cliente?.google_review_link || '';
+
+  const usoDiv = document.getElementById('config-uso-whatsapp');
+  const limite = ESTADO.cliente?.turnos_mensajes_limite_mes || 0;
+  if (limite > 0) {
+    const usados = ESTADO.cliente?.turnos_mensajes_usados_mes || 0;
+    usoDiv.hidden = false;
+    usoDiv.innerHTML = `<strong>Recordatorios de turno por WhatsApp:</strong> ${usados} / ${limite} incluidos este mes. Superado ese número, WhatsApp se lo cobra directo a la tarjeta que cargaste en tu cuenta de Meta Business — los turnos se siguen reservando igual.`;
+  } else {
+    usoDiv.hidden = true;
+  }
 });
 document.getElementById('config-general-close').addEventListener('click', () => {
   document.getElementById('config-general-overlay').hidden = true;

@@ -1,9 +1,14 @@
 // Mensajes de WhatsApp para turnos (confirmación + recordatorio): ambos son proactivos
 // (el negocio le escribe primero al cliente, no al revés), así que necesitan una plantilla
-// aprobada por Meta y tienen costo - por eso van siempre contra el tope mensual del plan
-// (server/db.js, maxTurnosMensajesDeCliente) antes de mandarse. Si no hay WhatsApp
-// conectado, o se llegó al tope, el turno se guarda igual - el mensaje es un plus, no un
-// requisito para que la reserva funcione.
+// aprobada por Meta y tienen costo. Ese costo lo paga el método de pago que el CLIENTE
+// cargó en su propia cuenta de Meta Business Manager, no nosotros (cada WABA tiene su
+// "messaging account" separada con su propia facturación) - por eso ya no cortamos el
+// envío al llegar al tope del plan, solo lo registramos para mostrarlo como informativo
+// (server/db.js, maxTurnosMensajesDeCliente/contarUsoTurnosEsteMes). Si el cliente todavía
+// no cargó un método de pago, Meta devuelve el error 131042 al intentar mandar algo fuera
+// de lo incluido - eso sí lo detectamos, para avisarle en el panel en vez de fallar en
+// silencio. Si no hay WhatsApp conectado, el turno se guarda igual - el mensaje es un plus,
+// no un requisito para que la reserva funcione.
 
 const db = require('../db');
 const whatsapp = require('./whatsapp');
@@ -26,16 +31,17 @@ async function intentarEnviar(cliente, { nombrePlantilla, parametros, para }) {
   const phoneNumberId = phoneNumberIdDeCliente(cliente);
   if (!phoneNumberId) return { enviado: false, motivo: 'sin_whatsapp' };
 
-  const max = await db.maxTurnosMensajesDeCliente(cliente);
-  const usados = await db.contarUsoTurnosEsteMes(cliente._id);
-  if (usados >= max) return { enviado: false, motivo: 'tope_mensual' };
-
   try {
     await whatsapp.enviarPlantilla({ phoneNumberId, para, nombrePlantilla, parametros });
     await db.registrarUsoTurno(cliente._id);
+    if (cliente.whatsapp_pago_pendiente) await db.marcarWhatsappPagoPendiente(cliente._id, false);
     return { enviado: true };
   } catch (err) {
     console.error(`No se pudo mandar "${nombrePlantilla}" para el turno de ${cliente.slug}:`, err.message);
+    if (err.codigoMeta === 131042) {
+      await db.marcarWhatsappPagoPendiente(cliente._id, true);
+      return { enviado: false, motivo: 'pago_pendiente' };
+    }
     return { enviado: false, motivo: 'error_envio' };
   }
 }

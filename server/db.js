@@ -726,6 +726,18 @@ async function registrarUsoTurno(clienteId) {
   );
 }
 
+// La WABA de cada cliente factura contra SU propio método de pago (cargado por ellos en
+// Meta Business Manager, no el nuestro) - superado lo incluido en el plan, Meta le cobra
+// directo a su tarjeta. Si todavía no la cargaron, Meta devuelve el error 131042 al mandar
+// una plantilla; acá queda marcado para avisarle en el panel, y se limpia solo en cuanto
+// un envío vuelve a salir bien.
+async function marcarWhatsappPagoPendiente(clienteId, pendiente) {
+  await getDb().collection('clientes').updateOne(
+    { _id: clienteId },
+    { $set: { whatsapp_pago_pendiente: pendiente } }
+  );
+}
+
 // ---------- Catálogo + pedidos por WhatsApp (incluido desde el plan Esencial) ----------
 // Pensado para que no haga falta tener WhatsApp Business conectado vía Meta: el pedido se
 // arma como un link de WhatsApp normal (wa.me) con el mensaje prellenado, lo manda el
@@ -984,6 +996,7 @@ module.exports = {
   maxTurnosMensajesDeCliente,
   contarUsoTurnosEsteMes,
   registrarUsoTurno,
+  marcarWhatsappPagoPendiente,
   getCatalogoConfig,
   guardarTelefonoPedidos,
   listarCatalogo,
