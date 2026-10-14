@@ -34,6 +34,8 @@ router.get('/tablero', asyncHandler(async (req, res) => {
 
   const turnosMensajesLimiteMes = await db.maxTurnosMensajesDeCliente(cliente);
   const turnosMensajesUsadosMes = turnosMensajesLimiteMes > 0 ? await db.contarUsoTurnosEsteMes(cliente._id) : 0;
+  const audiosLimiteMes = await db.maxAudiosMesDeCliente(cliente);
+  const audiosUsadosMes = audiosLimiteMes != null ? await db.contarUsoAudioEsteMes(cliente._id) : 0;
 
   res.json({
     columnas: cliente.columnas,
@@ -50,7 +52,9 @@ router.get('/tablero', asyncHandler(async (req, res) => {
       google_review_link: cliente.google_review_link || '',
       whatsapp_pago_pendiente: cliente.whatsapp_pago_pendiente === true,
       turnos_mensajes_limite_mes: turnosMensajesLimiteMes,
-      turnos_mensajes_usados_mes: turnosMensajesUsadosMes
+      turnos_mensajes_usados_mes: turnosMensajesUsadosMes,
+      audios_limite_mes: audiosLimiteMes,
+      audios_usados_mes: audiosUsadosMes
     },
     usuario: {
       nombre: req.session.usuarioNombre || 'Gerencia',

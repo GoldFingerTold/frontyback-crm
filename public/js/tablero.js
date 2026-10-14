@@ -537,6 +537,19 @@ document.getElementById('btn-config-general').addEventListener('click', () => {
   } else {
     usoDiv.hidden = true;
   }
+
+  const audioDiv = document.getElementById('config-uso-audio');
+  const limiteAudio = ESTADO.cliente?.audios_limite_mes;
+  if (limiteAudio != null) {
+    const usadosAudio = ESTADO.cliente?.audios_usados_mes || 0;
+    audioDiv.hidden = false;
+    audioDiv.innerHTML = `
+      <strong>Audios de WhatsApp (transcripción + respuesta con voz):</strong> ${usadosAudio} / ${limiteAudio} incluidos este mes.
+      <p style="margin: 6px 0 0;">Superado ese número, los audios se siguen recibiendo y guardando igual, solo que sin transcribir ni responder con voz hasta el mes siguiente.</p>
+    `;
+  } else {
+    audioDiv.hidden = true;
+  }
 });
 document.getElementById('config-general-close').addEventListener('click', () => {
   document.getElementById('config-general-overlay').hidden = true;

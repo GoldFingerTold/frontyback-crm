@@ -290,14 +290,16 @@ async function procesarEventoWhatsapp(body) {
         await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: MENSAJE_AUTORESPUESTA });
       }
     } else if (msg.type === 'audio') {
-      // Transcribir (OpenAI) y responder con voz (ElevenLabs) es lo único de este CRM con
-      // costo variable por uso - por eso está limitado al plan Completo, y además a un tope
-      // mensual en las cuentas que vinieron con un código 100% gratis (cliente.limite_audios_mes).
-      // Fuera de esos casos igual se guarda la consulta (no se pierde el lead), solo que sin
-      // transcribir y respondiendo con el texto normal en vez de audio.
-      const usoActual = cliente.limite_audios_mes != null ? await db.contarUsoAudioEsteMes(cliente._id) : 0;
+      // Transcribir (OpenAI) y responder con voz (ElevenLabs) es lo único de este CRM que sale
+      // directo del bolsillo de FrontyBack (nuestra propia API key, no la tarjeta del cliente
+      // como pasa con WhatsApp) - por eso acá el tope mensual, proporcional al plan
+      // (db.maxAudiosMesDeCliente), sí corta de verdad al llegar al límite. Fuera de eso igual
+      // se guarda la consulta (no se pierde el lead), solo que sin transcribir y respondiendo
+      // con el texto normal en vez de audio.
+      const limiteAudios = await db.maxAudiosMesDeCliente(cliente);
+      const usoActual = limiteAudios != null ? await db.contarUsoAudioEsteMes(cliente._id) : 0;
       const planIncluyeAudio = PLANES_CON_AUDIO.includes(cliente.plan);
-      const puedeUsarAudio = planIncluyeAudio && (cliente.limite_audios_mes == null || usoActual < cliente.limite_audios_mes);
+      const puedeUsarAudio = planIncluyeAudio && (limiteAudios == null || usoActual < limiteAudios);
 
       let mensaje;
       if (puedeUsarAudio) {

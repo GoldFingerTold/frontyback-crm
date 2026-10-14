@@ -90,6 +90,7 @@ const PLANES_DEFAULT = [
     precio_usd_ref_anual: 200,
     max_whatsapp: 5,
     limite_turnos_mensajes_mes: 300,
+    limite_audios_mes: 300,
     descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio, columnas a medida y hasta 5 cuentas de WhatsApp.',
     features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Hasta 300 consultas por mes', 'Hasta 5 cuentas de WhatsApp conectadas']
   },
@@ -102,6 +103,7 @@ const PLANES_DEFAULT = [
     precio_usd_ref_anual: 300,
     max_whatsapp: 20,
     limite_turnos_mensajes_mes: 450,
+    limite_audios_mes: 450,
     descripcion: 'Todo lo del plan Profesional, pensado para negocios con varias sucursales o líneas de WhatsApp.',
     features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Hasta 450 consultas por mes', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
   },
@@ -114,6 +116,7 @@ const PLANES_DEFAULT = [
     precio_usd_ref_anual: 400,
     max_whatsapp: 20,
     limite_turnos_mensajes_mes: 600,
+    limite_audios_mes: 600,
     descripcion: 'Todo lo del plan Premium, más el Plano de salón: organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo.',
     features: ['Todo lo del plan Premium', 'Hasta 600 consultas por mes', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
   }
@@ -138,6 +141,12 @@ async function sembrarPlanes() {
       { id: plan.id, limite_turnos_mensajes_mes: { $exists: false } },
       { $set: { limite_turnos_mensajes_mes: plan.limite_turnos_mensajes_mes } }
     );
+    if (plan.limite_audios_mes != null) {
+      await col.updateOne(
+        { id: plan.id, limite_audios_mes: { $exists: false } },
+        { $set: { limite_audios_mes: plan.limite_audios_mes } }
+      );
+    }
   }
   // Sumamos "turnos online" a la descripción/features de Esencial después de que ese plan
   // ya existía en la base - solo si todavía tiene el texto viejo exacto, para no pisar si
@@ -372,6 +381,20 @@ async function registrarUsoAudio(clienteId) {
     { $inc: { cantidad: 1 } },
     { upsert: true }
   );
+}
+
+// A diferencia del tope de turnos (que ahora es solo informativo, porque lo termina
+// pagando la tarjeta del cliente en Meta), el audio SÍ sale directo del bolsillo de
+// FrontyBack (OpenAI + ElevenLabs, con nuestra propia API key) - así que acá el tope
+// sigue siendo un corte real. cliente.limite_audios_mes sigue existiendo como
+// override manual (lo usan las cuentas con código de descuento 100%, o un cliente
+// puntual al que Hugo le quiera dar otro número) - si no está seteado, se usa el
+// tope del plan en vez de "sin límite".
+async function maxAudiosMesDeCliente(cliente) {
+  if (cliente.limite_audios_mes != null) return cliente.limite_audios_mes;
+  if (!cliente.plan) return 0;
+  const planes = await getPlanes();
+  return planes[cliente.plan]?.limite_audios_mes ?? null;
 }
 
 // Antes cada cliente tenía un solo whatsapp_phone_number_id - ahora puede tener varios,
@@ -1012,6 +1035,7 @@ module.exports = {
   contarUsoTurnosEsteMes,
   registrarUsoTurno,
   marcarWhatsappPagoPendiente,
+  maxAudiosMesDeCliente,
   getCatalogoConfig,
   guardarTelefonoPedidos,
   listarCatalogo,
