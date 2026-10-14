@@ -231,6 +231,7 @@ function diasHasta(fechaIso) {
 function renderEstadoBanner() {
   const banner = document.getElementById('estado-banner');
   const estado = ESTADO.cliente?.estado_pago;
+  if (!ESTADO.cliente?.whatsapp_pago_pendiente) document.getElementById('pago-pendiente-detalle').hidden = true;
 
   if (estado === 'vencido_gracia') {
     const dias = Math.max(diasHasta(ESTADO.cliente.gracia_termina) ?? 0, 0);
@@ -256,8 +257,11 @@ function renderEstadoBanner() {
       <button type="button" class="btn-reactivar" id="btn-ayuda-pago-whatsapp">¿Cómo lo soluciono?</button>
     `;
     banner.hidden = false;
+    const detalle = document.getElementById('pago-pendiente-detalle');
+    document.getElementById('pago-pendiente-wa').href =
+      `https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Me aparece un aviso de que tengo que cargar un método de pago en mi WhatsApp Business de Meta. ¿Me ayudás?')}`;
     document.getElementById('btn-ayuda-pago-whatsapp').addEventListener('click', () => {
-      window.open(`https://wa.me/${WHATSAPP_FRONTYBACK}?text=${encodeURIComponent('Hola! Me aparece un aviso de que tengo que cargar un método de pago en mi WhatsApp Business de Meta. ¿Me ayudás?')}`, '_blank', 'noopener');
+      detalle.hidden = !detalle.hidden;
     });
   } else {
     banner.hidden = true;
@@ -525,7 +529,11 @@ document.getElementById('btn-config-general').addEventListener('click', () => {
   if (limite > 0) {
     const usados = ESTADO.cliente?.turnos_mensajes_usados_mes || 0;
     usoDiv.hidden = false;
-    usoDiv.innerHTML = `<strong>Recordatorios de turno por WhatsApp:</strong> ${usados} / ${limite} incluidos este mes. Superado ese número, WhatsApp se lo cobra directo a la tarjeta que cargaste en tu cuenta de Meta Business — los turnos se siguen reservando igual.`;
+    usoDiv.innerHTML = `
+      <strong>Recordatorios de turno por WhatsApp:</strong> ${usados} / ${limite} incluidos este mes.
+      <p style="margin: 6px 0 0;">Superado ese número, WhatsApp se lo cobra directo a la tarjeta que cargaste en tu cuenta de Meta Business (no a FrontyBack). Si todavía no cargaste una tarjeta ahí: no pasa nada hasta llegar al tope, y a partir de ese momento los recordatorios dejan de mandarse (los turnos se siguen reservando igual) hasta que la cargues.</p>
+      <p style="margin: 6px 0 0;">Para cargarla: business.facebook.com/settings → Cuentas → Cuentas de mensajes → la que tiene tu número → Configuración de pagos.</p>
+    `;
   } else {
     usoDiv.hidden = true;
   }
