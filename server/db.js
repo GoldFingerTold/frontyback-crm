@@ -91,7 +91,7 @@ const PLANES_DEFAULT = [
     max_whatsapp: 5,
     limite_turnos_mensajes_mes: 300,
     descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio, columnas a medida y hasta 5 cuentas de WhatsApp.',
-    features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas', 'Hasta 5 cuentas de WhatsApp conectadas']
+    features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Hasta 300 consultas por mes', 'Hasta 5 cuentas de WhatsApp conectadas']
   },
   {
     id: 'premium',
@@ -103,7 +103,7 @@ const PLANES_DEFAULT = [
     max_whatsapp: 20,
     limite_turnos_mensajes_mes: 450,
     descripcion: 'Todo lo del plan Profesional, pensado para negocios con varias sucursales o líneas de WhatsApp.',
-    features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
+    features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Hasta 450 consultas por mes', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
   },
   {
     id: 'elite',
@@ -115,7 +115,7 @@ const PLANES_DEFAULT = [
     max_whatsapp: 20,
     limite_turnos_mensajes_mes: 600,
     descripcion: 'Todo lo del plan Premium, más el Plano de salón: organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo.',
-    features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
+    features: ['Todo lo del plan Premium', 'Hasta 600 consultas por mes', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
   }
 ];
 
@@ -176,6 +176,21 @@ async function sembrarPlanes() {
         features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas', 'Hasta 5 cuentas de WhatsApp conectadas']
       }
     }
+  );
+  // "Consultas ilimitadas" sonaba a que no había ningún control de costo (y no era cierto:
+  // siempre estuvo pensado proporcional al plan, como el tope de turnos) - lo cambiamos por
+  // el número real en Profesional, y lo agregamos a Premium/Elite que todavía no lo tenían.
+  await col.updateOne(
+    { id: 'completo', features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Consultas ilimitadas', 'Hasta 5 cuentas de WhatsApp conectadas'] },
+    { $set: { features: PLANES_DEFAULT[1].features } }
+  );
+  await col.updateOne(
+    { id: 'premium', features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos'] },
+    { $set: { features: PLANES_DEFAULT[2].features } }
+  );
+  await col.updateOne(
+    { id: 'elite', features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos'] },
+    { $set: { features: PLANES_DEFAULT[3].features } }
   );
 }
 
