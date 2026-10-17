@@ -326,6 +326,25 @@ async function guardarMonto(fichaId, valorInput, statusEl) {
   }
 }
 
+async function guardarNota(fichaId, textoInput, statusEl) {
+  const texto = textoInput.value.trim();
+  if (!texto) return;
+  statusEl.textContent = 'Guardando...';
+  try {
+    const data = await api(`/api/admin/fichas/${fichaId}/notas`, {
+      method: 'POST',
+      body: JSON.stringify({ texto })
+    });
+    const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
+    if (ficha) ficha.notas_internas = [...(ficha.notas_internas || []), data.nota];
+    textoInput.value = '';
+    statusEl.textContent = '';
+    abrirFicha(fichaId);
+  } catch (err) {
+    statusEl.textContent = 'No se pudo guardar: ' + err.message;
+  }
+}
+
 function abrirFicha(fichaId) {
   const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
   if (!ficha) return;
@@ -379,12 +398,34 @@ function abrirFicha(fichaId) {
       </select>
     </div>
 
+    <h3>Notas internas <span class="ficha-notas-aviso">(el cliente no las ve)</span></h3>
+    <div class="historial">
+      ${(ficha.notas_internas || []).slice().reverse().map((n) => `
+        <div class="hist-item">
+          <div class="hist-meta">${esc(n.autor)} · ${formatearFecha(n.fecha_hora)}</div>
+          <div class="hist-texto">${esc(n.texto)}</div>
+        </div>
+      `).join('') || '<p>Sin notas todavía.</p>'}
+    </div>
+    <div class="ficha-nota-nueva">
+      <input id="nota-input" type="text" maxlength="500" placeholder="Escribir una nota para el equipo...">
+      <button type="button" class="btn-ghost" id="nota-guardar">Agregar</button>
+    </div>
+    <p class="ficha-monto-status" id="nota-status"></p>
+
     <h3>Historial</h3>
     <div class="historial">${historial || '<p>Sin mensajes todavía.</p>'}</div>
   `;
 
   document.getElementById('monto-guardar').addEventListener('click', () => {
     guardarMonto(fichaId, document.getElementById('monto-input'), document.getElementById('monto-status'));
+  });
+
+  document.getElementById('nota-guardar').addEventListener('click', () => {
+    guardarNota(fichaId, document.getElementById('nota-input'), document.getElementById('nota-status'));
+  });
+  document.getElementById('nota-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') guardarNota(fichaId, document.getElementById('nota-input'), document.getElementById('nota-status'));
   });
 
   document.getElementById('mover-select').addEventListener('change', async (e) => {

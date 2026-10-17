@@ -154,6 +154,26 @@ router.put('/fichas/:id/monto', asyncHandler(async (req, res) => {
   res.json({ ok: true, monto: valor });
 }));
 
+// Notas internas: comentarios del equipo sobre una ficha, separados del historial de
+// WhatsApp con el cliente - el cliente nunca las ve, son solo para coordinarse entre
+// compañeros ("ya la llamé, pidió presupuesto para 50 personas").
+router.post('/fichas/:id/notas', asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const fichaId = new db.ObjectId(req.params.id);
+  const texto = String(req.body?.texto || '').trim().slice(0, 500);
+  if (!texto) return res.status(400).json({ error: 'La nota no puede estar vacía.' });
+
+  const filtro = { _id: fichaId, cliente_id: clienteId };
+  if (!esGerencia(req)) filtro.departamento = req.session.departamento;
+
+  const nota = { texto, autor: req.session.usuarioNombre || 'Gerencia', fecha_hora: new Date() };
+  const result = await mongo.collection('fichas').updateOne(filtro, { $push: { notas_internas: nota } });
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe esa ficha.' });
+
+  res.json({ ok: true, nota });
+}));
+
 router.put('/fichas/:id/mover', asyncHandler(async (req, res) => {
   const mongo = db.getDb();
   const clienteId = new db.ObjectId(req.session.clienteId);
