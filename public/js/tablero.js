@@ -50,9 +50,26 @@ function esColumnaGanada(nombreColumna) {
   return /concretad|ganad|vend/i.test(nombreColumna || '');
 }
 
-function crearTarjeta(ficha) {
+function esColumnaPerdida(nombreColumna) {
+  return /perdid|no avanz|descart|cancel/i.test(nombreColumna || '');
+}
+
+// Una ficha se considera "fría" si hace más de DIAS_FRIO días que no hay ningún mensaje
+// nuevo del cliente, Y todavía está en una etapa activa (no se cuenta una venta ya
+// concretada o ya descartada, ahí no hay nada que "seguir"). Es solo un aviso visual para
+// el equipo - no manda ningún mensaje solo, eso sería proactivo y tendría costo/sería spam.
+const DIAS_FRIO = 5;
+
+function fichaEstaFria(ficha, columna) {
+  if (!columna || esColumnaGanada(columna.nombre) || esColumnaPerdida(columna.nombre)) return false;
+  const ultima = new Date(ficha.fecha_hora_ultimo_mensaje || ficha.fecha_hora_recibido).getTime();
+  return Date.now() - ultima > DIAS_FRIO * 24 * 60 * 60 * 1000;
+}
+
+function crearTarjeta(ficha, columna) {
   const el = document.createElement('div');
-  el.className = 'premium-card';
+  const fria = fichaEstaFria(ficha, columna);
+  el.className = 'premium-card' + (fria ? ' card-fria' : '');
   el.draggable = true;
   el.dataset.id = ficha._id;
 
@@ -68,6 +85,7 @@ function crearTarjeta(ficha) {
           <span class="card-tag">${esc(ficha.contacto)}</span>
         </div>
       </div>
+      ${fria ? `<span class="card-frio-badge" title="Sin novedades hace más de ${DIAS_FRIO} días"><i class="fa-solid fa-snowflake"></i></span>` : ''}
     </div>
     <div class="card-body">"${esc((ficha.ultimo_mensaje || ficha.mensaje || '').slice(0, 100))}"</div>
     ${(ficha.etiquetas || []).length ? `<div class="card-etiquetas">${(ficha.etiquetas || []).map((e) => `<span class="etiqueta-chip">${esc(e)}</span>`).join('')}</div>` : ''}
@@ -136,7 +154,7 @@ function renderTablero() {
         ? '<div class="cards-empty">Sin resultados acá</div>'
         : '<div class="cards-empty">Sin fichas por ahora</div>';
     } else {
-      fichasColumna.forEach((f) => lista.appendChild(crearTarjeta(f)));
+      fichasColumna.forEach((f) => lista.appendChild(crearTarjeta(f, columna)));
     }
     col.appendChild(lista);
 
@@ -214,6 +232,11 @@ function actualizarCabecera() {
   const hoy = new Date().toDateString();
   const nuevasHoy = ESTADO.fichas.filter((f) => new Date(f.fecha_hora_recibido).toDateString() === hoy).length;
   document.getElementById('metrics-nuevas-hoy').textContent = `+${nuevasHoy} nuevas hoy`;
+
+  const columnasPorId = Object.fromEntries(ESTADO.columnas.map((c) => [c.id, c]));
+  const frias = ESTADO.fichas.filter((f) => fichaEstaFria(f, columnasPorId[f.columna_id])).length;
+  document.getElementById('metrics-frias').hidden = frias === 0;
+  document.getElementById('metrics-frias-texto').textContent = `${frias} sin avance`;
 
   const primeraColumna = [...ESTADO.columnas].sort((a, b) => a.posicion - b.posicion)[0];
   const hayPendientes = primeraColumna && ESTADO.fichas.some((f) => f.columna_id === primeraColumna.id);

@@ -198,6 +198,8 @@ header {
   white-space: nowrap;
 }
 .metrics-badge i { color: var(--accent-gold); }
+.metrics-badge.frio { border-color: rgba(90,160,220,0.3); color: #a8cdeb; }
+.metrics-badge.frio i { color: #5aa0dc; }
 
 /* ---------- Tablero Kanban ---------- */
 .board {
@@ -258,6 +260,12 @@ header {
   transform: translateY(-2px);
 }
 .premium-card.dragging { opacity: 0.4; }
+.premium-card.card-fria { border-color: rgba(90,160,220,0.25); }
+.card-frio-badge {
+  flex: none; width: 24px; height: 24px; border-radius: 7px;
+  background: rgba(90,160,220,0.12); border: 1px solid rgba(90,160,220,0.3);
+  color: #5aa0dc; display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
 .card-user-info { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .card-icon {
