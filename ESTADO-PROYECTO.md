@@ -57,6 +57,14 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
 
 ## Pendiente / abierto
 
+- **Integración con Google Calendar para Turnos**: sincronizar automáticamente cada turno
+  reservado con el Google Calendar del negocio. Requiere que Hugo cree un proyecto en
+  Google Cloud Console y genere credenciales OAuth (Client ID + Secret) — no se puede
+  avanzar sin eso. Es la última de una tanda de 5 funciones inspiradas en otros CRM del
+  mercado (Pipedrive/HubSpot/Clientify); las otras 4 ya están hechas y en producción:
+  notas internas en la ficha, etiquetas libres, exportar contactos a CSV, y aviso visual
+  de "fichas frías" (sin novedades hace +5 días).
+
 - Conseguir el precio exacto por mensaje "Utility" para Argentina desde la
   calculadora oficial de Meta (`business.whatsapp.com/products/platform-pricing`,
   elegir Argentina + ARS + Utility) — es una tabla interactiva en JS, no se pudo
