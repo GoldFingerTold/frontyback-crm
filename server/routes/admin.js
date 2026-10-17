@@ -127,6 +127,42 @@ router.delete('/push/suscribir', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Exportar todos los contactos a CSV, para que el dueño del negocio tenga la tranquilidad
+// de que sus datos no quedan encerrados en el CRM - solo Gerencia, es información de todos
+// los departamentos junta.
+function csvCelda(valor) {
+  const texto = String(valor ?? '');
+  return /[",\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
+}
+
+router.get('/fichas/exportar', requireGerencia, asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+  const columnasPorId = Object.fromEntries((cliente.columnas || []).map((c) => [c.id, c.nombre]));
+
+  const fichas = await mongo.collection('fichas').find({ cliente_id: clienteId }).sort({ fecha_hora_recibido: -1 }).toArray();
+
+  const encabezado = ['Nombre', 'Contacto', 'Origen', 'Departamento', 'Etapa', 'Monto', 'Etiquetas', 'Recibido', 'Último mensaje'];
+  const filas = fichas.map((f) => [
+    f.nombre || '',
+    f.contacto || '',
+    f.origen || '',
+    f.departamento || '',
+    columnasPorId[f.columna_id] || '',
+    f.monto ?? '',
+    (f.etiquetas || []).join(' | '),
+    f.fecha_hora_recibido ? new Date(f.fecha_hora_recibido).toISOString() : '',
+    f.ultimo_mensaje || ''
+  ]);
+
+  const csv = '﻿' + [encabezado, ...filas].map((fila) => fila.map(csvCelda).join(',')).join('\r\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="contactos-${cliente.slug}.csv"`);
+  res.send(csv);
+}));
+
 // El monto es el único dato de la ficha que no llega solo por WhatsApp/formulario - se
 // carga a mano desde el panel para poder ver cuánto vale el embudo de ventas.
 router.put('/fichas/:id/monto', asyncHandler(async (req, res) => {

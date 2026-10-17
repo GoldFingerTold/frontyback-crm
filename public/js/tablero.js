@@ -199,6 +199,9 @@ function actualizarCabecera() {
     document.getElementById('aviso-lead-label').hidden = !esGerencia;
     document.getElementById('resumen-semanal-label').hidden = !esGerencia;
     document.getElementById('btn-config-general').hidden = !esGerencia;
+    const btnExportar = document.getElementById('btn-exportar-csv');
+    btnExportar.hidden = !esGerencia;
+    btnExportar.href = '/api/admin/fichas/exportar';
     // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
     // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.
     if (!avisoLeadInicializado && esGerencia) {
