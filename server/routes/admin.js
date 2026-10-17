@@ -174,6 +174,28 @@ router.post('/fichas/:id/notas', asyncHandler(async (req, res) => {
   res.json({ ok: true, nota });
 }));
 
+// Etiquetas libres para segmentar contactos más allá de la columna del Kanban (ej. "VIP",
+// "solo consultó precio") - se reemplaza la lista entera cada vez, más simple que agregar/
+// quitar una por una y el panel igual manda siempre el array completo actualizado.
+router.put('/fichas/:id/etiquetas', asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const fichaId = new db.ObjectId(req.params.id);
+  const crudo = Array.isArray(req.body?.etiquetas) ? req.body.etiquetas : [];
+
+  const etiquetas = [...new Set(
+    crudo.map((e) => String(e || '').trim().slice(0, 30)).filter(Boolean)
+  )].slice(0, 10);
+
+  const filtro = { _id: fichaId, cliente_id: clienteId };
+  if (!esGerencia(req)) filtro.departamento = req.session.departamento;
+
+  const result = await mongo.collection('fichas').updateOne(filtro, { $set: { etiquetas } });
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe esa ficha.' });
+
+  res.json({ ok: true, etiquetas });
+}));
+
 router.put('/fichas/:id/mover', asyncHandler(async (req, res) => {
   const mongo = db.getDb();
   const clienteId = new db.ObjectId(req.session.clienteId);

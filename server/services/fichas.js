@@ -85,6 +85,7 @@ async function registrarConsulta({
     respuesta_enviada: null,
     monto: null,
     notas_internas: [],
+    etiquetas: [],
     columna_id: columnaInicial,
     posicion,
     historial: [evento]

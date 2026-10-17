@@ -70,6 +70,7 @@ function crearTarjeta(ficha) {
       </div>
     </div>
     <div class="card-body">"${esc((ficha.ultimo_mensaje || ficha.mensaje || '').slice(0, 100))}"</div>
+    ${(ficha.etiquetas || []).length ? `<div class="card-etiquetas">${(ficha.etiquetas || []).map((e) => `<span class="etiqueta-chip">${esc(e)}</span>`).join('')}</div>` : ''}
     <div class="card-divider"></div>
     <div class="card-footer">
       ${montoTexto ? `<span class="card-value">${montoTexto}</span>` : `<span class="card-value sin-monto">Sin monto</span>`}
@@ -326,6 +327,17 @@ async function guardarMonto(fichaId, valorInput, statusEl) {
   }
 }
 
+async function guardarEtiquetas(fichaId, etiquetas) {
+  const data = await api(`/api/admin/fichas/${fichaId}/etiquetas`, {
+    method: 'PUT',
+    body: JSON.stringify({ etiquetas })
+  });
+  const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
+  if (ficha) ficha.etiquetas = data.etiquetas;
+  abrirFicha(fichaId);
+  renderTablero();
+}
+
 async function guardarNota(fichaId, textoInput, statusEl) {
   const texto = textoInput.value.trim();
   if (!texto) return;
@@ -373,6 +385,11 @@ function abrirFicha(fichaId) {
       ${columna ? `<span class="${badgeClase}">${esc(columna.nombre)}</span>` : ''}
     </p>
 
+    <div class="ficha-etiquetas">
+      ${(ficha.etiquetas || []).map((e) => `<span class="etiqueta-chip">${esc(e)}<button type="button" class="etiqueta-quitar" data-etiqueta="${esc(e)}">&times;</button></span>`).join('')}
+      <input id="etiqueta-input" type="text" maxlength="30" placeholder="+ etiqueta">
+    </div>
+
     ${columna && esColumnaGanada(columna.nombre) && ESTADO.cliente?.google_review_link && /^\+?[\d\s-]{6,20}$/.test(ficha.contacto || '') ? `
       <a class="btn-ghost" id="btn-pedir-resena" style="display: block; text-align: center; margin: 10px 0; text-decoration: none; color: #2bb673; border-color: rgba(43,182,115,0.3);" target="_blank" rel="noopener"
          href="https://wa.me/${esc((ficha.contacto || '').replace(/\D/g, ''))}?text=${encodeURIComponent(`¡Hola ${ficha.nombre || ''}! Gracias por confiar en nosotros. Si te gustó, ¿nos dejás una reseña? ${ESTADO.cliente.google_review_link}`)}">
@@ -419,6 +436,19 @@ function abrirFicha(fichaId) {
 
   document.getElementById('monto-guardar').addEventListener('click', () => {
     guardarMonto(fichaId, document.getElementById('monto-input'), document.getElementById('monto-status'));
+  });
+
+  document.querySelectorAll('.etiqueta-quitar').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const restantes = (ficha.etiquetas || []).filter((e) => e !== btn.dataset.etiqueta);
+      guardarEtiquetas(fichaId, restantes);
+    });
+  });
+  document.getElementById('etiqueta-input').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const nueva = e.target.value.trim();
+    if (!nueva) return;
+    guardarEtiquetas(fichaId, [...(ficha.etiquetas || []), nueva]);
   });
 
   document.getElementById('nota-guardar').addEventListener('click', () => {
