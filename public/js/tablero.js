@@ -631,7 +631,7 @@ document.getElementById('btn-config-general').addEventListener('click', () => {
     usoDiv.hidden = false;
     usoDiv.innerHTML = `
       <strong>Recordatorios de turno por WhatsApp:</strong> ${usados} / ${limite} incluidos este mes.
-      <p style="margin: 6px 0 0;">Superado ese número, WhatsApp se lo cobra directo a la tarjeta que cargaste en tu cuenta de Meta Business (no a FrontyBack). Si todavía no cargaste una tarjeta ahí: no pasa nada hasta llegar al tope, y a partir de ese momento los recordatorios dejan de mandarse (los turnos se siguen reservando igual) hasta que la cargues, o hasta que empiece el mes siguiente — el tope se renueva solo todos los meses, hayas cargado la tarjeta o no.</p>
+      <p style="margin: 6px 0 0;">Superado ese número, WhatsApp se lo cobra directo a la tarjeta que cargaste en tu cuenta de Meta Business (no a FrontyBack), a razón de ≈ $37,68 ARS (USD 0,026) por mensaje. Si todavía no cargaste una tarjeta ahí: no pasa nada hasta llegar al tope, y a partir de ese momento los recordatorios dejan de mandarse (los turnos se siguen reservando igual) hasta que la cargues, o hasta que empiece el mes siguiente — el tope se renueva solo todos los meses, hayas cargado la tarjeta o no.</p>
       <p style="margin: 6px 0 0;">Para cargarla: business.facebook.com/settings → Cuentas → Cuentas de mensajes → la que tiene tu número → Configuración de pagos.</p>
     `;
   } else {
