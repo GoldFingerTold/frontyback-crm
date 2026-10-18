@@ -11,6 +11,7 @@ const email = require('../services/email');
 const fichas = require('../services/fichas');
 const turnosWhatsapp = require('../services/turnos');
 const whatsapp = require('../services/whatsapp');
+const asistente = require('../services/asistente');
 const { avisarLeadNuevo } = require('./webhooks');
 
 const router = express.Router();
@@ -26,6 +27,38 @@ const signupLimiter = rateLimit({
   keyGenerator: (req) => ipKeyGenerator(req.ip),
   message: { error: 'Demasiados intentos de alta seguidos. Probá de nuevo más tarde.' }
 });
+
+// "Fronty" no requiere login (tiene que poder ayudar desde la pantalla de conexión de
+// WhatsApp, antes de que el cliente entre al tablero) - como consume OpenAI con costo real
+// por consulta, lleva su propio límite para no quedar expuesto a que alguien lo use de boca
+// de spam gratis.
+const asistenteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  message: { error: 'Demasiadas preguntas seguidas. Probá de nuevo en un rato, o escribinos por WhatsApp.' }
+});
+
+router.post('/asistente', asistenteLimiter, asyncHandler(async (req, res) => {
+  const pregunta = String(req.body?.pregunta || '').trim().slice(0, 500);
+  if (!pregunta) return res.status(400).json({ error: 'Falta la pregunta.' });
+
+  const historialCrudo = Array.isArray(req.body?.historial) ? req.body.historial : [];
+  const historial = historialCrudo
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 500) }))
+    .slice(-6);
+
+  try {
+    const respuesta = await asistente.responder(pregunta, historial);
+    res.json({ respuesta });
+  } catch (err) {
+    console.error('Error en el asistente Fronty:', err.message);
+    res.status(500).json({ error: 'Fronty no pudo responder ahora. Probá de nuevo o escribinos por WhatsApp.' });
+  }
+}));
 
 router.get('/planes', asyncHandler(async (req, res) => {
   const planes = await db.getPlanes();
