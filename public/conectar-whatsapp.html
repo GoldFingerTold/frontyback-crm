@@ -165,14 +165,15 @@
     }
   });
 
-  // Tu plan incluye un número de recordatorios de turno por WhatsApp sin costo extra;
-  // superado eso, Meta te cobra directo a la tarjeta que cargues acá (no a FrontyBack) -
-  // por eso lo mostramos recién al terminar de conectar, como un paso más del onboarding.
+  // El recordatorio de turno por WhatsApp no tiene ningún tramo gratis - cada uno cuesta
+  // real desde el primer mensaje, a la tarjeta que se cargue acá (no a FrontyBack). Por eso
+  // ese canal viene apagado por defecto (se prende desde Turnos → Recordatorios) y recién
+  // acá, al terminar de conectar, invitamos a cargar la tarjeta para cuando se decida usarlo.
   function mostrarAvisoPago() {
     const aviso = document.createElement('div');
     aviso.className = 'cw-pago-aviso';
     aviso.innerHTML = `
-      <strong>Un paso más (opcional, pero recomendado):</strong> tu plan incluye un número de recordatorios de turno por WhatsApp sin costo. Si en algún mes los superás, Meta te va a cobrar el resto directo a vos — no a FrontyBack — a razón de <strong>≈ $37,68 ARS (USD 0,026) por mensaje</strong> (tarifa oficial de Meta para Argentina, categoría Utility). Así que conviene cargar un método de pago en tu propia cuenta:
+      <strong>Un paso más (opcional):</strong> si más adelante activás los recordatorios de turno por WhatsApp (vienen apagados por defecto, en Turnos → Recordatorios), cada uno tiene costo real desde el primer mensaje — no hay ningún tramo gratis — a razón de <strong>≈ $37,68 ARS (USD 0,026) por mensaje</strong> (tarifa oficial de Meta para Argentina, categoría Utility). Lo paga la tarjeta que cargues acá, nunca FrontyBack:
       <ol>
         <li>Entrá a <strong>business.facebook.com/settings</strong></li>
         <li>Cuentas → <strong>Cuentas de mensajes</strong></li>
@@ -180,7 +181,7 @@
         <li>Agregá una tarjeta</li>
       </ol>
       <strong style="display: block; margin-top: 10px;">¿Y si no la cargo?</strong>
-      No pasa nada hasta que llegues al tope incluido en tu plan. A partir de ahí, los recordatorios de turno por WhatsApp dejan de mandarse — los turnos se siguen reservando igual, no se pierde nada — y se reactivan solos apenas cargues la tarjeta, o automáticamente al empezar el mes siguiente aunque no la cargues (el tope se renueva todos los meses).
+      Si activás el recordatorio por WhatsApp sin tarjeta cargada, el envío falla desde el primer mensaje — el turno se sigue reservando igual, no se pierde nada, simplemente no se manda el recordatorio por ese canal hasta que la cargues. El recordatorio por email (gratis, siempre disponible) no depende de este paso.
     `;
     document.getElementById('cw-contenido').appendChild(aviso);
   }

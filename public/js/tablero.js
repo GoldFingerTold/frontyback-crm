@@ -283,7 +283,7 @@ function renderEstadoBanner() {
   } else if (ESTADO.cliente?.whatsapp_pago_pendiente) {
     banner.className = 'estado-banner pago-pendiente';
     banner.innerHTML = `
-      <span>Tus recordatorios de turno por WhatsApp se cortaron: superaste lo incluido en tu plan y todavía no cargaste un método de pago en tu cuenta de WhatsApp Business de Meta para cubrir el resto. <strong>Los turnos se siguen guardando igual</strong>, solo no se manda el mensaje.</span>
+      <span>Tus recordatorios de turno por WhatsApp se cortaron: cada uno tiene costo desde el primero, y todavía no cargaste un método de pago en tu cuenta de Meta Business para cubrirlo. <strong>Los turnos se siguen guardando igual</strong>, solo no se manda el mensaje.</span>
       <button type="button" class="btn-reactivar" id="btn-ayuda-pago-whatsapp">¿Cómo lo soluciono?</button>
     `;
     banner.hidden = false;
@@ -625,14 +625,16 @@ document.getElementById('btn-config-general').addEventListener('click', () => {
   document.getElementById('config-review-link').value = ESTADO.cliente?.google_review_link || '';
 
   const usoDiv = document.getElementById('config-uso-whatsapp');
-  const limite = ESTADO.cliente?.turnos_mensajes_limite_mes || 0;
-  if (limite > 0) {
+  const tienePlan = Boolean(ESTADO.cliente?.plan);
+  if (tienePlan) {
     const usados = ESTADO.cliente?.turnos_mensajes_usados_mes || 0;
+    const PRECIO_UTILITY_ARS = 37.68;
+    const gastoEstimado = (usados * PRECIO_UTILITY_ARS).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     usoDiv.hidden = false;
     usoDiv.innerHTML = `
-      <strong>Recordatorios de turno por WhatsApp:</strong> ${usados} / ${limite} incluidos este mes.
-      <p style="margin: 6px 0 0;">Superado ese número, WhatsApp se lo cobra directo a la tarjeta que cargaste en tu cuenta de Meta Business (no a FrontyBack), a razón de ≈ $37,68 ARS (USD 0,026) por mensaje. Si todavía no cargaste una tarjeta ahí: no pasa nada hasta llegar al tope, y a partir de ese momento los recordatorios dejan de mandarse (los turnos se siguen reservando igual) hasta que la cargues, o hasta que empiece el mes siguiente — el tope se renueva solo todos los meses, hayas cargado la tarjeta o no.</p>
-      <p style="margin: 6px 0 0;">Para cargarla: business.facebook.com/settings → Cuentas → Cuentas de mensajes → la que tiene tu número → Configuración de pagos.</p>
+      <strong>Recordatorios de turno por WhatsApp este mes:</strong> ${usados} enviado${usados === 1 ? '' : 's'}.
+      <p style="margin: 6px 0 0;">No hay ningún tramo gratis: cada uno cuesta ≈ $37,68 ARS (USD 0,026) desde el primero, se lo cobra Meta directo a la tarjeta que cargaste en tu cuenta de Meta Business (no a FrontyBack). Gasto estimado este mes: <strong>≈ $${gastoEstimado} ARS</strong>.</p>
+      <p style="margin: 6px 0 0;">Si todavía no cargaste una tarjeta ahí, el envío falla y el turno se sigue reservando igual - para cargarla: business.facebook.com/settings → Cuentas → Cuentas de mensajes → la que tiene tu número → Configuración de pagos.</p>
     `;
   } else {
     usoDiv.hidden = true;
