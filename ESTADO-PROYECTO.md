@@ -74,13 +74,14 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
 
 ## Pendiente / abierto
 
-- **Integración con Google Calendar para Turnos**: sincronizar automáticamente cada turno
-  reservado con el Google Calendar del negocio. Requiere que Hugo cree un proyecto en
-  Google Cloud Console y genere credenciales OAuth (Client ID + Secret) — no se puede
-  avanzar sin eso. Es la última de una tanda de 5 funciones inspiradas en otros CRM del
-  mercado (Pipedrive/HubSpot/Clientify); las otras 4 ya están hechas y en producción:
-  notas internas en la ficha, etiquetas libres, exportar contactos a CSV, y aviso visual
-  de "fichas frías" (sin novedades hace +5 días).
+- **Probar a fondo Google Calendar con un turno real** (recién integrado el 18/10):
+  conectado vía OAuth2 desde Turnos → Conectar Google Calendar, cada turno reservado
+  crea un evento. Verificado que compila y despliega, falta la prueba end-to-end de
+  Hugo reservando un turno real y confirmando que el evento aparece en su calendario.
+  Credenciales ya cargadas en el `.env` del VPS (`GOOGLE_CLIENT_ID`/`_SECRET`/
+  `_REDIRECT_URI`). Mientras la app de Google siga en modo "Prueba" (no verificada),
+  los clientes van a ver un cartel de advertencia de Google al conectar - normal, no es
+  un error.
 
 - Confirmar si el tope de "Billing Hub" (moneda + método de pago) hay que
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
