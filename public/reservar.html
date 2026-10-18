@@ -199,6 +199,8 @@
         <input type="text" id="rv-nombre" required maxlength="120">
         <label for="rv-telefono">Tu WhatsApp</label>
         <input type="text" id="rv-telefono" required placeholder="+54 9 11 ...">
+        <label for="rv-email">Tu email <span style="text-transform: none; font-weight: 400; color: var(--text-muted);">(opcional)</span></label>
+        <input type="email" id="rv-email" placeholder="para mandarte el recordatorio">
         <button type="submit" id="rv-btn-confirmar">Confirmar turno</button>
       </form>
       <p class="rv-estado" id="rv-estado"></p>
@@ -224,6 +226,7 @@
           hora_inicio: ESTADO.horario,
           nombre: document.getElementById('rv-nombre').value.trim(),
           telefono: document.getElementById('rv-telefono').value.trim(),
+          email: document.getElementById('rv-email').value.trim(),
           _hp: document.getElementById('rv-hp').value
         })
       });

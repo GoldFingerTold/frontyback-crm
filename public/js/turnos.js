@@ -46,6 +46,7 @@ async function cargarCabecera() {
       : `${data.usuario.nombre} · ${data.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-servicios').hidden = !ESTADO.esGerencia;
+    document.getElementById('btn-recordatorios').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-disponibilidad').hidden = !ESTADO.esGerencia;
   }
 }
@@ -163,6 +164,43 @@ document.getElementById('servicios-guardar').addEventListener('click', async () 
     await api('/api/turnos/servicios', { method: 'PUT', body: JSON.stringify({ servicios }) });
     status.textContent = 'Guardado.';
     setTimeout(() => { document.getElementById('servicios-overlay').hidden = true; }, 700);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});
+
+// ---------- Recordatorios (switches WhatsApp / email) ----------
+async function abrirRecordatorios() {
+  document.getElementById('recordatorios-overlay').hidden = false;
+  document.getElementById('recordatorios-status').textContent = '';
+  try {
+    const config = await api('/api/turnos/config');
+    document.getElementById('rec-whatsapp').checked = config.recordatorio_whatsapp === true;
+    document.getElementById('rec-email').checked = config.recordatorio_email !== false;
+  } catch (err) {
+    document.getElementById('recordatorios-status').textContent = err.message;
+  }
+}
+
+document.getElementById('btn-recordatorios').addEventListener('click', abrirRecordatorios);
+document.getElementById('recordatorios-close').addEventListener('click', () => {
+  document.getElementById('recordatorios-overlay').hidden = true;
+});
+document.getElementById('recordatorios-guardar').addEventListener('click', async () => {
+  const status = document.getElementById('recordatorios-status');
+  status.textContent = 'Guardando...';
+  status.className = 'form-status';
+  try {
+    await api('/api/turnos/recordatorios', {
+      method: 'PUT',
+      body: JSON.stringify({
+        whatsapp: document.getElementById('rec-whatsapp').checked,
+        email: document.getElementById('rec-email').checked
+      })
+    });
+    status.textContent = 'Guardado.';
+    setTimeout(() => { document.getElementById('recordatorios-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
     status.className = 'form-status error';

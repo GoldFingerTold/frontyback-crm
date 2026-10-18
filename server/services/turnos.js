@@ -12,6 +12,7 @@
 
 const db = require('../db');
 const whatsapp = require('./whatsapp');
+const email = require('./email');
 
 const PLANTILLA_CONFIRMACION = 'turno_confirmacion';
 const PLANTILLA_RECORDATORIO = 'turno_recordatorio';
@@ -27,7 +28,7 @@ function phoneNumberIdDeCliente(cliente) {
   return cliente.whatsapp_numeros?.[0]?.phone_number_id || null;
 }
 
-async function intentarEnviar(cliente, { nombrePlantilla, parametros, para }) {
+async function intentarEnviarWhatsapp(cliente, { nombrePlantilla, parametros, para }) {
   const phoneNumberId = phoneNumberIdDeCliente(cliente);
   if (!phoneNumberId) return { enviado: false, motivo: 'sin_whatsapp' };
 
@@ -46,20 +47,64 @@ async function intentarEnviar(cliente, { nombrePlantilla, parametros, para }) {
   }
 }
 
+// El email es la alternativa sin costo al WhatsApp - solo se manda si el negocio prendió
+// el switch Y el cliente final cargó su email al reservar (el teléfono es obligatorio, el
+// email no, así que puede no estar disponible aunque el switch esté prendido).
+async function intentarEnviarEmail(cliente, turno, tipo) {
+  if (!turno.email_contacto) return false;
+  try {
+    const datos = {
+      emailDestinatario: turno.email_contacto,
+      nombreCliente: cliente.nombre,
+      nombreContacto: turno.nombre_contacto,
+      servicioNombre: turno.servicio_nombre,
+      horaInicio: turno.hora_inicio
+    };
+    if (tipo === 'confirmacion') {
+      await email.enviarConfirmacionTurno({ ...datos, fecha: turno.fecha });
+    } else {
+      await email.enviarRecordatorioTurno(datos);
+    }
+    return true;
+  } catch (err) {
+    console.error(`No se pudo mandar el email de "${tipo}" para el turno de ${cliente.slug}:`, err.message);
+    return false;
+  }
+}
+
 async function enviarConfirmacion(cliente, turno) {
-  return intentarEnviar(cliente, {
-    nombrePlantilla: PLANTILLA_CONFIRMACION,
-    para: turno.telefono_contacto,
-    parametros: [turno.nombre_contacto, turno.servicio_nombre, formatearFecha(turno.fecha), turno.hora_inicio]
-  });
+  const config = await db.getTurnosConfig(cliente._id);
+  if (config.recordatorio_whatsapp) {
+    await intentarEnviarWhatsapp(cliente, {
+      nombrePlantilla: PLANTILLA_CONFIRMACION,
+      para: turno.telefono_contacto,
+      parametros: [turno.nombre_contacto, turno.servicio_nombre, formatearFecha(turno.fecha), turno.hora_inicio]
+    });
+  }
+  if (config.recordatorio_email) await intentarEnviarEmail(cliente, turno, 'confirmacion');
 }
 
 async function enviarRecordatorio(cliente, turno) {
-  return intentarEnviar(cliente, {
-    nombrePlantilla: PLANTILLA_RECORDATORIO,
-    para: turno.telefono_contacto,
-    parametros: [turno.nombre_contacto, turno.servicio_nombre, turno.hora_inicio]
-  });
+  const config = await db.getTurnosConfig(cliente._id);
+  let enviadoAlgo = false;
+
+  if (config.recordatorio_whatsapp) {
+    const resultado = await intentarEnviarWhatsapp(cliente, {
+      nombrePlantilla: PLANTILLA_RECORDATORIO,
+      para: turno.telefono_contacto,
+      parametros: [turno.nombre_contacto, turno.servicio_nombre, turno.hora_inicio]
+    });
+    if (resultado.enviado) enviadoAlgo = true;
+  }
+  if (config.recordatorio_email && await intentarEnviarEmail(cliente, turno, 'recordatorio')) {
+    enviadoAlgo = true;
+  }
+
+  // Si ningún canal está prendido (o el único que estaba prendido, el email, no tenía
+  // destinatario), no hay nada para reintentar después - se marca como "procesado" igual,
+  // si no el ciclo de recordatorios lo va a seguir intentando cada hora para siempre.
+  const huboCanalDisponible = config.recordatorio_whatsapp || (config.recordatorio_email && turno.email_contacto);
+  return { enviado: enviadoAlgo || !huboCanalDisponible };
 }
 
 // Da de alta las 2 plantillas de turnos en la WABA de un cliente apenas conecta su

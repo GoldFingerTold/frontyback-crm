@@ -51,6 +51,15 @@ router.put('/disponibilidad', requireGerencia, asyncHandler(async (req, res) => 
   res.json(config);
 }));
 
+// Switches de por qué canal mandar la confirmación/recordatorio de turno. El email no
+// tiene costo; el WhatsApp sí, fuera de la ventana de 24hs - por eso arranca apagado para
+// cuentas nuevas (server/db.js, getTurnosConfig) y el que lo prende lo hace sabiendo eso.
+router.put('/recordatorios', requireGerencia, asyncHandler(async (req, res) => {
+  const { whatsapp, email } = req.body || {};
+  const config = await db.guardarRecordatorios(req.session.clienteId, { whatsapp, email });
+  res.json(config);
+}));
+
 router.get('/', asyncHandler(async (req, res) => {
   const hoy = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10); // hoy en hora de Argentina
   const turnos = await db.listarTurnos(req.session.clienteId, { desde: hoy });

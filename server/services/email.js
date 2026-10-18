@@ -143,4 +143,47 @@ async function enviarResumenSemanal({ emailDestinatario, nombreCliente, fichasNu
   });
 }
 
-module.exports = { enviarAutorespuesta, enviarAvisoPago, enviarAvisoLeadNuevo, enviarAvisoConexionManual, enviarResumenSemanal };
+// Alternativa sin costo al recordatorio por WhatsApp (que fuera de la ventana de 24hs se
+// lo cobra Meta al dueño del negocio) - se manda solo si el cliente final cargó su email al
+// reservar Y el negocio tiene prendido el switch de "recordatorio por email".
+function formatearFechaTurno(fechaISO) {
+  const [, mes, dia] = fechaISO.split('-');
+  return `${dia}/${mes}`;
+}
+
+async function enviarConfirmacionTurno({ emailDestinatario, nombreCliente, nombreContacto, servicioNombre, fecha, horaInicio }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+  await getResend().emails.send({
+    from,
+    to: emailDestinatario,
+    subject: `Turno confirmado en ${nombreCliente}`,
+    html: `
+      <p>Hola ${escHtml(nombreContacto)}!</p>
+      <p>Tu turno para <strong>${escHtml(servicioNombre)}</strong> en <strong>${escHtml(nombreCliente)}</strong> quedó confirmado para el ${escHtml(formatearFechaTurno(fecha))} a las ${escHtml(horaInicio)}hs.</p>
+      <p>Cualquier cambio, avisanos.</p>
+    `
+  });
+}
+
+async function enviarRecordatorioTurno({ emailDestinatario, nombreCliente, nombreContacto, servicioNombre, horaInicio }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+  await getResend().emails.send({
+    from,
+    to: emailDestinatario,
+    subject: `Recordatorio: tu turno en ${nombreCliente} es mañana`,
+    html: `
+      <p>Hola ${escHtml(nombreContacto)}!</p>
+      <p>Te recordamos tu turno para <strong>${escHtml(servicioNombre)}</strong> en <strong>${escHtml(nombreCliente)}</strong> mañana a las ${escHtml(horaInicio)}hs.</p>
+    `
+  });
+}
+
+module.exports = {
+  enviarAutorespuesta,
+  enviarAvisoPago,
+  enviarAvisoLeadNuevo,
+  enviarAvisoConexionManual,
+  enviarResumenSemanal,
+  enviarConfirmacionTurno,
+  enviarRecordatorioTurno
+};

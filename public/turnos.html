@@ -92,6 +92,7 @@
           <div class="tn-acciones">
             <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> Copiar link de reservas</button>
             <button type="button" id="btn-servicios" class="btn-ghost" hidden><i class="fa-solid fa-list"></i> Servicios</button>
+            <button type="button" id="btn-recordatorios" class="btn-ghost" hidden><i class="fa-solid fa-bell"></i> Recordatorios</button>
             <button type="button" id="btn-disponibilidad" class="btn btn-primary" hidden><i class="fa-solid fa-clock"></i> Disponibilidad</button>
           </div>
         </div>
@@ -111,6 +112,43 @@
       <button type="button" id="servicio-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar servicio</button>
       <button type="button" id="servicios-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
       <p class="form-status" id="servicios-status"></p>
+    </div>
+  </div>
+
+  <!-- Recordatorios -->
+  <div id="recordatorios-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 460px;">
+      <button id="recordatorios-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Recordatorios</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;">Por qué canal avisarle al cliente que su turno quedó confirmado y recordárselo el día antes.</p>
+
+      <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; margin-bottom: 10px; cursor: pointer;">
+        <input type="checkbox" id="rec-email" style="margin: 0;">
+        <span style="flex: 1;">
+          <strong style="display: block; font-size: 13.5px;">Por email</strong>
+          <span style="font-size: 12px; color: var(--text-muted);">Sin costo. Solo llega si el cliente carga su email al reservar (es opcional para él).</span>
+        </span>
+      </label>
+
+      <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; margin-bottom: 6px; cursor: pointer;">
+        <input type="checkbox" id="rec-whatsapp" style="margin: 0;">
+        <span style="flex: 1;">
+          <strong style="display: block; font-size: 13.5px;">Por WhatsApp</strong>
+          <span style="font-size: 12px; color: var(--text-muted);">Con costo real fuera de la ventana gratis (ver abajo).</span>
+        </span>
+      </label>
+
+      <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 10px 0 18px; padding: 0 2px;">
+        WhatsApp es gratis durante las 24hs desde que un cliente te escribe - la respuesta
+        automática a sus consultas entra ahí y nunca tiene costo. El recordatorio de turno es
+        distinto: se lo mandás vos de forma proactiva, casi siempre pasadas esas 24hs, y ahí
+        Meta te cobra un monto por mensaje (lo paga la tarjeta que vos cargaste en tu cuenta
+        de Meta Business, no FrontyBack). Por eso viene apagado por defecto - activalo solo si
+        estás de acuerdo con asumir ese costo.
+      </p>
+
+      <button type="button" id="recordatorios-guardar" class="btn btn-primary" style="width: 100%;">Guardar</button>
+      <p class="form-status" id="recordatorios-status"></p>
     </div>
   </div>
 

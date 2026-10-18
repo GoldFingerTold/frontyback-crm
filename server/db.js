@@ -29,6 +29,7 @@ async function connect() {
   await sembrarPlanes();
   await migrarWhatsappNumeros();
   await migrarUsuarios();
+  await migrarTurnosConfigRecordatorios();
   await db.collection('clientes').updateMany(
     { avisos_lead_email: { $exists: false } },
     { $set: { avisos_lead_email: true } }
@@ -605,11 +606,48 @@ async function getTurnosConfig(clienteId) {
   const id = normalizarClienteId(clienteId);
   let config = await col.findOne({ cliente_id: id });
   if (!config) {
-    const doc = { cliente_id: id, servicios: [], disponibilidad: DISPONIBILIDAD_DEFAULT, updated_at: new Date() };
+    // Default para cuentas nuevas: email prendido (no tiene costo), WhatsApp apagado (el
+    // cliente tiene que elegir pagarlo a sabiendas) - Hugo prefiere bajar el precio de la
+    // suscripción antes que arriesgarse a un costo de Meta que no eligió.
+    const doc = {
+      cliente_id: id,
+      servicios: [],
+      disponibilidad: DISPONIBILIDAD_DEFAULT,
+      recordatorio_whatsapp: false,
+      recordatorio_email: true,
+      updated_at: new Date()
+    };
     const { insertedId } = await col.insertOne(doc);
     config = { ...doc, _id: insertedId };
   }
   return config;
+}
+
+async function guardarRecordatorios(clienteId, { whatsapp, email }) {
+  const col = db.collection('turnos_config');
+  const id = normalizarClienteId(clienteId);
+  await getTurnosConfig(id);
+  await col.updateOne(
+    { cliente_id: id },
+    { $set: { recordatorio_whatsapp: Boolean(whatsapp), recordatorio_email: Boolean(email), updated_at: new Date() } }
+  );
+  return getTurnosConfig(id);
+}
+
+// Las cuentas que ya tenían Turnos configurado antes de que existieran estos dos switches
+// seguían recibiendo el recordatorio por WhatsApp siempre (era el único canal) - se
+// preserva ese comportamiento para no cortarles algo que ya venían usando. El de email
+// arranca apagado para ellas porque antes no existía la posibilidad de cargarlo.
+async function migrarTurnosConfigRecordatorios() {
+  const col = db.collection('turnos_config');
+  await col.updateMany(
+    { recordatorio_whatsapp: { $exists: false } },
+    { $set: { recordatorio_whatsapp: true } }
+  );
+  await col.updateMany(
+    { recordatorio_email: { $exists: false } },
+    { $set: { recordatorio_email: false } }
+  );
 }
 
 async function guardarServicios(clienteId, servicios) {
@@ -715,6 +753,7 @@ async function crearTurno(clienteId, datos) {
     hora_fin: minutosAHora(fin),
     nombre_contacto: String(datos.nombre_contacto || '').trim().slice(0, 120),
     telefono_contacto: String(datos.telefono_contacto || '').trim().slice(0, 30),
+    email_contacto: String(datos.email_contacto || '').trim().slice(0, 150),
     estado: 'confirmado',
     recordatorio_enviado: false,
     created_at: new Date()
@@ -1027,6 +1066,7 @@ module.exports = {
   getTurnosConfig,
   guardarServicios,
   guardarDisponibilidad,
+  guardarRecordatorios,
   horariosDisponibles,
   crearTurno,
   cancelarTurno,

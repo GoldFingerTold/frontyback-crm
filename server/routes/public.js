@@ -359,8 +359,10 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
 
   const nombre = String(body.nombre || '').trim().slice(0, 120);
   const telefono = String(body.telefono || '').trim();
+  const emailContacto = String(body.email || '').trim();
   if (!nombre) return res.status(400).json({ error: 'Falta el nombre.' });
   if (!TELEFONO_RE.test(telefono)) return res.status(400).json({ error: 'El teléfono no es válido.' });
+  if (emailContacto && !EMAIL_RE.test(emailContacto)) return res.status(400).json({ error: 'El email no es válido.' });
 
   let turno;
   try {
@@ -369,7 +371,8 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
       fecha: String(body.fecha || ''),
       hora_inicio: String(body.hora_inicio || ''),
       nombre_contacto: nombre,
-      telefono_contacto: telefono
+      telefono_contacto: telefono,
+      email_contacto: emailContacto
     });
   } catch (err) {
     return res.status(400).json({ error: err.message });
