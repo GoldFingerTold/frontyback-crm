@@ -80,7 +80,7 @@ const PLANES_DEFAULT = [
     max_whatsapp: 1,
     limite_turnos_mensajes_mes: 150,
     descripcion: 'Formulario + WhatsApp (texto) con respuesta automática, turnos online, catálogo con pedidos por WhatsApp, tarjeta de fidelización con QR, página única con todos tus links y tablero de seguimiento.',
-    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Catálogo con pedidos directo por WhatsApp', 'Tarjeta de fidelización digital con QR', 'Página única con todos tus links, para tu bio de redes', 'Resumen semanal por email y pedido de reseñas en un click', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada']
+    features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp y por email', 'Catálogo con pedidos directo por WhatsApp', 'Tarjeta de fidelización digital con QR', 'Página única con todos tus links, para tu bio de redes', 'Resumen semanal por email y pedido de reseñas en un click', 'Tablero Kanban', '1 cuenta de WhatsApp conectada']
   },
   {
     id: 'completo',
@@ -93,7 +93,7 @@ const PLANES_DEFAULT = [
     limite_turnos_mensajes_mes: 300,
     limite_audios_mes: 300,
     descripcion: 'Todo lo del plan Esencial, más WhatsApp con audio, columnas a medida y hasta 5 cuentas de WhatsApp.',
-    features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Hasta 300 consultas por mes', 'Hasta 5 cuentas de WhatsApp conectadas']
+    features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Hasta 5 cuentas de WhatsApp conectadas']
   },
   {
     id: 'premium',
@@ -106,7 +106,7 @@ const PLANES_DEFAULT = [
     limite_turnos_mensajes_mes: 450,
     limite_audios_mes: 450,
     descripcion: 'Todo lo del plan Profesional, pensado para negocios con varias sucursales o líneas de WhatsApp.',
-    features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Hasta 450 consultas por mes', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
+    features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos']
   },
   {
     id: 'elite',
@@ -119,7 +119,7 @@ const PLANES_DEFAULT = [
     limite_turnos_mensajes_mes: 600,
     limite_audios_mes: 600,
     descripcion: 'Todo lo del plan Premium, más el Plano de salón: organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo.',
-    features: ['Todo lo del plan Premium', 'Hasta 600 consultas por mes', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
+    features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
   }
 ];
 
@@ -200,6 +200,26 @@ async function sembrarPlanes() {
   );
   await col.updateOne(
     { id: 'elite', features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos'] },
+    { $set: { features: PLANES_DEFAULT[3].features } }
+  );
+  // Sacamos "Hasta N consultas por mes" de los 4 planes - nunca hubo un tope técnico real
+  // detrás (las consultas de texto no tienen costo, son mensajes de sesión gratis), así que
+  // ese número no representaba nada y podía sonar a limitación falsa. En su lugar, Esencial
+  // ahora aclara que el recordatorio de turno se puede mandar por WhatsApp y por email.
+  await col.updateOne(
+    { id: 'esencial', features: ['Formulario y WhatsApp (texto)', 'Respuesta automática al instante', 'Reserva de turnos online, con recordatorio por WhatsApp', 'Catálogo con pedidos directo por WhatsApp', 'Tarjeta de fidelización digital con QR', 'Página única con todos tus links, para tu bio de redes', 'Resumen semanal por email y pedido de reseñas en un click', 'Tablero Kanban', 'Hasta 150 consultas por mes', '1 cuenta de WhatsApp conectada'] },
+    { $set: { features: PLANES_DEFAULT[0].features } }
+  );
+  await col.updateOne(
+    { id: 'completo', features: ['Todo lo del plan Esencial', 'WhatsApp con audio (transcripción y respuesta con voz)', 'Columnas del tablero personalizables', 'Hasta 300 consultas por mes', 'Hasta 5 cuentas de WhatsApp conectadas'] },
+    { $set: { features: PLANES_DEFAULT[1].features } }
+  );
+  await col.updateOne(
+    { id: 'premium', features: ['Todo lo del plan Profesional', 'Hasta 20 cuentas de WhatsApp conectadas', 'Hasta 450 consultas por mes', 'Estadísticas y gráficos del embudo de ventas', 'Ideal para varias sucursales o equipos'] },
+    { $set: { features: PLANES_DEFAULT[2].features } }
+  );
+  await col.updateOne(
+    { id: 'elite', features: ['Todo lo del plan Premium', 'Hasta 600 consultas por mes', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos'] },
     { $set: { features: PLANES_DEFAULT[3].features } }
   );
 }
