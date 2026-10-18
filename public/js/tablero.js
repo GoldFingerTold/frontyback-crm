@@ -633,7 +633,7 @@ document.getElementById('btn-config-general').addEventListener('click', () => {
     usoDiv.hidden = false;
     usoDiv.innerHTML = `
       <strong>Recordatorios de turno por WhatsApp este mes:</strong> ${usados} mensaje${usados === 1 ? '' : 's'} enviado${usados === 1 ? '' : 's'}.
-      <p style="margin: 6px 0 0;">Meta cobra por los mensajes de WhatsApp enviados por fuera de las 24 horas posteriores al último mensaje de un cliente. La confirmación y el recordatorio de turno aplican a esa tarifa, de ≈ $37,68 ARS (USD 0,026) por mensaje, a cargo de la tarjeta que cargaste en tu cuenta de Meta Business (no de FrontyBack). Gasto estimado este mes: <strong>≈ $${gastoEstimado} ARS</strong>.</p>
+      <p style="margin: 6px 0 0;">Meta cobra por los mensajes de WhatsApp enviados por fuera de las 24 horas posteriores al último mensaje de un cliente. La confirmación y el recordatorio de turno aplican a esa tarifa, de ≈ $37,68 ARS (USD 0,026) por mensaje, a cargo de la tarjeta que cargaste en tu cuenta de Meta Business. Gasto estimado este mes: <strong>≈ $${gastoEstimado} ARS</strong>.</p>
       <p style="margin: 6px 0 0;">Si todavía no cargaste una tarjeta ahí, el envío no se concreta y el turno se sigue reservando igual - para cargarla: business.facebook.com/settings → Cuentas → Cuentas de mensajes → la que tiene tu número → Configuración de pagos.</p>
     `;
   } else {
