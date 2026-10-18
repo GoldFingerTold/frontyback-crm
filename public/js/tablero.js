@@ -220,6 +220,9 @@ function actualizarCabecera() {
     const btnExportar = document.getElementById('btn-exportar-csv');
     btnExportar.hidden = !esGerencia;
     btnExportar.href = '/api/admin/fichas/exportar';
+    const btnConectarWhatsapp = document.getElementById('btn-conectar-whatsapp');
+    btnConectarWhatsapp.hidden = !esGerencia;
+    btnConectarWhatsapp.href = `/conectar-whatsapp.html?slug=${encodeURIComponent(ESTADO.cliente?.slug || '')}`;
     // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
     // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.
     if (!avisoLeadInicializado && esGerencia) {
