@@ -36,24 +36,41 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
 - **WhatsApp se conecta con Embedded Signup vía JS SDK** (`public/conectar-whatsapp.html`),
   NO con el link hosteado de Meta (`business.facebook.com/messaging/whatsapp/onboard`,
   que nunca redirige de vuelta - se probó y no funciona, no insistir con eso).
-- **Quién paga los mensajes de WhatsApp de turnos**: desde oct/2026 se confirmó en
-  vivo (cuenta de wye) que cada cliente tiene su propia "Messaging Account" en Meta
-  Business Manager, con su propio método de pago — Meta le cobra a ÉL el excedente
-  de recordatorios de turno, no a FrontyBack. Por eso el tope de turnos ya NO corta
-  el envío, es solo informativo (ver `server/services/turnos.js`). Si el cliente no
-  cargó tarjeta en Meta, el envío falla con error 131042, lo detectamos y se lo
-  avisamos en el panel (banner + `whatsapp_pago_pendiente` en `clientes`).
+- **Quién paga los mensajes de WhatsApp de turnos**: cada cliente tiene su propia
+  "Messaging Account" en Meta Business Manager, con su propio método de pago — Meta le
+  cobra a ÉL, no a FrontyBack. El tope de turnos ya NO corta el envío, es solo
+  informativo (ver `server/services/turnos.js`). Si el cliente no cargó tarjeta en
+  Meta, el envío falla con error 131042, lo detectamos y se lo avisamos en el panel
+  (banner + `whatsapp_pago_pendiente` en `clientes`).
+- **No hay ningún tramo gratis en los mensajes de turno por WhatsApp**: tanto la
+  confirmación como el recordatorio son mensajes proactivos (el negocio los inicia, no
+  son respuesta a algo que el cliente escribió - la reserva llega por un formulario
+  web, no por WhatsApp), así que los dos entran en la regla de "Meta cobra fuera de las
+  24hs desde el último mensaje del cliente" desde el primer envío. Precio real
+  confirmado en vivo (18/10/2026, calculadora oficial de Meta): **≈ $37,68 ARS (USD
+  0,026) por mensaje**, categoría Utilidad, tramo 0-120.000 mensajes/mes (el único que
+  le aplica a cualquier cliente de FrontyBack). Este número vive hardcodeado en el
+  texto de 3 pantallas (`turnos.html`, `tablero.js`, `conectar-whatsapp.html`) - si
+  Meta actualiza la tarifa (lo hacen como máximo 1 vez por trimestre), hay que
+  actualizarlo a mano en esos 3 lugares.
+- **Switches de recordatorio de turno** (`turnos_config.recordatorio_whatsapp` /
+  `recordatorio_email`): WhatsApp arranca APAGADO por defecto para cuentas nuevas (tiene
+  costo real), email arranca PRENDIDO (sin costo, Resend). Cuentas que ya usaban Turnos
+  antes de este cambio mantuvieron el WhatsApp prendido (no se les cortó algo que ya
+  tenían).
 - **Quién paga el audio (transcripción OpenAI + voz ElevenLabs)**: eso sí sale del
-  bolsillo de FrontyBack (API key propia), así que ahí el tope por plan SÍ corta de
-  verdad (`server/routes/webhooks.js`, `db.maxAudiosMesDeCliente`).
+  bolsillo de FrontyBack (API key propia) - a diferencia de WhatsApp, acá SÍ hay un
+  tramo genuinamente gratis para el cliente (hasta 300/450/600 según el plan, pagado
+  por FrontyBack), y el tope por plan SÍ corta de verdad al llegar ahí
+  (`server/routes/webhooks.js`, `db.maxAudiosMesDeCliente`). No confundir los dos
+  modelos: Meta cobra por WhatsApp desde el mensaje 1, FrontyBack cubre audio hasta un
+  tope real.
 - **"Consultas" de texto normal no tienen costo real** (son mensajes de sesión,
-  siempre gratis para el negocio dentro de la ventana de 24hs) — el número que se
-  muestra en el plan ("Hasta 300 consultas por mes", etc.) es solo texto comercial,
-  no hay ningún control técnico detrás ni falta que lo haya.
-- **Verificación de acceso de Meta** (Tech Provider status): quedó en revisión hace
-  varios días, pasado el estimado de 5 días hábiles de Meta. Se confirmó leyendo la
-  doc oficial que no falta ningún paso de nuestro lado, solo esperar (o abrir un
-  ticket a soporte de Meta si se extiende mucho más).
+  siempre gratis para el negocio dentro de la ventana de 24hs) - no aparece ningún
+  número de "consultas incluidas" en la landing, se sacó por no representar nada real.
+- **Verificación de Meta: todo resuelto** (18/10/2026) - App Review (3 permisos),
+  Verificación de acceso (Tech Provider) y Acciones requeridas, los tres en estado
+  aprobado/completado. No queda ningún trámite pendiente de Meta.
 
 ## Pendiente / abierto
 
@@ -65,14 +82,14 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   notas internas en la ficha, etiquetas libres, exportar contactos a CSV, y aviso visual
   de "fichas frías" (sin novedades hace +5 días).
 
-- Conseguir el precio exacto por mensaje "Utility" para Argentina desde la
-  calculadora oficial de Meta (`business.whatsapp.com/products/platform-pricing`,
-  elegir Argentina + ARS + Utility) — es una tabla interactiva en JS, no se pudo
-  leer por web fetch, Hugo lo tiene que mirar él mismo en el navegador.
 - Confirmar si el tope de "Billing Hub" (moneda + método de pago) hay que
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
   con la cuenta de wye (que es del propio Hugo), falta confirmarlo con un cliente
   externo real.
+- Hugo va a empezar a contactar prospectos ahora que está todo publicado (precio real
+  de WhatsApp, verificación de Meta resuelta, alta 100% autoservicio con botón de
+  conectar WhatsApp en el propio tablero) - sin tareas técnicas concretas todavía,
+  pendiente de ver qué feedback trae eso.
 
 ## Memoria de Claude
 
