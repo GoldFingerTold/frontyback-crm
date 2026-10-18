@@ -12,6 +12,7 @@ const fichas = require('../services/fichas');
 const turnosWhatsapp = require('../services/turnos');
 const whatsapp = require('../services/whatsapp');
 const asistente = require('../services/asistente');
+const googleCalendar = require('../services/googleCalendar');
 const { avisarLeadNuevo } = require('./webhooks');
 
 const router = express.Router();
@@ -423,6 +424,13 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
   await avisarLeadNuevo(cliente, ficha, { nombreContacto: nombre, contacto: telefono, origen: 'turno', mensaje: `Reservó ${turno.servicio_nombre} para el ${turno.fecha} a las ${turno.hora_inicio}hs.` });
 
   await turnosWhatsapp.enviarConfirmacion(cliente, turno);
+
+  // Mejor esfuerzo: si el cliente conectó Google Calendar, el turno también queda como
+  // evento ahí. No bloquea la reserva si falla (token revocado, etc.) - el turno ya quedó
+  // guardado en el CRM antes de llegar acá.
+  googleCalendar.crearEventoTurno(cliente, turno).catch((err) =>
+    console.error(`No se pudo crear el evento de Google Calendar para el turno de ${cliente.slug}:`, err.message)
+  );
 
   res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre } });
 }));

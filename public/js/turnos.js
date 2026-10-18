@@ -48,6 +48,8 @@ async function cargarCabecera() {
     document.getElementById('btn-servicios').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-recordatorios').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-disponibilidad').hidden = !ESTADO.esGerencia;
+    document.getElementById('btn-google-calendar').hidden = !ESTADO.esGerencia;
+    if (ESTADO.esGerencia) actualizarEstadoCalendar();
   }
 }
 
@@ -168,6 +170,48 @@ document.getElementById('servicios-guardar').addEventListener('click', async () 
     status.textContent = err.message;
     status.className = 'form-status error';
   }
+});
+
+// ---------- Google Calendar ----------
+async function actualizarEstadoCalendar() {
+  try {
+    const { conectado } = await api('/api/turnos/calendar/estado');
+    const btn = document.getElementById('btn-google-calendar');
+    const texto = document.getElementById('google-calendar-texto');
+    btn.classList.toggle('btn-primary', conectado);
+    texto.textContent = conectado ? 'Google Calendar conectado ✓' : 'Conectar Google Calendar';
+  } catch {
+    // si falla, dejamos el botón como estaba - no es crítico
+  }
+}
+
+document.getElementById('btn-google-calendar').addEventListener('click', async () => {
+  const { conectado } = await api('/api/turnos/calendar/estado');
+  if (conectado) {
+    if (!confirm('¿Desconectar Google Calendar? Los turnos van a dejar de crearse ahí.')) return;
+    await api('/api/turnos/calendar/desconectar', { method: 'POST' });
+    actualizarEstadoCalendar();
+    return;
+  }
+
+  const { url } = await api('/api/turnos/calendar/conectar');
+  const ventana = window.open(url, 'conectar-google-calendar', 'width=520,height=640');
+
+  // Mientras la ventana de Google siga abierta, chequeamos cada 2s si ya se conectó, para
+  // actualizar el botón solo sin que el usuario tenga que recargar la página a mano.
+  const intervalo = setInterval(async () => {
+    if (ventana && ventana.closed) {
+      clearInterval(intervalo);
+      actualizarEstadoCalendar();
+      return;
+    }
+    const { conectado: yaConectado } = await api('/api/turnos/calendar/estado');
+    if (yaConectado) {
+      clearInterval(intervalo);
+      actualizarEstadoCalendar();
+      if (ventana && !ventana.closed) ventana.close();
+    }
+  }, 2000);
 });
 
 // ---------- Recordatorios (switches WhatsApp / email) ----------

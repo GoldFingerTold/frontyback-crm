@@ -9,9 +9,48 @@ const asyncHandler = require('../asyncHandler');
 const { requireAuth, requireGerencia } = require('./auth');
 const pagos = require('../services/pagos');
 const push = require('../services/push');
+const googleCalendar = require('../services/googleCalendar');
 
 const router = express.Router();
 router.use(requireAuth);
+
+// URI de redirección fija registrada en Google Cloud Console - tiene que vivir en esta
+// ruta exacta (/api/admin/calendar/google-callback) porque ese valor ya quedó cargado ahí,
+// cambiarla acá sin cambiarla también en Google rompe la conexión.
+router.get('/calendar/google-callback', requireGerencia, asyncHandler(async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.send(`<p>Google canceló la conexión (${error}). Podés cerrar esta ventana y reintentar.</p>`);
+  if (!code) return res.status(400).send('<p>Falta el código de autorización de Google.</p>');
+  if (String(state) !== String(req.session.clienteId)) {
+    return res.status(400).send('<p>Esta conexión no corresponde a tu sesión. Volvé a intentarlo desde el CRM.</p>');
+  }
+
+  try {
+    const tokens = await googleCalendar.intercambiarCodigo(code);
+    if (!tokens.refresh_token) {
+      // Pasa si el usuario ya había autorizado antes y Google no manda refresh_token de
+      // nuevo (solo la primera vez, salvo que se le saque el acceso a la app desde su
+      // cuenta de Google y lo vuelva a autorizar) - con prompt=consent esto no debería
+      // pasar, pero por las dudas se avisa claro en vez de guardar algo incompleto.
+      return res.send('<p>Google no devolvió el permiso completo. Entrá a myaccount.google.com/permissions, sacale el acceso a "FrontyBack CRM" y volvé a intentar conectar desde el CRM.</p>');
+    }
+    const expira = new Date(Date.now() + (tokens.expires_in - 60) * 1000);
+    await db.getDb().collection('clientes').updateOne(
+      { _id: new db.ObjectId(req.session.clienteId) },
+      {
+        $set: {
+          google_calendar_refresh_token: tokens.refresh_token,
+          google_calendar_access_token: tokens.access_token,
+          google_calendar_token_expira: expira
+        }
+      }
+    );
+    res.send('<html><body style="font-family: sans-serif; text-align: center; padding: 60px;"><h2>¡Listo!</h2><p>Tu Google Calendar quedó conectado. Ya podés cerrar esta ventana.</p></body></html>');
+  } catch (err) {
+    console.error('Error conectando Google Calendar:', err.message);
+    res.status(500).send(`<p>No se pudo completar la conexión: ${err.message}</p>`);
+  }
+}));
 
 // Una sesión sin "rol" guardado es de antes de que existiera este sistema de usuarios - se
 // trata como Gerencia (ve todo), igual que requireGerencia en auth.js.

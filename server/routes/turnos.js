@@ -8,9 +8,28 @@ const crypto = require('crypto');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { requireAuth, requireGerencia } = require('./auth');
+const googleCalendar = require('../services/googleCalendar');
 
 const router = express.Router();
 router.use(requireAuth);
+
+// ---------- Google Calendar ----------
+router.get('/calendar/conectar', requireGerencia, asyncHandler(async (req, res) => {
+  res.json({ url: googleCalendar.getAuthUrl(req.session.clienteId) });
+}));
+
+router.get('/calendar/estado', asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ _id: new db.ObjectId(req.session.clienteId) });
+  res.json({ conectado: Boolean(cliente?.google_calendar_refresh_token) });
+}));
+
+router.post('/calendar/desconectar', requireGerencia, asyncHandler(async (req, res) => {
+  await db.getDb().collection('clientes').updateOne(
+    { _id: new db.ObjectId(req.session.clienteId) },
+    { $unset: { google_calendar_refresh_token: '', google_calendar_access_token: '', google_calendar_token_expira: '' } }
+  );
+  res.json({ ok: true });
+}));
 
 router.get('/config', asyncHandler(async (req, res) => {
   const config = await db.getTurnosConfig(req.session.clienteId);
