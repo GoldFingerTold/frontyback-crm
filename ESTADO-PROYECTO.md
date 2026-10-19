@@ -107,6 +107,12 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
   con la cuenta de wye (que es del propio Hugo), falta confirmarlo con un cliente
   externo real.
+- **Pensar más funciones para diferenciarse de la competencia** (pedido 18/10 a la
+  noche, para arrancar el 19/10): repasar de nuevo qué ofrecen Clientify/HubSpot/
+  Pipedrive y qué más le sumaría valor real al CRM, mismo criterio que la tanda
+  anterior (notas internas, etiquetas, CSV export/import, fichas frías) - priorizar
+  lo que de verdad usa un negocio chico, no funciones de CRM enterprise.
+
 - Hugo va a empezar a contactar prospectos ahora que está todo publicado (precio real
   de WhatsApp, verificación de Meta resuelta, alta 100% autoservicio con botón de
   conectar WhatsApp en el propio tablero) - sin tareas técnicas concretas todavía,
