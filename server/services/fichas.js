@@ -94,6 +94,67 @@ async function registrarConsulta({
   return { ...doc, _id: insertedId, esNueva: true };
 }
 
+// Importación masiva desde CSV (fila ya resuelta por el panel: nombre/contacto/etapa/
+// monto/etiquetas, el mapeo de columnas del archivo se hace del lado del cliente antes de
+// mandar esto). A diferencia de registrarConsulta, acá SÍ se saltea silenciosamente un
+// contacto que ya existe - no tiene sentido pisarle el historial real a una ficha viva con
+// una fila de import.
+async function importarFichas(clienteId, columnas, filas) {
+  const mongo = db.getDb();
+  const ahora = new Date();
+  const columnaDefault = [...columnas].sort((a, b) => a.posicion - b.posicion)[0];
+
+  let creados = 0;
+  let duplicados = 0;
+  let invalidos = 0;
+
+  for (const fila of filas) {
+    const nombre = String(fila.nombre || '').trim().slice(0, 120);
+    const contacto = String(fila.contacto || '').trim().slice(0, 150);
+    if (!contacto) { invalidos++; continue; }
+
+    const existente = await mongo.collection('fichas').findOne({ cliente_id: clienteId, contacto });
+    if (existente) { duplicados++; continue; }
+
+    const columnaTexto = String(fila.etapa || '').trim().toLowerCase();
+    const columna = columnas.find((c) => c.nombre.toLowerCase() === columnaTexto) || columnaDefault;
+
+    const monto = fila.monto !== undefined && fila.monto !== '' && !Number.isNaN(Number(fila.monto))
+      ? Number(fila.monto)
+      : null;
+    const etiquetas = String(fila.etiquetas || '')
+      .split(/[|,]/)
+      .map((e) => e.trim().slice(0, 30))
+      .filter(Boolean)
+      .slice(0, 10);
+
+    const posicion = await siguientePosicion(clienteId, columna.id);
+    await mongo.collection('fichas').insertOne({
+      cliente_id: clienteId,
+      nombre,
+      contacto,
+      whatsapp_wa_id: '',
+      origen: 'importado',
+      departamento: null,
+      mensaje: '',
+      ultimo_mensaje: '',
+      ultimo_origen: 'importado',
+      fecha_hora_recibido: ahora,
+      fecha_hora_ultimo_mensaje: ahora,
+      respuesta_enviada: null,
+      monto,
+      notas_internas: [],
+      etiquetas,
+      columna_id: columna.id,
+      posicion,
+      historial: [{ tipo: 'importado', origen: 'importado', contenido: 'Contacto importado desde un archivo CSV.', fecha_hora: ahora }]
+    });
+    creados++;
+  }
+
+  return { creados, duplicados, invalidos };
+}
+
 async function registrarRespuesta(fichaId, { canal, texto }) {
   const mongo = db.getDb();
   const ahora = new Date();
@@ -110,4 +171,4 @@ async function registrarRespuesta(fichaId, { canal, texto }) {
   );
 }
 
-module.exports = { registrarConsulta, registrarRespuesta };
+module.exports = { registrarConsulta, registrarRespuesta, importarFichas };

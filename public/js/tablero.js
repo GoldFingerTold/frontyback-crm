@@ -28,7 +28,8 @@ function esc(valor) {
 const ORIGEN_INFO = {
   formulario: { icon: 'fa-regular fa-envelope', label: 'Formulario' },
   whatsapp_texto: { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp' },
-  whatsapp_audio: { icon: 'fa-solid fa-microphone', label: 'WhatsApp audio' }
+  whatsapp_audio: { icon: 'fa-solid fa-microphone', label: 'WhatsApp audio' },
+  importado: { icon: 'fa-solid fa-file-csv', label: 'Importado' }
 };
 
 function origenInfo(origen) {
@@ -223,6 +224,7 @@ function actualizarCabecera() {
     const btnConectarWhatsapp = document.getElementById('btn-conectar-whatsapp');
     btnConectarWhatsapp.hidden = !esGerencia;
     btnConectarWhatsapp.href = `/conectar-whatsapp.html?slug=${encodeURIComponent(ESTADO.cliente?.slug || '')}`;
+    document.getElementById('btn-importar-csv').hidden = !esGerencia;
     // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
     // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.
     if (!avisoLeadInicializado && esGerencia) {
@@ -792,3 +794,141 @@ if (esIOS && !yaInstalada) {
   boton.hidden = false;
   boton.innerHTML = '<i class="fa-solid fa-download"></i> Instalar: tocá Compartir y "Agregar a inicio"';
 }
+
+// ---------- Importar contactos desde CSV ----------
+// Parser simple pero correcto para CSV (RFC4180): soporta campos entre comillas con comas
+// y saltos de línea adentro, y comillas escapadas como "". Cualquier sistema (Excel,
+// Google Sheets, otro CRM) exporta en este formato o algo compatible con esto.
+function parsearCSV(texto) {
+  const filas = [];
+  let fila = [];
+  let campo = '';
+  let entreComillas = false;
+
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (entreComillas) {
+      if (c === '"') {
+        if (texto[i + 1] === '"') { campo += '"'; i++; } else { entreComillas = false; }
+      } else {
+        campo += c;
+      }
+    } else if (c === '"') {
+      entreComillas = true;
+    } else if (c === ',') {
+      fila.push(campo); campo = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && texto[i + 1] === '\n') i++;
+      fila.push(campo); campo = '';
+      if (fila.length > 1 || fila[0] !== '') filas.push(fila);
+      fila = [];
+    } else {
+      campo += c;
+    }
+  }
+  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas;
+}
+
+const CAMPOS_IMPORTAR = [
+  { campo: 'nombre', label: 'Nombre', requerido: true },
+  { campo: 'contacto', label: 'Contacto (teléfono o email)', requerido: true },
+  { campo: 'etapa', label: 'Etapa', requerido: false },
+  { campo: 'monto', label: 'Monto', requerido: false },
+  { campo: 'etiquetas', label: 'Etiquetas', requerido: false }
+];
+
+let importarDatos = null; // { encabezados, filas }
+
+function adivinarColumna(encabezados, posibles) {
+  const idx = encabezados.findIndex((h) => posibles.includes(h.trim().toLowerCase()));
+  return idx === -1 ? '' : String(idx);
+}
+
+function mostrarMapeoImportar() {
+  const { encabezados, filas } = importarDatos;
+  document.getElementById('importar-resumen').textContent =
+    `Encontramos ${filas.length} fila${filas.length === 1 ? '' : 's'} en el archivo. Decinos qué columna es cada dato:`;
+
+  const adivinanzas = {
+    nombre: adivinarColumna(encabezados, ['nombre', 'name', 'cliente']),
+    contacto: adivinarColumna(encabezados, ['contacto', 'telefono', 'teléfono', 'phone', 'celular', 'whatsapp', 'email', 'mail', 'correo']),
+    etapa: adivinarColumna(encabezados, ['etapa', 'columna', 'estado', 'stage']),
+    monto: adivinarColumna(encabezados, ['monto', 'valor', 'importe']),
+    etiquetas: adivinarColumna(encabezados, ['etiquetas', 'tags'])
+  };
+
+  document.getElementById('importar-mapeo').innerHTML = CAMPOS_IMPORTAR.map(({ campo, label, requerido }) => `
+    <div style="margin-bottom: 12px;">
+      <label style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin-bottom: 6px;">
+        ${esc(label)}${requerido ? '' : ' (opcional)'}
+      </label>
+      <select id="map-${campo}" style="width: 100%; padding: 9px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.85rem;">
+        ${requerido ? '' : '<option value="">(ninguna)</option>'}
+        ${encabezados.map((h, i) => `<option value="${i}" ${String(i) === adivinanzas[campo] ? 'selected' : ''}>${esc(h)}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btn-importar-csv').addEventListener('click', () => {
+  document.getElementById('importar-csv-input').click();
+});
+
+document.getElementById('importar-csv-input').addEventListener('change', async (e) => {
+  const archivo = e.target.files[0];
+  e.target.value = ''; // para poder reelegir el mismo archivo si hace falta reintentar
+  if (!archivo) return;
+
+  const texto = await archivo.text();
+  const filasCrudas = parsearCSV(texto).filter((f) => f.some((c) => c.trim() !== ''));
+  if (filasCrudas.length < 2) {
+    alert('El archivo no tiene filas de datos (solo encabezado, o está vacío).');
+    return;
+  }
+
+  importarDatos = { encabezados: filasCrudas[0], filas: filasCrudas.slice(1) };
+  mostrarMapeoImportar();
+  document.getElementById('importar-status').textContent = '';
+  document.getElementById('importar-overlay').hidden = false;
+});
+
+document.getElementById('importar-close').addEventListener('click', () => {
+  document.getElementById('importar-overlay').hidden = true;
+});
+
+document.getElementById('importar-confirmar').addEventListener('click', async () => {
+  const status = document.getElementById('importar-status');
+  const idxNombre = parseInt(document.getElementById('map-nombre').value, 10);
+  const idxContacto = parseInt(document.getElementById('map-contacto').value, 10);
+  const idxEtapa = document.getElementById('map-etapa').value;
+  const idxMonto = document.getElementById('map-monto').value;
+  const idxEtiquetas = document.getElementById('map-etiquetas').value;
+
+  if (Number.isNaN(idxContacto)) {
+    status.textContent = 'Elegí al menos la columna de contacto.';
+    status.className = 'form-status error';
+    return;
+  }
+
+  const filas = importarDatos.filas.map((f) => ({
+    nombre: Number.isNaN(idxNombre) ? '' : (f[idxNombre] || '').trim(),
+    contacto: (f[idxContacto] || '').trim(),
+    etapa: idxEtapa !== '' ? (f[parseInt(idxEtapa, 10)] || '').trim() : '',
+    monto: idxMonto !== '' ? (f[parseInt(idxMonto, 10)] || '').trim() : '',
+    etiquetas: idxEtiquetas !== '' ? (f[parseInt(idxEtiquetas, 10)] || '').trim() : ''
+  }));
+
+  status.textContent = 'Importando...';
+  status.className = 'form-status';
+  try {
+    const resultado = await api('/api/admin/fichas/importar', { method: 'POST', body: JSON.stringify({ filas }) });
+    status.textContent = `Listo: ${resultado.creados} importado${resultado.creados === 1 ? '' : 's'}, ${resultado.duplicados} ya existía${resultado.duplicados === 1 ? '' : 'n'}, ${resultado.invalidos} sin datos válidos.`;
+    status.className = 'form-status ok';
+    await cargarTablero();
+    setTimeout(() => { document.getElementById('importar-overlay').hidden = true; }, 2200);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});

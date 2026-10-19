@@ -10,6 +10,7 @@ const { requireAuth, requireGerencia } = require('./auth');
 const pagos = require('../services/pagos');
 const push = require('../services/push');
 const googleCalendar = require('../services/googleCalendar');
+const fichas = require('../services/fichas');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -200,6 +201,22 @@ router.get('/fichas/exportar', requireGerencia, asyncHandler(async (req, res) =>
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="contactos-${cliente.slug}.csv"`);
   res.send(csv);
+}));
+
+// Importación masiva de contactos: el panel ya parseó el CSV y mapeó las columnas del lado
+// del cliente (el archivo puede venir de cualquier sistema, con cualquier nombre de
+// columna) - acá solo llegan filas ya resueltas a {nombre, contacto, etapa, monto,
+// etiquetas}. Límite de 2000 filas por tanda, para no trabarse con un archivo gigante.
+router.post('/fichas/importar', requireGerencia, asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+
+  const filas = Array.isArray(req.body?.filas) ? req.body.filas.slice(0, 2000) : [];
+  if (!filas.length) return res.status(400).json({ error: 'No hay filas para importar.' });
+
+  const resultado = await fichas.importarFichas(clienteId, cliente.columnas, filas);
+  res.json(resultado);
 }));
 
 // El monto es el único dato de la ficha que no llega solo por WhatsApp/formulario - se
