@@ -74,14 +74,34 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
 
 ## Pendiente / abierto
 
-- **Probar a fondo Google Calendar con un turno real** (recién integrado el 18/10):
-  conectado vía OAuth2 desde Turnos → Conectar Google Calendar, cada turno reservado
-  crea un evento. Verificado que compila y despliega, falta la prueba end-to-end de
-  Hugo reservando un turno real y confirmando que el evento aparece en su calendario.
-  Credenciales ya cargadas en el `.env` del VPS (`GOOGLE_CLIENT_ID`/`_SECRET`/
-  `_REDIRECT_URI`). Mientras la app de Google siga en modo "Prueba" (no verificada),
-  los clientes van a ver un cartel de advertencia de Google al conectar - normal, no es
-  un error.
+- **Google Calendar: resolver "Error 401: invalid_client"** (sesión del 18/10 a la
+  noche, sin resolver). La integración está programada y desplegada
+  (`server/services/googleCalendar.js`, botón en Turnos), credenciales cargadas en
+  el `.env` del VPS, el Client ID coincide exacto entre Google Cloud Console y lo que
+  lee el proceso en vivo (verificado). Probamos: esperar propagación (no sirvió),
+  activar la cuenta de Google Cloud (tenía el trial vencido - no sirvió), agregar a
+  Hugo como usuario de prueba (no sirvió). El error pasó de "invalid_client" genérico
+  a "The OAuth client was not found" y volvió a "invalid_client" - parece intermitente,
+  no un error de configuración nuestra. Dos cosas para probar mañana, en orden:
+  1. Revisar **"Información de la marca"** en Google Auth Platform por si falta algún
+     campo obligatorio.
+  2. Si no, **borrar el cliente OAuth y crear uno nuevo** (hay reportes de clientes
+     creados por la interfaz nueva de Google que quedan "pegados").
+  Proyecto: `eighth-opus-391401` ("FrontyBack CRM" en Google Cloud).
+
+- **Integración de Meta Lead Ads** (pedida 18/10 a la noche, sin empezar): que un
+  cliente pueda conectar su campaña de Facebook/Instagram Ads y que los leads de sus
+  formularios instantáneos entren solos como fichas al CRM, en vez de quedar en el
+  Excel que Meta deja descargar a mano (y borra a los 90 días). Reusa la misma App de
+  Meta que ya tenemos ("Ai") - no hace falta una cuenta nueva. Falta: (1) pedir el
+  permiso `leads_retrieval` para la app (mismo tipo de trámite ya hecho con
+  `whatsapp_business_management` - funciona en modo prueba con la propia página de
+  Hugo sin esperar aprobación), (2) suscribir el webhook de la app al campo `leadgen`,
+  (3) programar: botón "Conectar campaña de Meta Ads" (Facebook Login, mismo patrón
+  que conectar-whatsapp.html), extender `server/routes/webhooks.js` para manejar
+  eventos `leadgen` además de los de WhatsApp, y un mapeo automático de las preguntas
+  del formulario a nombre/teléfono/email (parecido al mapeo que se hizo para la
+  importación de CSV).
 
 - Confirmar si el tope de "Billing Hub" (moneda + método de pago) hay que
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
