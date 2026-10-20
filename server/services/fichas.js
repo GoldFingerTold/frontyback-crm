@@ -67,7 +67,10 @@ async function registrarConsulta({
           ...(phoneNumberId ? { whatsapp_phone_number_id: phoneNumberId } : {}),
           // Si este mensaje no viene de una línea con departamento (p.ej. llegó por el
           // formulario del sitio), no se pisa el departamento que la ficha ya tenía.
-          ...(departamento ? { departamento } : {})
+          ...(departamento ? { departamento } : {}),
+          // Volvió a tener actividad real: deja de estar "fría" para el aviso por email
+          // (server/services/ciclo-fichas-frias.js), aunque ya se haya avisado antes.
+          aviso_fria_enviado: false
         },
         $push: { historial: evento }
       }
@@ -94,6 +97,7 @@ async function registrarConsulta({
     notas_internas: [],
     etiquetas: [],
     asignado_a: null,
+    aviso_fria_enviado: false,
     columna_id: columnaInicial,
     posicion,
     historial: [evento]
@@ -154,6 +158,7 @@ async function importarFichas(clienteId, columnas, filas) {
       notas_internas: [],
       etiquetas,
       asignado_a: null,
+      aviso_fria_enviado: false,
       columna_id: columna.id,
       posicion,
       historial: [{ tipo: 'importado', origen: 'importado', contenido: 'Contacto importado desde un archivo CSV.', fecha_hora: ahora }]

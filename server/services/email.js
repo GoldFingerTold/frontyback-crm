@@ -144,6 +144,27 @@ async function enviarResumenSemanal({ emailDestinatario, nombreCliente, fichasNu
   });
 }
 
+// Aviso de fichas que llevan varios días sin novedades - un resumen agrupado (no un mail
+// por ficha) para que no sea spam. Usa el mismo switch "avisos_lead_email" que el resto de
+// los avisos del tablero, no uno aparte.
+async function enviarAvisoFichasFrias({ emailDestinatario, nombreCliente, fichas }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+
+  await getResend().emails.send({
+    from,
+    to: emailDestinatario,
+    subject: `${fichas.length} consulta${fichas.length === 1 ? '' : 's'} sin avance en ${nombreCliente}`,
+    html: `
+      <p>Hola! Estas consultas llevan varios días sin novedades, puede que valga la pena hacer un seguimiento:</p>
+      <ul>
+        ${fichas.map((f) => `<li><strong>${escHtml(f.nombre)}</strong> - ${f.dias} día${f.dias === 1 ? '' : 's'} sin mensajes</li>`).join('')}
+      </ul>
+      <p><a href="https://crm.frontyback.com/tablero.html" style="display:inline-block;background:#d4af37;color:#141517;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">Ver el tablero</a></p>
+      <p style="color:#888;font-size:12px;">¿No te sirve este aviso? Lo podés apagar desde el tablero (mismo interruptor que los avisos de leads nuevos).</p>
+    `
+  });
+}
+
 // Alternativa sin costo al recordatorio por WhatsApp (que fuera de la ventana de 24hs se
 // lo cobra Meta al dueño del negocio) - se manda solo si el cliente final cargó su email al
 // reservar Y el negocio tiene prendido el switch de "recordatorio por email".
@@ -186,5 +207,6 @@ module.exports = {
   enviarAvisoConexionManual,
   enviarResumenSemanal,
   enviarConfirmacionTurno,
-  enviarRecordatorioTurno
+  enviarRecordatorioTurno,
+  enviarAvisoFichasFrias
 };

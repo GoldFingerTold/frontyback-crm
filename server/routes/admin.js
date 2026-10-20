@@ -302,7 +302,9 @@ router.put('/fichas/:id/mover', asyncHandler(async (req, res) => {
   const filtro = { _id: fichaId, cliente_id: clienteId };
   if (!esGerencia(req)) filtro.departamento = req.session.departamento;
 
-  const result = await mongo.collection('fichas').updateOne(filtro, { $set: { columna_id, posicion } });
+  // Mover la ficha a mano es señal de actividad real: deja de estar "fría" para el aviso
+  // por email (services/ciclo-fichas-frias.js), aunque ya se hubiera avisado antes.
+  const result = await mongo.collection('fichas').updateOne(filtro, { $set: { columna_id, posicion, aviso_fria_enviado: false } });
   if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe esa ficha.' });
 
   res.json({ ok: true });
