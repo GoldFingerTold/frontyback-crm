@@ -348,6 +348,7 @@ header {
   flex: none; padding: 8px 14px; font-size: 12px;
 }
 .ficha-monto-status { font-size: 11px; color: var(--text-muted); margin: -14px 0 20px; min-height: 1em; }
+.ficha-monto-status.error { color: var(--danger); }
 
 .ficha-detail h3 {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);

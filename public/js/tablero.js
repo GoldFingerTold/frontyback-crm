@@ -392,6 +392,29 @@ async function guardarNota(fichaId, textoInput, statusEl) {
   }
 }
 
+async function responderWhatsapp(fichaId, textoInput, statusEl) {
+  const texto = textoInput.value.trim();
+  if (!texto) return;
+  statusEl.textContent = 'Enviando...';
+  statusEl.className = 'ficha-monto-status';
+  try {
+    await api(`/api/admin/fichas/${fichaId}/responder`, {
+      method: 'POST',
+      body: JSON.stringify({ texto })
+    });
+    const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
+    if (ficha) {
+      ficha.historial = [...(ficha.historial || []), { tipo: 'respuesta_saliente', canal: 'whatsapp_texto', contenido: texto, fecha_hora: new Date().toISOString() }];
+    }
+    textoInput.value = '';
+    statusEl.textContent = '';
+    abrirFicha(fichaId);
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.className = 'ficha-monto-status error';
+  }
+}
+
 function abrirFicha(fichaId) {
   const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
   if (!ficha) return;
@@ -465,6 +488,18 @@ function abrirFicha(fichaId) {
     </div>
     <p class="ficha-monto-status" id="nota-status"></p>
 
+    ${/^\+?[\d\s-]{6,20}$/.test(ficha.contacto || '') ? `
+      <h3>Responder por WhatsApp</h3>
+      ${(Date.now() - new Date(ficha.fecha_hora_ultimo_mensaje || ficha.fecha_hora_recibido).getTime()) > 24 * 60 * 60 * 1000 ? `
+        <p class="ficha-notas-aviso" style="margin: -8px 0 10px; display: block;">Pasaron más de 24hs desde el último mensaje del cliente - WhatsApp puede rechazar el envío. Si pasa, escribile por otro medio.</p>
+      ` : ''}
+      <div class="ficha-nota-nueva">
+        <input id="responder-input" type="text" maxlength="4096" placeholder="Escribir un mensaje...">
+        <button type="button" class="btn-ghost" id="responder-enviar">Enviar</button>
+      </div>
+      <p class="ficha-monto-status" id="responder-status"></p>
+    ` : ''}
+
     <h3>Historial</h3>
     <div class="historial">${historial || '<p>Sin mensajes todavía.</p>'}</div>
   `;
@@ -492,6 +527,16 @@ function abrirFicha(fichaId) {
   document.getElementById('nota-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') guardarNota(fichaId, document.getElementById('nota-input'), document.getElementById('nota-status'));
   });
+
+  const btnResponder = document.getElementById('responder-enviar');
+  if (btnResponder) {
+    btnResponder.addEventListener('click', () => {
+      responderWhatsapp(fichaId, document.getElementById('responder-input'), document.getElementById('responder-status'));
+    });
+    document.getElementById('responder-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') responderWhatsapp(fichaId, document.getElementById('responder-input'), document.getElementById('responder-status'));
+    });
+  }
 
   document.getElementById('mover-select').addEventListener('change', async (e) => {
     const nuevaColumnaId = e.target.value;

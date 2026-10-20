@@ -32,6 +32,7 @@ async function registrarConsulta({
   origen,
   mensaje,
   whatsappWaId,
+  phoneNumberId = null,
   departamento = null
 }) {
   const mongo = db.getDb();
@@ -59,6 +60,11 @@ async function registrarConsulta({
           fecha_hora_ultimo_mensaje: ahora,
           ...(nombre ? { nombre } : {}),
           ...(whatsappWaId ? { whatsapp_wa_id: whatsappWaId } : {}),
+          // Igual que el departamento: si este mensaje no llegó por WhatsApp (p.ej. el
+          // formulario del sitio), no se pisa el número por el que ya se le podía
+          // responder - se necesita este dato exacto para el botón de "responder
+          // manualmente" de la ficha, el departamento/etiqueta no alcanza para eso.
+          ...(phoneNumberId ? { whatsapp_phone_number_id: phoneNumberId } : {}),
           // Si este mensaje no viene de una línea con departamento (p.ej. llegó por el
           // formulario del sitio), no se pisa el departamento que la ficha ya tenía.
           ...(departamento ? { departamento } : {})
@@ -75,6 +81,7 @@ async function registrarConsulta({
     nombre: nombre || '',
     contacto,
     whatsapp_wa_id: whatsappWaId || '',
+    whatsapp_phone_number_id: phoneNumberId,
     origen,
     departamento,
     mensaje,

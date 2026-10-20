@@ -290,6 +290,7 @@ async function procesarEventoWhatsapp(body) {
         origen: 'whatsapp_texto',
         mensaje: texto,
         whatsappWaId: waId,
+        phoneNumberId,
         departamento
       });
       await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_texto', mensaje: texto, departamento });
@@ -334,6 +335,7 @@ async function procesarEventoWhatsapp(body) {
         origen: 'whatsapp_audio',
         mensaje,
         whatsappWaId: waId,
+        phoneNumberId,
         departamento
       });
       await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_audio', mensaje, departamento });

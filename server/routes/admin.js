@@ -11,6 +11,7 @@ const pagos = require('../services/pagos');
 const push = require('../services/push');
 const googleCalendar = require('../services/googleCalendar');
 const fichas = require('../services/fichas');
+const whatsapp = require('../services/whatsapp');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -304,6 +305,46 @@ router.put('/fichas/:id/mover', asyncHandler(async (req, res) => {
   const result = await mongo.collection('fichas').updateOne(filtro, { $set: { columna_id, posicion } });
   if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe esa ficha.' });
 
+  res.json({ ok: true });
+}));
+
+// Responder manualmente por WhatsApp desde la ficha - una vez que se agotó el único
+// mensaje automático, antes no había forma de seguir la conversación desde el CRM (el
+// número conectado ya no se puede usar desde la app normal del celular). Es un mensaje de
+// "sesión" (gratis), solo funciona dentro de las 24hs desde el último mensaje del cliente -
+// si pasó ese plazo, Meta devuelve un error claro y se lo mostramos tal cual al usuario en
+// vez de intentar adivinar nosotros si la ventana sigue abierta.
+router.post('/fichas/:id/responder', asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const fichaId = new db.ObjectId(req.params.id);
+  const texto = String(req.body?.texto || '').trim().slice(0, 4096);
+  if (!texto) return res.status(400).json({ error: 'El mensaje no puede estar vacío.' });
+
+  const filtro = { _id: fichaId, cliente_id: clienteId };
+  if (!esGerencia(req)) filtro.departamento = req.session.departamento;
+
+  const ficha = await mongo.collection('fichas').findOne(filtro);
+  if (!ficha) return res.status(404).json({ error: 'No existe esa ficha.' });
+
+  let phoneNumberId = ficha.whatsapp_phone_number_id;
+  if (!phoneNumberId) {
+    // Fichas de antes de que empezáramos a guardar este dato: si el cliente solo tiene un
+    // número de WhatsApp conectado, no hay ambigüedad posible, se puede usar igual.
+    const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+    if (cliente?.whatsapp_numeros?.length === 1) phoneNumberId = cliente.whatsapp_numeros[0].phone_number_id;
+  }
+  if (!phoneNumberId) {
+    return res.status(400).json({ error: 'Esta ficha no tiene un número de WhatsApp asociado, no se le puede responder desde acá.' });
+  }
+
+  try {
+    await whatsapp.enviarTexto({ phoneNumberId, para: ficha.contacto, texto });
+  } catch (err) {
+    return res.status(400).json({ error: `No se pudo mandar el mensaje: ${err.message}` });
+  }
+
+  await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto });
   res.json({ ok: true });
 }));
 
