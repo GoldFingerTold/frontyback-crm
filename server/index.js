@@ -4,8 +4,10 @@ const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const db = require('./db');
+const asyncHandler = require('./asyncHandler');
 const webhookRoutes = require('./routes/webhooks');
 const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
@@ -61,6 +63,33 @@ app.use('/api/fidelidad', fidelidadRoutes);
 // lo que Google indexa con más fuerza, y es la URL que la gente comparte/recuerda).
 // Esto evita un 404 si alguien ya tenía guardado el link viejo.
 app.get('/planes.html', (req, res) => res.redirect(301, '/'));
+
+// El archivo reservar.html es el mismo para todos los negocios (el nombre lo carga el JS
+// recién después de pedirle /api/public/turnos/:slug/config) - pero WhatsApp, Facebook, etc.
+// arman la vista previa del link leyendo el <title>/<meta og:*> del HTML tal como llega del
+// servidor, SIN ejecutar ese JS. Sin esto, cualquier negocio que comparta su link de
+// reservas por WhatsApp muestra "FrontyBack" en la vista previa en vez de su propio nombre -
+// se ve poco profesional para un cliente del CRM. Esta ruta va ANTES del estático: si hay un
+// ?slug= válido, inyecta el nombre del negocio en el HTML antes de servirlo; si no, cae al
+// archivo estático de siempre (next()), con el título genérico de FrontyBack.
+app.get('/reservar.html', asyncHandler(async (req, res, next) => {
+  const slug = String(req.query.slug || '').trim();
+  if (!slug) return next();
+
+  const cliente = await db.getDb().collection('clientes').findOne({ slug });
+  if (!cliente) return next();
+
+  const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const titulo = `Reservar turno — ${esc(cliente.nombre)}`;
+  const descripcion = `Reservá tu turno online en ${esc(cliente.nombre)}.`;
+
+  let html = fs.readFileSync(path.join(__dirname, '..', 'public', 'reservar.html'), 'utf-8');
+  html = html.replace('<title>Reservar turno — FrontyBack</title>', `<title>${titulo}</title>
+<meta property="og:title" content="${titulo}">
+<meta property="og:description" content="${descripcion}">`);
+
+  res.set('Content-Type', 'text/html; charset=utf-8').send(html);
+}));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
