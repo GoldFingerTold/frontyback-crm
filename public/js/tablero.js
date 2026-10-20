@@ -230,6 +230,7 @@ function actualizarCabecera() {
     btnConectarMetaAds.hidden = !esGerencia;
     btnConectarMetaAds.href = `/conectar-meta-ads.html?slug=${encodeURIComponent(ESTADO.cliente?.slug || '')}`;
     document.getElementById('btn-importar-csv').hidden = !esGerencia;
+    document.getElementById('btn-mensajes-masivos').hidden = !esGerencia;
     // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
     // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.
     if (!avisoLeadInicializado && esGerencia) {
@@ -1018,6 +1019,66 @@ document.getElementById('importar-confirmar').addEventListener('click', async ()
     status.className = 'form-status ok';
     await cargarTablero();
     setTimeout(() => { document.getElementById('importar-overlay').hidden = true; }, 2200);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});
+
+// ---------- Mensajes por etiqueta (envío masivo) ----------
+let ETIQUETAS_DISPONIBLES = [];
+
+async function abrirMensajesMasivos() {
+  document.getElementById('mensajes-masivos-overlay').hidden = false;
+  document.getElementById('mm-status').textContent = '';
+  document.getElementById('mm-texto').value = '';
+  const select = document.getElementById('mm-etiqueta');
+  const conteo = document.getElementById('mm-conteo');
+  select.innerHTML = '<option>Cargando...</option>';
+  conteo.textContent = '';
+  try {
+    const { etiquetas } = await api('/api/admin/etiquetas');
+    ETIQUETAS_DISPONIBLES = etiquetas;
+    if (!etiquetas.length) {
+      select.innerHTML = '<option value="">No hay ninguna etiqueta creada todavía</option>';
+      return;
+    }
+    select.innerHTML = etiquetas.map((e) => `<option value="${esc(e.etiqueta)}">${esc(e.etiqueta)} (${e.cantidad})</option>`).join('');
+    actualizarConteoMensajesMasivos();
+  } catch (err) {
+    select.innerHTML = '<option value="">Error cargando etiquetas</option>';
+  }
+}
+
+function actualizarConteoMensajesMasivos() {
+  const etiqueta = document.getElementById('mm-etiqueta').value;
+  const info = ETIQUETAS_DISPONIBLES.find((e) => e.etiqueta === etiqueta);
+  const conteo = document.getElementById('mm-conteo');
+  if (!info) { conteo.textContent = ''; return; }
+  const costoEstimado = (info.cantidad_whatsapp * 37.68).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+  conteo.textContent = `${info.cantidad_whatsapp} de ${info.cantidad} contacto${info.cantidad === 1 ? '' : 's'} con esa etiqueta tienen WhatsApp. Costo máximo si a todos les toca pagar la plantilla: ≈ $${costoEstimado} ARS.`;
+}
+
+document.getElementById('btn-mensajes-masivos').addEventListener('click', abrirMensajesMasivos);
+document.getElementById('mensajes-masivos-close').addEventListener('click', () => {
+  document.getElementById('mensajes-masivos-overlay').hidden = true;
+});
+document.getElementById('mm-etiqueta').addEventListener('change', actualizarConteoMensajesMasivos);
+
+document.getElementById('mm-enviar').addEventListener('click', async () => {
+  const status = document.getElementById('mm-status');
+  const etiqueta = document.getElementById('mm-etiqueta').value;
+  const texto = document.getElementById('mm-texto').value.trim();
+  if (!etiqueta) { status.textContent = 'Elegí una etiqueta.'; status.className = 'form-status error'; return; }
+  if (!texto) { status.textContent = 'Escribí el mensaje.'; status.className = 'form-status error'; return; }
+  if (!confirm(`¿Mandar este mensaje a todos los contactos con la etiqueta "${etiqueta}"? Puede tener costo real para tu cuenta de WhatsApp.`)) return;
+
+  status.textContent = 'Mandando...';
+  status.className = 'form-status';
+  try {
+    const r = await api('/api/admin/mensajes-masivos', { method: 'POST', body: JSON.stringify({ etiqueta, texto }) });
+    status.textContent = `Listo: ${r.enviados} mandado${r.enviados === 1 ? '' : 's'} (${r.viaPlantilla} como plantilla con costo), ${r.fallidos} con error, ${r.sinWhatsapp} sin WhatsApp. Costo real estimado: ≈ $${r.costoEstimado.toLocaleString('es-AR')} ARS.`;
+    status.className = 'form-status ok';
   } catch (err) {
     status.textContent = err.message;
     status.className = 'form-status error';

@@ -579,4 +579,88 @@ router.get('/estadisticas', requireGerencia, asyncHandler(async (req, res) => {
   });
 }));
 
+// Etiquetas existentes entre las fichas del cliente, con cuántas tienen un contacto de
+// WhatsApp usable - alimenta el selector de "Mensajes masivos" (POST /mensajes-masivos)
+// y el cálculo de costo estimado antes de mandar.
+router.get('/etiquetas', requireGerencia, asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+
+  const resultado = await mongo.collection('fichas').aggregate([
+    { $match: { cliente_id: clienteId, etiquetas: { $exists: true, $ne: [] } } },
+    { $unwind: '$etiquetas' },
+    {
+      $group: {
+        _id: '$etiquetas',
+        cantidad: { $sum: 1 },
+        cantidad_whatsapp: {
+          $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ['$contacto', ''] }, regex: '^\\+?[0-9\\s-]{6,20}$' } }, 1, 0] }
+        }
+      }
+    },
+    { $sort: { _id: 1 } }
+  ]).toArray();
+
+  res.json({ etiquetas: resultado.map((e) => ({ etiqueta: e._id, cantidad: e.cantidad, cantidad_whatsapp: e.cantidad_whatsapp })) });
+}));
+
+// Mandar un mensaje a mano a todas las fichas que tengan una etiqueta puntual (ej. "VIP") -
+// mismo esquema que "responder manualmente" (arriba): si el contacto todavía está dentro de
+// las 24hs gratis se manda como texto normal, si no, cae a la plantilla de seguimiento (con
+// costo real, a cargo de la tarjeta que el cliente cargó en su cuenta de Meta Business). No
+// se registra como "primera_respuesta_manual" (fichas.registrarRespuesta sin manual: true)
+// porque esto es un envío masivo, no la primera atención a un lead nuevo - no tiene que
+// ensuciar el reporte de tiempo de respuesta de Estadísticas.
+router.post('/mensajes-masivos', requireGerencia, asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const etiqueta = String(req.body?.etiqueta || '').trim();
+  const texto = String(req.body?.texto || '').trim().slice(0, 4096);
+  if (!etiqueta) return res.status(400).json({ error: 'Falta la etiqueta.' });
+  if (!texto) return res.status(400).json({ error: 'El mensaje no puede estar vacío.' });
+
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+  if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
+  if (!db.estadoPermiteRespuesta(cliente.estado_pago)) {
+    return res.status(403).json({ error: 'El servicio está cortado por falta de pago, no se pueden mandar mensajes.' });
+  }
+
+  const fichasObjetivo = await mongo.collection('fichas').find({ cliente_id: clienteId, etiquetas: etiqueta }).toArray();
+
+  let enviados = 0;
+  let viaPlantilla = 0;
+  let fallidos = 0;
+  let sinWhatsapp = 0;
+
+  for (const ficha of fichasObjetivo) {
+    if (!/^\+?[\d\s-]{6,20}$/.test(ficha.contacto || '')) { sinWhatsapp++; continue; }
+
+    let phoneNumberId = ficha.whatsapp_phone_number_id;
+    if (!phoneNumberId && cliente.whatsapp_numeros?.length === 1) phoneNumberId = cliente.whatsapp_numeros[0].phone_number_id;
+    if (!phoneNumberId) { sinWhatsapp++; continue; }
+
+    try {
+      try {
+        await whatsapp.enviarTexto({ phoneNumberId, para: ficha.contacto, texto });
+      } catch (err) {
+        if (err.codigoMeta !== whatsapp.CODIGO_FUERA_DE_VENTANA) throw err;
+        await whatsapp.enviarPlantilla({
+          phoneNumberId,
+          para: ficha.contacto,
+          nombrePlantilla: whatsapp.PLANTILLA_SEGUIMIENTO,
+          parametros: [ficha.nombre || 'Hola', texto]
+        });
+        viaPlantilla++;
+      }
+      await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto });
+      enviados++;
+    } catch (err) {
+      console.error(`No se pudo mandar el mensaje masivo a la ficha ${ficha._id}:`, err.message);
+      fallidos++;
+    }
+  }
+
+  res.json({ ok: true, enviados, viaPlantilla, fallidos, sinWhatsapp, costoEstimado: Math.round(viaPlantilla * 37.68) });
+}));
+
 module.exports = router;
