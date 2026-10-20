@@ -13,7 +13,10 @@ const metaLeads = require('../services/metaLeads');
 const stt = require('../services/stt');
 const tts = require('../services/tts');
 const mercadopago = require('../services/mercadopago');
+const mercadopagoConnect = require('../services/mercadopagoConnect');
 const push = require('../services/push');
+const turnosWhatsapp = require('../services/turnos');
+const googleCalendar = require('../services/googleCalendar');
 
 const router = express.Router();
 
@@ -68,6 +71,39 @@ async function avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto, orige
   } catch (err) {
     console.error('No se pudo mandar la notificación push de lead nuevo:', err.message);
   }
+}
+
+// Crea la ficha en el tablero, avisa al negocio y manda la confirmación por WhatsApp/email
+// de un turno - se llama apenas se reserva uno SIN seña (server/routes/public.js), o recién
+// cuando se confirma el pago de uno CON seña (procesarNotificacionMercadoPagoTurno, más
+// abajo). Vive acá (no en public.js) para poder usar avisarLeadNuevo sin un require
+// circular entre los dos archivos.
+async function confirmarYNotificarTurno(cliente, turno) {
+  const conProfesional = turno.profesional_nombre ? `, con ${turno.profesional_nombre}` : '';
+  const columnaInicial = cliente.columnas[0].id;
+  const ficha = await fichas.registrarConsulta({
+    clienteId: cliente._id,
+    columnaInicial,
+    contacto: turno.telefono_contacto,
+    nombre: turno.nombre_contacto,
+    origen: 'turno',
+    mensaje: `Reservó: ${turno.servicio_nombre}${conProfesional}, ${turno.fecha} a las ${turno.hora_inicio}hs.`
+  });
+  await avisarLeadNuevo(cliente, ficha, {
+    nombreContacto: turno.nombre_contacto,
+    contacto: turno.telefono_contacto,
+    origen: 'turno',
+    mensaje: `Reservó ${turno.servicio_nombre}${conProfesional} para el ${turno.fecha} a las ${turno.hora_inicio}hs.`
+  });
+
+  await turnosWhatsapp.enviarConfirmacion(cliente, turno);
+
+  // Mejor esfuerzo: si el cliente conectó Google Calendar, el turno también queda como
+  // evento ahí. No bloquea la reserva si falla (token revocado, etc.) - el turno ya quedó
+  // guardado en el CRM antes de llegar acá.
+  googleCalendar.crearEventoTurno(cliente, turno).catch((err) =>
+    console.error(`No se pudo crear el evento de Google Calendar para el turno de ${cliente.slug}:`, err.message)
+  );
 }
 
 // ---------- Formulario de contacto de los sitios de los clientes ----------
@@ -443,5 +479,49 @@ async function procesarNotificacionMercadoPago(body, query) {
   }
 }
 
+// ---------- Mercado Pago (seña de Turnos, cuenta propia de cada negocio) ----------
+// Distinto del webhook de arriba: ese usa el token GLOBAL de FrontyBack (cobro de la
+// suscripción del CRM); este usa el token de CADA cliente (server/services/
+// mercadopagoConnect.js) para cobrar la seña de un turno a nombre del propio negocio. El
+// webhook en sí nunca dice si el pago es real - siempre hay que volver a consultarlo
+// contra la API con el token correcto antes de confirmar nada.
+router.post(
+  '/mercadopago-turno',
+  express.json(),
+  asyncHandler(async (req, res) => {
+    res.sendStatus(200);
+    try {
+      await procesarNotificacionMercadoPagoTurno(req.body || {}, req.query || {});
+    } catch (err) {
+      console.error('Error procesando notificación de Mercado Pago (seña de turno):', err);
+    }
+  })
+);
+
+async function procesarNotificacionMercadoPagoTurno(body, query) {
+  const tipo = body.type || query.type || query.topic;
+  const paymentId = body.data?.id || query.id || query['data.id'];
+  const turnoId = query.turno_id;
+  if (tipo !== 'payment' || !paymentId || !turnoId) return;
+
+  const mongo = db.getDb();
+  const turno = await mongo.collection('turnos').findOne({ _id: new db.ObjectId(turnoId) });
+  if (!turno || turno.estado !== 'pendiente_pago') return; // ya confirmado, cancelado, o no existe
+
+  const cliente = await mongo.collection('clientes').findOne({ _id: turno.cliente_id });
+  if (!cliente) return;
+
+  // El webhook solo avisa "pasó algo" - nunca hay que confiar en eso sin volver a
+  // consultar el pago con el access_token del propio negocio antes de confirmar nada.
+  const pago = await mercadopagoConnect.obtenerPago(cliente, paymentId);
+  if (pago.status !== 'approved') return;
+
+  const confirmadoAhora = await db.confirmarTurnoPagado(turno._id);
+  if (!confirmadoAhora) return; // reintento del mismo webhook, ya se había avisado antes
+
+  await confirmarYNotificarTurno(cliente, { ...turno, estado: 'confirmado' });
+}
+
 module.exports = router;
 module.exports.avisarLeadNuevo = avisarLeadNuevo;
+module.exports.confirmarYNotificarTurno = confirmarYNotificarTurno;

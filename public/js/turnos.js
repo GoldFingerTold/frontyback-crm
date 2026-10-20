@@ -49,6 +49,7 @@ async function cargarCabecera() {
     document.getElementById('btn-recordatorios').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-disponibilidad').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-profesionales').hidden = !ESTADO.esGerencia;
+    document.getElementById('btn-sena').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-google-calendar').hidden = !ESTADO.esGerencia;
     if (ESTADO.esGerencia) actualizarEstadoCalendar();
   }
@@ -76,7 +77,7 @@ async function cargarTurnos() {
             <div class="tn-fila" data-turno-id="${t._id}">
               <div class="tn-hora">${esc(t.hora_inicio)}</div>
               <div class="tn-detalle">
-                <div class="tn-servicio">${esc(t.servicio_nombre)}${t.profesional_nombre ? ` · ${esc(t.profesional_nombre)}` : ''}${t.estado === 'cancelado' ? ' · <span style="color: var(--danger);">Cancelado</span>' : ''}</div>
+                <div class="tn-servicio">${esc(t.servicio_nombre)}${t.profesional_nombre ? ` · ${esc(t.profesional_nombre)}` : ''}${t.estado === 'cancelado' ? ' · <span style="color: var(--danger);">Cancelado</span>' : ''}${t.estado === 'pendiente_pago' ? ' · <span style="color: var(--accent-gold);">Esperando pago de seña</span>' : ''}</div>
                 <div class="tn-contacto">${esc(t.nombre_contacto)} · ${esc(t.telefono_contacto)}</div>
               </div>
               ${ESTADO.esGerencia && t.estado !== 'cancelado' ? `<button type="button" class="tn-cancelar" data-cancelar="${t._id}">Cancelar</button>` : ''}
@@ -373,6 +374,84 @@ document.getElementById('profesionales-guardar').addEventListener('click', async
     await api('/api/turnos/profesionales', { method: 'PUT', body: JSON.stringify({ profesionales }) });
     status.textContent = 'Guardado.';
     setTimeout(() => { document.getElementById('profesionales-overlay').hidden = true; }, 700);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});
+
+// ---------- Seña (Mercado Pago de la propia cuenta del negocio) ----------
+async function actualizarEstadoMercadoPago() {
+  try {
+    const { conectado } = await api('/api/turnos/mercadopago/estado');
+    const btn = document.getElementById('btn-conectar-mp');
+    const texto = document.getElementById('mp-conectar-texto');
+    btn.classList.toggle('btn-primary', conectado);
+    texto.textContent = conectado ? 'Mercado Pago conectado ✓' : 'Conectar Mercado Pago';
+    return conectado;
+  } catch {
+    return false;
+  }
+}
+
+document.getElementById('btn-conectar-mp').addEventListener('click', async () => {
+  const conectado = await actualizarEstadoMercadoPago();
+  if (conectado) {
+    if (!confirm('¿Desconectar Mercado Pago? Si tenías la seña activada, se apaga sola.')) return;
+    await api('/api/turnos/mercadopago/desconectar', { method: 'POST' });
+    document.getElementById('sena-activa').checked = false;
+    actualizarEstadoMercadoPago();
+    return;
+  }
+
+  const { url } = await api('/api/turnos/mercadopago/conectar');
+  const ventana = window.open(url, 'conectar-mercadopago', 'width=520,height=640');
+
+  const intervalo = setInterval(async () => {
+    if (ventana && ventana.closed) {
+      clearInterval(intervalo);
+      actualizarEstadoMercadoPago();
+      return;
+    }
+    const yaConectado = await actualizarEstadoMercadoPago();
+    if (yaConectado) {
+      clearInterval(intervalo);
+      if (ventana && !ventana.closed) ventana.close();
+    }
+  }, 2000);
+});
+
+async function abrirSena() {
+  document.getElementById('sena-overlay').hidden = false;
+  document.getElementById('sena-status').textContent = '';
+  try {
+    const [config] = await Promise.all([api('/api/turnos/config'), actualizarEstadoMercadoPago()]);
+    document.getElementById('sena-activa').checked = config.sena_activa === true;
+    document.getElementById('sena-monto').value = config.sena_monto || '';
+  } catch (err) {
+    document.getElementById('sena-status').textContent = err.message;
+  }
+}
+
+document.getElementById('btn-sena').addEventListener('click', abrirSena);
+document.getElementById('sena-close').addEventListener('click', () => {
+  document.getElementById('sena-overlay').hidden = true;
+});
+document.getElementById('sena-guardar').addEventListener('click', async () => {
+  const status = document.getElementById('sena-status');
+  status.textContent = 'Guardando...';
+  status.className = 'form-status';
+  try {
+    await api('/api/turnos/sena', {
+      method: 'PUT',
+      body: JSON.stringify({
+        activa: document.getElementById('sena-activa').checked,
+        monto: parseFloat(document.getElementById('sena-monto').value) || 0
+      })
+    });
+    status.textContent = 'Guardado.';
+    status.className = 'form-status ok';
+    setTimeout(() => { document.getElementById('sena-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
     status.className = 'form-status error';

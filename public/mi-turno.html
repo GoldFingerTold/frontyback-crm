@@ -106,7 +106,7 @@
       ESTADO.negocio = data.nombre_negocio;
       ESTADO.slug = data.slug_negocio;
       ESTADO.turno = data.turno;
-      mostrarResumen();
+      mostrarResumen(params.get('pago'));
     } catch (err) {
       cont.innerHTML = `<p class="loading">${esc(err.message)}</p>`;
     }
@@ -120,17 +120,24 @@
     return `<strong>${esc(t.servicio_nombre)}</strong>${t.profesional_nombre ? ` con ${esc(t.profesional_nombre)}` : ''}<br>${formatearFecha(t.fecha)} a las ${esc(t.hora_inicio)}hs`;
   }
 
-  function mostrarResumen() {
+  function bannerPago(pago) {
+    if (pago === 'ok') return '<div class="rv-resumen" style="border-color: #2bb673; background: rgba(43,182,115,0.1);">¡Pago recibido! En cuanto se confirme del todo (puede tardar unos segundos) te va a llegar el aviso del turno.</div>';
+    if (pago === 'pendiente') return '<div class="rv-resumen">Tu pago quedó pendiente de acreditarse en Mercado Pago. Apenas se confirme, el turno queda reservado.</div>';
+    if (pago === 'error') return '<div class="rv-resumen" style="border-color: var(--danger); background: rgba(255,90,90,0.08);">El pago no se pudo completar. El horario se libera solo en unos minutos - podés intentar reservar de nuevo.</div>';
+    return '';
+  }
+
+  function mostrarResumen(pago) {
     const t = ESTADO.turno;
     if (t.estado === 'cancelado') {
-      cont.innerHTML = encabezado() + `
+      cont.innerHTML = encabezado() + bannerPago(pago) + `
         <div class="rv-resumen">${lineaTurno(t)}<br><span class="estado-cancelado">Este turno está cancelado.</span></div>
         ${ESTADO.slug ? `<p class="loading">¿Necesitás un turno nuevo? <a href="/reservar.html?slug=${encodeURIComponent(ESTADO.slug)}" style="color: var(--accent-gold);">Reservá acá</a>.</p>` : ''}
       `;
       return;
     }
-    cont.innerHTML = encabezado() + `
-      <div class="rv-resumen">${lineaTurno(t)}</div>
+    cont.innerHTML = encabezado() + bannerPago(pago) + `
+      <div class="rv-resumen">${lineaTurno(t)}${t.estado === 'pendiente_pago' ? '<br><span style="color: var(--accent-gold);">Esperando que se confirme el pago de la seña.</span>' : ''}</div>
       <div class="mt-acciones">
         <button type="button" class="mt-btn" id="mt-reprogramar"><i class="fa-solid fa-calendar-days"></i> Cambiar de día u horario</button>
         <button type="button" class="mt-btn danger" id="mt-cancelar"><i class="fa-solid fa-xmark"></i> Cancelar turno</button>

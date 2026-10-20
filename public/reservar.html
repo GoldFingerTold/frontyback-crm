@@ -87,7 +87,7 @@
     return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  const ESTADO = { servicio: null, profesional: null, dia: null, horario: null, negocio: null, servicios: [], profesionales: [] };
+  const ESTADO = { servicio: null, profesional: null, dia: null, horario: null, negocio: null, servicios: [], profesionales: [], sena: null };
 
   async function init() {
     if (!slug) {
@@ -102,6 +102,7 @@
       ESTADO.negocio = data.nombre_negocio;
       ESTADO.servicios = data.servicios;
       ESTADO.profesionales = data.profesionales || [];
+      ESTADO.sena = data.sena || { activa: false, monto: 0 };
       if (!ESTADO.servicios.length) {
         cont.innerHTML = `<div class="rv-negocio"><h1>${esc(ESTADO.negocio)}</h1></div><p class="loading">Todavía no hay servicios para reservar. Volvé a intentarlo más tarde.</p>`;
         return;
@@ -212,6 +213,7 @@
       <div class="rv-resumen">
         <strong>${esc(ESTADO.servicio.nombre)}</strong>${ESTADO.profesional ? ` con ${esc(ESTADO.profesional.nombre)}` : ''}<br>
         ${esc(ESTADO.dia.dia_nombre)} ${ESTADO.dia.fecha.split('-').reverse().slice(0, 2).join('/')} a las ${esc(ESTADO.horario)}hs
+        ${ESTADO.sena?.activa ? `<br><span style="color: var(--accent-gold);">Seña para confirmar: $${ESTADO.sena.monto.toLocaleString('es-AR')} ARS (vía Mercado Pago, en el siguiente paso)</span>` : ''}
       </div>
       <form class="rv-form" id="rv-form">
         <input type="text" id="rv-hp" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
@@ -221,7 +223,7 @@
         <input type="text" id="rv-telefono" required placeholder="+54 9 11 ...">
         <label for="rv-email">Tu email <span style="text-transform: none; font-weight: 400; color: var(--text-muted);">(opcional)</span></label>
         <input type="email" id="rv-email" placeholder="para mandarte el recordatorio">
-        <button type="submit" id="rv-btn-confirmar">Confirmar turno</button>
+        <button type="submit" id="rv-btn-confirmar">${ESTADO.sena?.activa ? 'Ir a pagar la seña' : 'Confirmar turno'}</button>
       </form>
       <p class="rv-estado" id="rv-estado"></p>
     `;
@@ -253,6 +255,11 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo reservar.');
+      if (data.pago_requerido) {
+        estadoEl.textContent = 'Te llevamos a Mercado Pago para pagar la seña...';
+        window.location.href = data.init_point;
+        return;
+      }
       mostrarExito(data.turno.token_gestion);
     } catch (err) {
       estadoEl.className = 'rv-estado error';

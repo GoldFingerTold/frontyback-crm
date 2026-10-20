@@ -10,6 +10,7 @@ const { requireAuth, requireGerencia } = require('./auth');
 const pagos = require('../services/pagos');
 const push = require('../services/push');
 const googleCalendar = require('../services/googleCalendar');
+const mercadopagoConnect = require('../services/mercadopagoConnect');
 const fichas = require('../services/fichas');
 const whatsapp = require('../services/whatsapp');
 
@@ -50,6 +51,37 @@ router.get('/calendar/google-callback', requireGerencia, asyncHandler(async (req
     res.send('<html><body style="font-family: sans-serif; text-align: center; padding: 60px;"><h2>¡Listo!</h2><p>Tu Google Calendar quedó conectado. Ya podés cerrar esta ventana.</p></body></html>');
   } catch (err) {
     console.error('Error conectando Google Calendar:', err.message);
+    res.status(500).send(`<p>No se pudo completar la conexión: ${err.message}</p>`);
+  }
+}));
+
+// URI de redirección fija para el Connect de Mercado Pago - mismo motivo que la de Google
+// arriba: tiene que coincidir con la registrada en la aplicación de Mercado Pago.
+router.get('/mercadopago/callback', requireGerencia, asyncHandler(async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.send(`<p>Mercado Pago canceló la conexión (${error}). Podés cerrar esta ventana y reintentar.</p>`);
+  if (!code) return res.status(400).send('<p>Falta el código de autorización de Mercado Pago.</p>');
+  if (String(state) !== String(req.session.clienteId)) {
+    return res.status(400).send('<p>Esta conexión no corresponde a tu sesión. Volvé a intentarlo desde el CRM.</p>');
+  }
+
+  try {
+    const tokens = await mercadopagoConnect.intercambiarCodigo(code);
+    const expira = new Date(Date.now() + (tokens.expires_in - 3600) * 1000);
+    await db.getDb().collection('clientes').updateOne(
+      { _id: new db.ObjectId(req.session.clienteId) },
+      {
+        $set: {
+          mercadopago_connect_access_token: tokens.access_token,
+          mercadopago_connect_refresh_token: tokens.refresh_token,
+          mercadopago_connect_token_expira: expira,
+          mercadopago_connect_user_id: tokens.user_id
+        }
+      }
+    );
+    res.send('<html><body style="font-family: sans-serif; text-align: center; padding: 60px;"><h2>¡Listo!</h2><p>Tu cuenta de Mercado Pago quedó conectada. Ya podés cerrar esta ventana.</p></body></html>');
+  } catch (err) {
+    console.error('Error conectando Mercado Pago:', err.message);
     res.status(500).send(`<p>No se pudo completar la conexión: ${err.message}</p>`);
   }
 }));

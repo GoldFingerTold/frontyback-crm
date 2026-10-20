@@ -663,6 +663,14 @@ function existeChoqueHorario(turnosOcupados, inicioMin, finMin) {
   });
 }
 
+// Qué cuenta como "ocupado" para los choques de horario: un turno confirmado, SIEMPRE; o
+// uno todavía esperando que paguen la seña pero sin vencer - mientras esos 15 minutos no
+// pasen, el horario queda reservado para que no lo agarre otra persona mientras la primera
+// está pagando. Si vence sin pagar, deja de contar (ciclo-turnos.js lo cancela después).
+function filtroEstadoOcupado(ahora) {
+  return { $or: [{ estado: 'confirmado' }, { estado: 'pendiente_pago', pago_vence: { $gt: ahora } }] };
+}
+
 async function getTurnosConfig(clienteId) {
   const col = db.collection('turnos_config');
   const id = normalizarClienteId(clienteId);
@@ -678,6 +686,12 @@ async function getTurnosConfig(clienteId) {
       profesionales: [],
       recordatorio_whatsapp: false,
       recordatorio_email: true,
+      // Seña para confirmar un turno: apagada por defecto, igual que el recordatorio por
+      // WhatsApp - es una decisión del negocio (y además requiere conectar su propia cuenta
+      // de Mercado Pago), no algo que se le prenda sin que lo pida. "sena" sin ñ a propósito
+      // (identificador JS, no texto) - el resto del código usa siempre este nombre.
+      sena_activa: false,
+      sena_monto: 0,
       updated_at: new Date()
     };
     const { insertedId } = await col.insertOne(doc);
@@ -693,6 +707,17 @@ async function guardarRecordatorios(clienteId, { whatsapp, email }) {
   await col.updateOne(
     { cliente_id: id },
     { $set: { recordatorio_whatsapp: Boolean(whatsapp), recordatorio_email: Boolean(email), updated_at: new Date() } }
+  );
+  return getTurnosConfig(id);
+}
+
+async function guardarSena(clienteId, { activa, monto }) {
+  const col = db.collection('turnos_config');
+  const id = normalizarClienteId(clienteId);
+  await getTurnosConfig(id);
+  await col.updateOne(
+    { cliente_id: id },
+    { $set: { sena_activa: Boolean(activa), sena_monto: Math.max(0, Math.round(Number(monto) || 0)), updated_at: new Date() } }
   );
   return getTurnosConfig(id);
 }
@@ -767,7 +792,7 @@ async function horariosDisponibles(clienteId, { servicioId, profesionalId, dias 
 
   const turnosExistentes = await getDb().collection('turnos').find({
     cliente_id: id,
-    estado: 'confirmado',
+    ...filtroEstadoOcupado(ahora),
     ...(profesionales.length ? { profesional_id: profesionalId } : {}),
     fecha: { $gte: desdeStr, $lte: hastaStr }
   }).toArray();
@@ -822,14 +847,22 @@ async function crearTurno(clienteId, datos) {
 
   const inicio = horaAMinutos(datos.hora_inicio);
   const fin = inicio + servicio.duracion_min;
+  const ahora = new Date();
 
   const existentes = await getDb().collection('turnos').find({
     cliente_id: id,
     fecha: datos.fecha,
-    estado: 'confirmado',
+    ...filtroEstadoOcupado(ahora),
     ...(profesional ? { profesional_id: profesional.id } : {})
   }).toArray();
   if (existeChoqueHorario(existentes, inicio, fin)) throw new Error('Ese horario ya no está disponible, elegí otro.');
+
+  // Si el negocio pide seña para confirmar, el turno nace "pendiente_pago" (ocupa el
+  // horario igual, ver filtroEstadoOcupado) hasta que el webhook de Mercado Pago confirme
+  // que se pagó - recién ahí pasa a "confirmado" y se avisa por WhatsApp/email
+  // (server/routes/webhooks.js, procesarNotificacionMercadoPagoTurno). Si no paga dentro
+  // de los 15 minutos, ciclo-turnos.js lo cancela para liberar el horario.
+  const requierePago = Boolean(config.sena_activa) && config.sena_monto > 0;
 
   const doc = {
     cliente_id: id,
@@ -843,7 +876,8 @@ async function crearTurno(clienteId, datos) {
     nombre_contacto: String(datos.nombre_contacto || '').trim().slice(0, 120),
     telefono_contacto: String(datos.telefono_contacto || '').trim().slice(0, 30),
     email_contacto: String(datos.email_contacto || '').trim().slice(0, 150),
-    estado: 'confirmado',
+    estado: requierePago ? 'pendiente_pago' : 'confirmado',
+    ...(requierePago ? { pago_vence: new Date(ahora.getTime() + 15 * 60 * 1000), sena_monto: config.sena_monto } : {}),
     recordatorio_enviado: false,
     // Token para que el cliente final pueda cancelar/reprogramar su turno sin loguearse ni
     // escribirle al negocio (public/mi-turno.html) - va en el link del email de confirmación
@@ -853,6 +887,27 @@ async function crearTurno(clienteId, datos) {
   };
   const { insertedId } = await getDb().collection('turnos').insertOne(doc);
   return { _id: insertedId, ...doc };
+}
+
+// Devuelve true solo la primera vez que se confirma este turno (el filtro
+// estado:'pendiente_pago' hace que reintentos del webhook de Mercado Pago sean no-ops) -
+// quien llama usa esto para no volver a avisar por WhatsApp/email un turno ya confirmado.
+async function confirmarTurnoPagado(turnoId) {
+  const resultado = await getDb().collection('turnos').updateOne(
+    { _id: turnoId, estado: 'pendiente_pago' },
+    { $set: { estado: 'confirmado' }, $unset: { pago_vence: '' } }
+  );
+  return resultado.modifiedCount > 0;
+}
+
+// Corre en ciclo-turnos.js junto con los recordatorios - libera los horarios de quien
+// empezó a reservar pero nunca llegó a pagar la seña.
+async function cancelarTurnosPagoVencido() {
+  const resultado = await getDb().collection('turnos').updateMany(
+    { estado: 'pendiente_pago', pago_vence: { $lt: new Date() } },
+    { $set: { estado: 'cancelado' } }
+  );
+  return resultado.modifiedCount;
 }
 
 async function cancelarTurno(clienteId, turnoId) {
@@ -1204,6 +1259,9 @@ module.exports = {
   guardarDisponibilidad,
   guardarProfesionales,
   guardarRecordatorios,
+  guardarSena,
+  confirmarTurnoPagado,
+  cancelarTurnosPagoVencido,
   horariosDisponibles,
   crearTurno,
   cancelarTurno,

@@ -12,9 +12,9 @@ const fichas = require('../services/fichas');
 const turnosWhatsapp = require('../services/turnos');
 const whatsapp = require('../services/whatsapp');
 const asistente = require('../services/asistente');
-const googleCalendar = require('../services/googleCalendar');
 const metaLeads = require('../services/metaLeads');
-const { avisarLeadNuevo } = require('./webhooks');
+const mercadopagoConnect = require('../services/mercadopagoConnect');
+const { avisarLeadNuevo, confirmarYNotificarTurno } = require('./webhooks');
 
 const router = express.Router();
 
@@ -392,7 +392,8 @@ router.get('/turnos/:slug/config', asyncHandler(async (req, res) => {
     servicios: config.servicios,
     // Solo id+nombre - la disponibilidad de cada uno es interna, se resuelve del lado del
     // servidor en /horarios.
-    profesionales: (config.profesionales || []).map((p) => ({ id: p.id, nombre: p.nombre }))
+    profesionales: (config.profesionales || []).map((p) => ({ id: p.id, nombre: p.nombre })),
+    sena: { activa: Boolean(config.sena_activa) && config.sena_monto > 0, monto: config.sena_monto || 0 }
   });
 }));
 
@@ -452,26 +453,22 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
     return res.status(400).json({ error: err.message });
   }
 
-  const conProfesional = turno.profesional_nombre ? `, con ${turno.profesional_nombre}` : '';
-  const columnaInicial = cliente.columnas[0].id;
-  const ficha = await fichas.registrarConsulta({
-    clienteId: cliente._id,
-    columnaInicial,
-    contacto: telefono,
-    nombre,
-    origen: 'turno',
-    mensaje: `Reservó: ${turno.servicio_nombre}${conProfesional}, ${turno.fecha} a las ${turno.hora_inicio}hs.`
-  });
-  await avisarLeadNuevo(cliente, ficha, { nombreContacto: nombre, contacto: telefono, origen: 'turno', mensaje: `Reservó ${turno.servicio_nombre}${conProfesional} para el ${turno.fecha} a las ${turno.hora_inicio}hs.` });
+  // Si el negocio pide seña, el turno queda "pendiente_pago" (ocupando el horario, ver
+  // db.js filtroEstadoOcupado) y recién se avisa al negocio y al cliente cuando el webhook
+  // de Mercado Pago confirme el pago (procesarNotificacionMercadoPagoTurno, abajo) - no
+  // tiene sentido avisar "reservó" de algo que todavía puede no llegar a pagarse.
+  if (turno.estado === 'pendiente_pago') {
+    try {
+      const preferencia = await mercadopagoConnect.crearPreferenciaSeña(cliente, turno, turno.sena_monto);
+      await db.getDb().collection('turnos').updateOne({ _id: turno._id }, { $set: { mercadopago_preference_id: preferencia.id } });
+      return res.json({ ok: true, pago_requerido: true, init_point: preferencia.init_point, monto: turno.sena_monto });
+    } catch (err) {
+      await db.getDb().collection('turnos').updateOne({ _id: turno._id }, { $set: { estado: 'cancelado' } });
+      return res.status(400).json({ error: `No se pudo generar el cobro de la seña: ${err.message}` });
+    }
+  }
 
-  await turnosWhatsapp.enviarConfirmacion(cliente, turno);
-
-  // Mejor esfuerzo: si el cliente conectó Google Calendar, el turno también queda como
-  // evento ahí. No bloquea la reserva si falla (token revocado, etc.) - el turno ya quedó
-  // guardado en el CRM antes de llegar acá.
-  googleCalendar.crearEventoTurno(cliente, turno).catch((err) =>
-    console.error(`No se pudo crear el evento de Google Calendar para el turno de ${cliente.slug}:`, err.message)
-  );
+  await confirmarYNotificarTurno(cliente, turno);
 
   res.json({
     ok: true,

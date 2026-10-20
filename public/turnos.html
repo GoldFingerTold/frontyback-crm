@@ -102,7 +102,8 @@
             <button type="button" id="btn-recordatorios" class="btn-ghost" hidden><i class="fa-solid fa-bell"></i> Recordatorios</button>
             <button type="button" id="btn-google-calendar" class="btn-ghost" hidden><i class="fa-brands fa-google"></i> <span id="google-calendar-texto">Conectar Google Calendar</span></button>
             <button type="button" id="btn-disponibilidad" class="btn-ghost" hidden><i class="fa-solid fa-clock"></i> Disponibilidad</button>
-            <button type="button" id="btn-profesionales" class="btn btn-primary" hidden><i class="fa-solid fa-user-tie"></i> Profesionales</button>
+            <button type="button" id="btn-profesionales" class="btn-ghost" hidden><i class="fa-solid fa-user-tie"></i> Profesionales</button>
+            <button type="button" id="btn-sena" class="btn btn-primary" hidden><i class="fa-solid fa-dollar-sign"></i> Seña</button>
           </div>
         </div>
 
@@ -211,6 +212,31 @@
       <button type="button" id="profesional-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar profesional</button>
       <button type="button" id="profesionales-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
       <p class="form-status" id="profesionales-status"></p>
+    </div>
+  </div>
+
+  <!-- Seña -->
+  <div id="sena-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 460px;">
+      <button id="sena-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Seña para confirmar un turno</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;">Si la activás, tus clientes van a tener que pagar una seña con Mercado Pago apenas reservan - el turno queda "pendiente" hasta que pagan (tienen 15 minutos) y recién ahí se confirma y te llega el aviso. El dinero entra directo a TU cuenta de Mercado Pago, no a la de FrontyBack.</p>
+
+      <button type="button" id="btn-conectar-mp" class="btn-ghost" style="width: 100%; margin-bottom: 14px;"><i class="fa-solid fa-wallet"></i> <span id="mp-conectar-texto">Conectar Mercado Pago</span></button>
+
+      <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; margin-bottom: 14px; cursor: pointer;">
+        <input type="checkbox" id="sena-activa" style="margin: 0;">
+        <span style="flex: 1;">
+          <strong style="display: block; font-size: 13.5px;">Pedir seña al reservar</strong>
+          <span style="font-size: 12px; color: var(--text-muted);">Requiere tener Mercado Pago conectado (arriba).</span>
+        </span>
+      </label>
+
+      <label for="sena-monto" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 6px;">Monto de la seña (ARS)</label>
+      <input type="number" id="sena-monto" min="0" step="100" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; box-sizing: border-box; margin-bottom: 16px;">
+
+      <button type="button" id="sena-guardar" class="btn btn-primary" style="width: 100%;">Guardar</button>
+      <p class="form-status" id="sena-status"></p>
     </div>
   </div>
 

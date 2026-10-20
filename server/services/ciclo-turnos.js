@@ -49,9 +49,20 @@ async function mandarRecordatoriosPendientes() {
   if (enviados) console.log(`Ciclo de turnos: ${enviados} recordatorio(s) de WhatsApp enviados.`);
 }
 
+// Libera (cancela) los turnos que quedaron "pendiente_pago" (seña de Turnos) sin que
+// nadie termine de pagar dentro de los 15 minutos - el horario ya deja de estar ocupado
+// apenas vence (db.js, filtroEstadoOcupado lo chequea en el momento), esto solo limpia el
+// registro para que no quede como un "pendiente_pago" fantasma para siempre en la agenda.
+async function limpiarPagosVencidos() {
+  const cancelados = await db.cancelarTurnosPagoVencido();
+  if (cancelados) console.log(`Ciclo de turnos: ${cancelados} turno(s) sin pagar la seña a tiempo, cancelados.`);
+}
+
 function iniciar() {
-  const chequear = () =>
+  const chequear = () => {
     mandarRecordatoriosPendientes().catch((err) => console.error('Error mandando recordatorios de turnos:', err));
+    limpiarPagosVencidos().catch((err) => console.error('Error limpiando turnos sin pagar la seña:', err));
+  };
   chequear();
   setInterval(chequear, 60 * 60 * 1000); // cada 1 hora - la ventana de 23-25hs da margen de sobra
 }

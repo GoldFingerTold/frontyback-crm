@@ -9,6 +9,7 @@ const db = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { requireAuth, requireGerencia } = require('./auth');
 const googleCalendar = require('../services/googleCalendar');
+const mercadopagoConnect = require('../services/mercadopagoConnect');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -107,6 +108,47 @@ router.put('/profesionales', requireGerencia, asyncHandler(async (req, res) => {
 router.put('/recordatorios', requireGerencia, asyncHandler(async (req, res) => {
   const { whatsapp, email } = req.body || {};
   const config = await db.guardarRecordatorios(req.session.clienteId, { whatsapp, email });
+  res.json(config);
+}));
+
+// ---------- Seña para confirmar un turno (vía la cuenta de Mercado Pago del propio
+// negocio) ----------
+router.get('/mercadopago/conectar', requireGerencia, asyncHandler(async (req, res) => {
+  res.json({ url: mercadopagoConnect.getAuthUrl(req.session.clienteId) });
+}));
+
+router.get('/mercadopago/estado', asyncHandler(async (req, res) => {
+  const cliente = await db.getDb().collection('clientes').findOne({ _id: new db.ObjectId(req.session.clienteId) });
+  res.json({ conectado: Boolean(cliente?.mercadopago_connect_refresh_token) });
+}));
+
+router.post('/mercadopago/desconectar', requireGerencia, asyncHandler(async (req, res) => {
+  await db.getDb().collection('clientes').updateOne(
+    { _id: new db.ObjectId(req.session.clienteId) },
+    {
+      $unset: {
+        mercadopago_connect_access_token: '',
+        mercadopago_connect_refresh_token: '',
+        mercadopago_connect_token_expira: '',
+        mercadopago_connect_user_id: ''
+      }
+    }
+  );
+  res.json({ ok: true });
+}));
+
+router.put('/sena', requireGerencia, asyncHandler(async (req, res) => {
+  const { activa, monto } = req.body || {};
+  if (activa && !(Number(monto) > 0)) {
+    return res.status(400).json({ error: 'Para pedir seña hace falta un monto mayor a cero.' });
+  }
+  if (activa) {
+    const cliente = await db.getDb().collection('clientes').findOne({ _id: new db.ObjectId(req.session.clienteId) });
+    if (!cliente?.mercadopago_connect_refresh_token) {
+      return res.status(400).json({ error: 'Conectá primero tu cuenta de Mercado Pago.' });
+    }
+  }
+  const config = await db.guardarSena(req.session.clienteId, { activa, monto });
   res.json(config);
 }));
 
