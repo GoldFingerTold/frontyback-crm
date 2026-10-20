@@ -48,6 +48,7 @@ async function cargarCabecera() {
     document.getElementById('btn-servicios').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-recordatorios').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-disponibilidad').hidden = !ESTADO.esGerencia;
+    document.getElementById('btn-profesionales').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-google-calendar').hidden = !ESTADO.esGerencia;
     if (ESTADO.esGerencia) actualizarEstadoCalendar();
   }
@@ -75,7 +76,7 @@ async function cargarTurnos() {
             <div class="tn-fila" data-turno-id="${t._id}">
               <div class="tn-hora">${esc(t.hora_inicio)}</div>
               <div class="tn-detalle">
-                <div class="tn-servicio">${esc(t.servicio_nombre)}${t.estado === 'cancelado' ? ' · <span style="color: var(--danger);">Cancelado</span>' : ''}</div>
+                <div class="tn-servicio">${esc(t.servicio_nombre)}${t.profesional_nombre ? ` · ${esc(t.profesional_nombre)}` : ''}${t.estado === 'cancelado' ? ' · <span style="color: var(--danger);">Cancelado</span>' : ''}</div>
                 <div class="tn-contacto">${esc(t.nombre_contacto)} · ${esc(t.telefono_contacto)}</div>
               </div>
               ${ESTADO.esGerencia && t.estado !== 'cancelado' ? `<button type="button" class="tn-cancelar" data-cancelar="${t._id}">Cancelar</button>` : ''}
@@ -292,6 +293,86 @@ document.getElementById('disponibilidad-guardar').addEventListener('click', asyn
     await api('/api/turnos/disponibilidad', { method: 'PUT', body: JSON.stringify({ disponibilidad }) });
     status.textContent = 'Guardado.';
     setTimeout(() => { document.getElementById('disponibilidad-overlay').hidden = true; }, 700);
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = 'form-status error';
+  }
+});
+
+// ---------- Profesionales (horario propio por persona, en vez de uno solo compartido) ----------
+const DISPONIBILIDAD_DEFAULT_PROFESIONAL = [0, 1, 2, 3, 4, 5, 6].map((dia) => ({
+  dia, activo: dia >= 1 && dia <= 5, desde: '09:00', hasta: '18:00'
+}));
+
+function filaProfesional(profesional) {
+  const div = document.createElement('div');
+  div.className = 'tn-prof-card';
+  if (profesional.id) div.dataset.id = profesional.id;
+  div.innerHTML = `
+    <div class="tn-prof-cabecera">
+      <input type="text" class="prof-nombre" placeholder="Nombre del profesional" value="${esc(profesional.nombre || '')}" maxlength="60">
+      <button type="button" class="btn-ghost prof-borrar" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+    </div>
+    <div class="prof-horarios">
+      ${profesional.disponibilidad.map((d) => `
+        <div class="tn-prof-horario" data-dia="${d.dia}">
+          <input type="checkbox" class="disp-activo" ${d.activo ? 'checked' : ''}>
+          <label class="dia">${esc(DIA_NOMBRE[d.dia])}</label>
+          <input type="time" class="disp-desde" value="${esc(d.desde)}">
+          <span>a</span>
+          <input type="time" class="disp-hasta" value="${esc(d.hasta)}">
+        </div>
+      `).join('')}
+    </div>
+  `;
+  div.querySelector('.prof-borrar').addEventListener('click', () => div.remove());
+  return div;
+}
+
+async function abrirProfesionales() {
+  document.getElementById('profesionales-overlay').hidden = false;
+  document.getElementById('profesionales-status').textContent = '';
+  const lista = document.getElementById('profesionales-lista');
+  lista.innerHTML = '<p class="loading">Cargando...</p>';
+  try {
+    const config = await api('/api/turnos/config');
+    lista.innerHTML = '';
+    (config.profesionales || []).forEach((p) => lista.appendChild(filaProfesional(p)));
+  } catch (err) {
+    lista.innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+  }
+}
+
+document.getElementById('btn-profesionales').addEventListener('click', abrirProfesionales);
+document.getElementById('profesionales-close').addEventListener('click', () => {
+  document.getElementById('profesionales-overlay').hidden = true;
+});
+document.getElementById('profesional-agregar').addEventListener('click', () => {
+  document.getElementById('profesionales-lista').appendChild(
+    filaProfesional({ nombre: '', disponibilidad: DISPONIBILIDAD_DEFAULT_PROFESIONAL })
+  );
+});
+document.getElementById('profesionales-guardar').addEventListener('click', async () => {
+  const status = document.getElementById('profesionales-status');
+  const profesionales = [...document.querySelectorAll('#profesionales-lista .tn-prof-card')]
+    .map((card) => ({
+      id: card.dataset.id || undefined,
+      nombre: card.querySelector('.prof-nombre').value.trim(),
+      disponibilidad: [...card.querySelectorAll('.tn-prof-horario')].map((fila) => ({
+        dia: parseInt(fila.dataset.dia, 10),
+        activo: fila.querySelector('.disp-activo').checked,
+        desde: fila.querySelector('.disp-desde').value || '09:00',
+        hasta: fila.querySelector('.disp-hasta').value || '18:00'
+      }))
+    }))
+    .filter((p) => p.nombre);
+
+  status.textContent = 'Guardando...';
+  status.className = 'form-status';
+  try {
+    await api('/api/turnos/profesionales', { method: 'PUT', body: JSON.stringify({ profesionales }) });
+    status.textContent = 'Guardado.';
+    setTimeout(() => { document.getElementById('profesionales-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
     status.className = 'form-status error';

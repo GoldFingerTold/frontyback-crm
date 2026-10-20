@@ -37,6 +37,13 @@
   .tn-servicio-fila { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .tn-servicio-fila input[type="text"] { flex: 1; }
   .tn-servicio-fila input[type="number"] { width: 72px; }
+
+  .tn-prof-card { background: rgba(28,29,31,0.5); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .tn-prof-cabecera { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .tn-prof-cabecera input[type="text"] { flex: 1; }
+  .tn-prof-horario { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+  .tn-prof-horario label.dia { width: 78px; flex: none; font-size: 12px; }
+  .tn-prof-horario input[type="time"] { background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 6px; color: var(--text-primary); padding: 4px 6px; font-size: 12px; width: 92px; }
 </style>
 </head>
 <body>
@@ -94,7 +101,8 @@
             <button type="button" id="btn-servicios" class="btn-ghost" hidden><i class="fa-solid fa-list"></i> Servicios</button>
             <button type="button" id="btn-recordatorios" class="btn-ghost" hidden><i class="fa-solid fa-bell"></i> Recordatorios</button>
             <button type="button" id="btn-google-calendar" class="btn-ghost" hidden><i class="fa-brands fa-google"></i> <span id="google-calendar-texto">Conectar Google Calendar</span></button>
-            <button type="button" id="btn-disponibilidad" class="btn btn-primary" hidden><i class="fa-solid fa-clock"></i> Disponibilidad</button>
+            <button type="button" id="btn-disponibilidad" class="btn-ghost" hidden><i class="fa-solid fa-clock"></i> Disponibilidad</button>
+            <button type="button" id="btn-profesionales" class="btn btn-primary" hidden><i class="fa-solid fa-user-tie"></i> Profesionales</button>
           </div>
         </div>
 
@@ -190,6 +198,19 @@
       <div id="disponibilidad-lista"></div>
       <button type="button" id="disponibilidad-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
       <p class="form-status" id="disponibilidad-status"></p>
+    </div>
+  </div>
+
+  <!-- Profesionales -->
+  <div id="profesionales-overlay" class="overlay" hidden>
+    <div class="ficha-detail" style="max-width: 520px;">
+      <button id="profesionales-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
+      <h2>Profesionales</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;">Si tu negocio tiene varias personas atendiendo (ej. una peluquería con varias peluqueras), agregalas acá con su propio horario - tus clientes van a tener que elegir con quién quieren el turno al reservar, y cada profesional puede tener un turno a la misma hora que otro. Si dejás la lista vacía, se usa un solo horario para todo el negocio (el de "Disponibilidad").</p>
+      <div id="profesionales-lista"></div>
+      <button type="button" id="profesional-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar profesional</button>
+      <button type="button" id="profesionales-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
+      <p class="form-status" id="profesionales-status"></p>
     </div>
   </div>
 

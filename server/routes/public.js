@@ -387,17 +387,24 @@ router.get('/turnos/:slug/config', asyncHandler(async (req, res) => {
   const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
   if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
   const config = await db.getTurnosConfig(cliente._id);
-  res.json({ nombre_negocio: cliente.nombre, servicios: config.servicios });
+  res.json({
+    nombre_negocio: cliente.nombre,
+    servicios: config.servicios,
+    // Solo id+nombre - la disponibilidad de cada uno es interna, se resuelve del lado del
+    // servidor en /horarios.
+    profesionales: (config.profesionales || []).map((p) => ({ id: p.id, nombre: p.nombre }))
+  });
 }));
 
 router.get('/turnos/:slug/horarios', asyncHandler(async (req, res) => {
   const cliente = await db.getDb().collection('clientes').findOne({ slug: req.params.slug });
   if (!cliente) return res.status(404).json({ error: 'No existe ese negocio.' });
   const servicioId = String(req.query.servicio_id || '');
+  const profesionalId = String(req.query.profesional_id || '') || undefined;
   if (!servicioId) return res.status(400).json({ error: 'Falta el servicio.' });
 
   try {
-    const dias = await db.horariosDisponibles(cliente._id, { servicioId });
+    const dias = await db.horariosDisponibles(cliente._id, { servicioId, profesionalId });
     res.json({ dias });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -434,6 +441,7 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
   try {
     turno = await db.crearTurno(cliente._id, {
       servicio_id: String(body.servicio_id || ''),
+      profesional_id: String(body.profesional_id || ''),
       fecha: String(body.fecha || ''),
       hora_inicio: String(body.hora_inicio || ''),
       nombre_contacto: nombre,
@@ -444,6 +452,7 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
     return res.status(400).json({ error: err.message });
   }
 
+  const conProfesional = turno.profesional_nombre ? `, con ${turno.profesional_nombre}` : '';
   const columnaInicial = cliente.columnas[0].id;
   const ficha = await fichas.registrarConsulta({
     clienteId: cliente._id,
@@ -451,9 +460,9 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
     contacto: telefono,
     nombre,
     origen: 'turno',
-    mensaje: `Reservó: ${turno.servicio_nombre}, ${turno.fecha} a las ${turno.hora_inicio}hs.`
+    mensaje: `Reservó: ${turno.servicio_nombre}${conProfesional}, ${turno.fecha} a las ${turno.hora_inicio}hs.`
   });
-  await avisarLeadNuevo(cliente, ficha, { nombreContacto: nombre, contacto: telefono, origen: 'turno', mensaje: `Reservó ${turno.servicio_nombre} para el ${turno.fecha} a las ${turno.hora_inicio}hs.` });
+  await avisarLeadNuevo(cliente, ficha, { nombreContacto: nombre, contacto: telefono, origen: 'turno', mensaje: `Reservó ${turno.servicio_nombre}${conProfesional} para el ${turno.fecha} a las ${turno.hora_inicio}hs.` });
 
   await turnosWhatsapp.enviarConfirmacion(cliente, turno);
 
@@ -464,7 +473,7 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
     console.error(`No se pudo crear el evento de Google Calendar para el turno de ${cliente.slug}:`, err.message)
   );
 
-  res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre } });
+  res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre, profesional_nombre: turno.profesional_nombre } });
 }));
 
 // ---------- Catálogo público (public/pedir.html) ----------

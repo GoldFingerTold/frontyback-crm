@@ -617,10 +617,13 @@ async function reiniciarSalon(clienteId) {
 
 // ---------- Turnos / reservas (incluido desde el plan Esencial) ----------
 // Un documento de configuración por cliente (servicios + disponibilidad semanal) y una
-// colección de turnos reservados. El horario es uno solo para todo el negocio (no por
-// servicio ni por empleado) - a propósito, para mantener la v1 simple: el negocio solo
-// puede atender una cosa a la vez, así que todos los servicios compiten por el mismo
-// horario.
+// colección de turnos reservados. Por defecto el horario es uno solo para todo el negocio
+// (no por servicio ni por empleado) - así de simple: el negocio solo puede atender una cosa
+// a la vez, así que todos los servicios compiten por el mismo horario. Si el negocio
+// agrega "profesionales" (peluquería/salón con varios empleados, cada uno con su propia
+// agenda), ese modo pasa a requerir elegir profesional al reservar, y cada uno tiene su
+// propio horario semanal en vez de compartir el del negocio - ver horariosDisponibles y
+// crearTurno más abajo.
 const DIA_NOMBRE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 const DISPONIBILIDAD_DEFAULT = [0, 1, 2, 3, 4, 5, 6].map((dia) => ({
@@ -661,6 +664,7 @@ async function getTurnosConfig(clienteId) {
       cliente_id: id,
       servicios: [],
       disponibilidad: DISPONIBILIDAD_DEFAULT,
+      profesionales: [],
       recordatorio_whatsapp: false,
       recordatorio_email: true,
       updated_at: new Date()
@@ -714,14 +718,37 @@ async function guardarDisponibilidad(clienteId, disponibilidad) {
   return getTurnosConfig(id);
 }
 
+// Profesionales (ej. peluqueras de un salón): cada uno con su propio horario semanal, en
+// vez de uno solo compartido para todo el negocio. Apenas hay uno o más, horariosDisponibles
+// y crearTurno pasan a exigir elegir profesional (ver ahí) - la validación de la forma de
+// "disponibilidad" la hace la ruta (server/routes/turnos.js), acá solo se persiste.
+async function guardarProfesionales(clienteId, profesionales) {
+  const col = db.collection('turnos_config');
+  const id = normalizarClienteId(clienteId);
+  await getTurnosConfig(id);
+  await col.updateOne({ cliente_id: id }, { $set: { profesionales, updated_at: new Date() } });
+  return getTurnosConfig(id);
+}
+
 // Arma los horarios libres de los próximos N días para un servicio: genera todos los
 // bloques posibles según la disponibilidad semanal, y descarta los que se pisan con un
-// turno ya confirmado (sin importar de qué servicio sea ese otro turno).
-async function horariosDisponibles(clienteId, { servicioId, dias = 14 }) {
+// turno ya confirmado. Si el negocio tiene profesionales configurados, profesionalId es
+// obligatorio: la disponibilidad y los choques de horario pasan a ser los de ESE
+// profesional (dos profesionales sí pueden tener un turno a la misma hora) en vez de los
+// del negocio entero.
+async function horariosDisponibles(clienteId, { servicioId, profesionalId, dias = 14 }) {
   const id = normalizarClienteId(clienteId);
   const config = await getTurnosConfig(id);
   const servicio = config.servicios.find((s) => s.id === servicioId);
   if (!servicio) throw new Error('Ese servicio no existe.');
+
+  const profesionales = config.profesionales || [];
+  let disponibilidadSemanal = config.disponibilidad;
+  if (profesionales.length) {
+    const profesional = profesionales.find((p) => p.id === profesionalId);
+    if (!profesional) throw new Error('Ese profesional no existe.');
+    disponibilidadSemanal = profesional.disponibilidad;
+  }
 
   const ahora = ahoraArgentina();
   const desdeStr = ahora.toISOString().slice(0, 10);
@@ -730,6 +757,7 @@ async function horariosDisponibles(clienteId, { servicioId, dias = 14 }) {
   const turnosExistentes = await getDb().collection('turnos').find({
     cliente_id: id,
     estado: 'confirmado',
+    ...(profesionales.length ? { profesional_id: profesionalId } : {}),
     fecha: { $gte: desdeStr, $lte: hastaStr }
   }).toArray();
 
@@ -744,7 +772,7 @@ async function horariosDisponibles(clienteId, { servicioId, dias = 14 }) {
     const fecha = new Date(ahora.getTime() + i * 86400000);
     const fechaStr = fecha.toISOString().slice(0, 10);
     const diaSemana = fecha.getUTCDay();
-    const disp = config.disponibilidad.find((d) => d.dia === diaSemana);
+    const disp = disponibilidadSemanal.find((d) => d.dia === diaSemana);
     if (!disp || !disp.activo) continue;
 
     const inicioDia = horaAMinutos(disp.desde);
@@ -770,12 +798,21 @@ async function horariosDisponibles(clienteId, { servicioId, dias = 14 }) {
 // Vuelve a chequear el choque de horarios al confirmar (no solo al mostrar los horarios
 // libres), para la carrera de dos personas reservando el mismo horario casi al mismo
 // tiempo - no es a prueba de balas (no hay lock), pero para el volumen de un negocio
-// chico esto alcanza de sobra.
+// chico esto alcanza de sobra. Con profesionales configurados, el choque se chequea solo
+// contra los turnos del MISMO profesional (otro profesional puede tener un turno a la
+// misma hora sin problema).
 async function crearTurno(clienteId, datos) {
   const id = normalizarClienteId(clienteId);
   const config = await getTurnosConfig(id);
   const servicio = config.servicios.find((s) => s.id === datos.servicio_id);
   if (!servicio) throw new Error('Ese servicio no existe.');
+
+  const profesionales = config.profesionales || [];
+  let profesional = null;
+  if (profesionales.length) {
+    profesional = profesionales.find((p) => p.id === datos.profesional_id);
+    if (!profesional) throw new Error('Ese profesional no existe.');
+  }
 
   const inicio = horaAMinutos(datos.hora_inicio);
   const fin = inicio + servicio.duracion_min;
@@ -783,7 +820,8 @@ async function crearTurno(clienteId, datos) {
   const existentes = await getDb().collection('turnos').find({
     cliente_id: id,
     fecha: datos.fecha,
-    estado: 'confirmado'
+    estado: 'confirmado',
+    ...(profesional ? { profesional_id: profesional.id } : {})
   }).toArray();
   const choca = existentes.some((t) => {
     const tInicio = horaAMinutos(t.hora_inicio);
@@ -796,6 +834,8 @@ async function crearTurno(clienteId, datos) {
     cliente_id: id,
     servicio_id: servicio.id,
     servicio_nombre: servicio.nombre,
+    profesional_id: profesional?.id || null,
+    profesional_nombre: profesional?.nombre || null,
     fecha: datos.fecha,
     hora_inicio: datos.hora_inicio,
     hora_fin: minutosAHora(fin),
@@ -1115,6 +1155,7 @@ module.exports = {
   getTurnosConfig,
   guardarServicios,
   guardarDisponibilidad,
+  guardarProfesionales,
   guardarRecordatorios,
   horariosDisponibles,
   crearTurno,

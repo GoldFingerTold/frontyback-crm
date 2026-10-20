@@ -70,6 +70,37 @@ router.put('/disponibilidad', requireGerencia, asyncHandler(async (req, res) => 
   res.json(config);
 }));
 
+// Profesionales (ej. peluqueras de un salón): cada uno con su propio horario semanal, en
+// vez de uno solo compartido para todo el negocio - apenas hay uno o más, reservar.html
+// pasa a pedirle al cliente final que elija con quién quiere el turno (ver db.js,
+// horariosDisponibles y crearTurno). Vaciar la lista vuelve al modo de un solo horario
+// compartido.
+function validarDisponibilidadSemanal(disponibilidad) {
+  if (!Array.isArray(disponibilidad) || disponibilidad.length !== 7) return false;
+  return disponibilidad.every((d) => DIA_VALIDO(d.dia) && HORA_RE.test(d.desde) && HORA_RE.test(d.hasta) && d.desde < d.hasta);
+}
+
+router.put('/profesionales', requireGerencia, asyncHandler(async (req, res) => {
+  const { profesionales } = req.body || {};
+  if (!Array.isArray(profesionales)) return res.status(400).json({ error: 'Faltan los profesionales.' });
+
+  const limpios = [];
+  for (const p of profesionales) {
+    const nombre = String(p.nombre || '').trim().slice(0, 60);
+    if (!nombre) return res.status(400).json({ error: 'Cada profesional necesita un nombre.' });
+    if (!validarDisponibilidadSemanal(p.disponibilidad)) {
+      return res.status(400).json({ error: `El horario de "${nombre}" no es válido.` });
+    }
+    limpios.push({
+      id: p.id || crypto.randomUUID(),
+      nombre,
+      disponibilidad: p.disponibilidad.map((d) => ({ dia: d.dia, activo: !!d.activo, desde: d.desde, hasta: d.hasta }))
+    });
+  }
+  const config = await db.guardarProfesionales(req.session.clienteId, limpios);
+  res.json(config);
+}));
+
 // Switches de por qué canal mandar la confirmación/recordatorio de turno. El email no
 // tiene costo; el WhatsApp sí, fuera de la ventana de 24hs - por eso arranca apagado para
 // cuentas nuevas (server/db.js, getTurnosConfig) y el que lo prende lo hace sabiendo eso.

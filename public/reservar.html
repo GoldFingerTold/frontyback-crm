@@ -87,7 +87,7 @@
     return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  const ESTADO = { servicio: null, dia: null, horario: null, negocio: null, servicios: [] };
+  const ESTADO = { servicio: null, profesional: null, dia: null, horario: null, negocio: null, servicios: [], profesionales: [] };
 
   async function init() {
     if (!slug) {
@@ -101,6 +101,7 @@
       });
       ESTADO.negocio = data.nombre_negocio;
       ESTADO.servicios = data.servicios;
+      ESTADO.profesionales = data.profesionales || [];
       if (!ESTADO.servicios.length) {
         cont.innerHTML = `<div class="rv-negocio"><h1>${esc(ESTADO.negocio)}</h1></div><p class="loading">Todavía no hay servicios para reservar. Volvé a intentarlo más tarde.</p>`;
         return;
@@ -116,6 +117,7 @@
   }
 
   function mostrarPasoServicio() {
+    ESTADO.profesional = null;
     cont.innerHTML = encabezado() + `
       <p class="rv-paso-titulo">¿Qué necesitás?</p>
       ${ESTADO.servicios.map((s) => `
@@ -127,6 +129,22 @@
     cont.querySelectorAll('[data-servicio]').forEach((btn) => {
       btn.addEventListener('click', () => {
         ESTADO.servicio = ESTADO.servicios.find((s) => s.id === btn.dataset.servicio);
+        if (ESTADO.profesionales.length) mostrarPasoProfesional();
+        else cargarHorarios();
+      });
+    });
+  }
+
+  function mostrarPasoProfesional() {
+    cont.innerHTML = encabezado() + `
+      <button type="button" class="rv-volver" id="rv-volver-servicio-prof"><i class="fa-solid fa-arrow-left"></i> Elegir otro servicio</button>
+      <p class="rv-paso-titulo">¿Con quién preferís?</p>
+      ${ESTADO.profesionales.map((p) => `<button type="button" class="rv-servicio-btn" data-profesional="${p.id}">${esc(p.nombre)}</button>`).join('')}
+    `;
+    document.getElementById('rv-volver-servicio-prof').addEventListener('click', mostrarPasoServicio);
+    cont.querySelectorAll('[data-profesional]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        ESTADO.profesional = ESTADO.profesionales.find((p) => p.id === btn.dataset.profesional);
         cargarHorarios();
       });
     });
@@ -135,7 +153,8 @@
   async function cargarHorarios() {
     cont.innerHTML = encabezado() + '<p class="loading">Buscando horarios libres...</p>';
     try {
-      const data = await fetch(`/api/public/turnos/${encodeURIComponent(slug)}/horarios?servicio_id=${encodeURIComponent(ESTADO.servicio.id)}`).then((r) => {
+      const profesionalQuery = ESTADO.profesional ? `&profesional_id=${encodeURIComponent(ESTADO.profesional.id)}` : '';
+      const data = await fetch(`/api/public/turnos/${encodeURIComponent(slug)}/horarios?servicio_id=${encodeURIComponent(ESTADO.servicio.id)}${profesionalQuery}`).then((r) => {
         if (!r.ok) throw new Error('No se pudieron cargar los horarios.');
         return r.json();
       });
@@ -151,16 +170,17 @@
       cont.innerHTML = encabezado() + '<p class="loading">No hay horarios libres en los próximos días. Probá de nuevo más tarde.</p>';
       return;
     }
+    const tituloConProfesional = ESTADO.profesional ? `${esc(ESTADO.servicio.nombre)} con ${esc(ESTADO.profesional.nombre)}` : esc(ESTADO.servicio.nombre);
     cont.innerHTML = encabezado() + `
-      <button type="button" class="rv-volver" id="rv-volver-servicio"><i class="fa-solid fa-arrow-left"></i> Elegir otro servicio</button>
-      <p class="rv-paso-titulo">${esc(ESTADO.servicio.nombre)} — elegí un día</p>
+      <button type="button" class="rv-volver" id="rv-volver-servicio"><i class="fa-solid fa-arrow-left"></i> ${ESTADO.profesional ? 'Elegir otro profesional' : 'Elegir otro servicio'}</button>
+      <p class="rv-paso-titulo">${tituloConProfesional} — elegí un día</p>
       ${ESTADO.dias.map((d) => `
         <button type="button" class="rv-dia-btn" data-fecha="${d.fecha}">
           ${esc(d.dia_nombre)} ${d.fecha.split('-').reverse().slice(0, 2).join('/')} <span class="cant">${d.horarios.length} horarios</span>
         </button>
       `).join('')}
     `;
-    document.getElementById('rv-volver-servicio').addEventListener('click', mostrarPasoServicio);
+    document.getElementById('rv-volver-servicio').addEventListener('click', ESTADO.profesional ? mostrarPasoProfesional : mostrarPasoServicio);
     cont.querySelectorAll('[data-fecha]').forEach((btn) => {
       btn.addEventListener('click', () => {
         ESTADO.dia = ESTADO.dias.find((d) => d.fecha === btn.dataset.fecha);
@@ -190,7 +210,7 @@
     cont.innerHTML = encabezado() + `
       <button type="button" class="rv-volver" id="rv-volver-horario"><i class="fa-solid fa-arrow-left"></i> Elegir otro horario</button>
       <div class="rv-resumen">
-        <strong>${esc(ESTADO.servicio.nombre)}</strong><br>
+        <strong>${esc(ESTADO.servicio.nombre)}</strong>${ESTADO.profesional ? ` con ${esc(ESTADO.profesional.nombre)}` : ''}<br>
         ${esc(ESTADO.dia.dia_nombre)} ${ESTADO.dia.fecha.split('-').reverse().slice(0, 2).join('/')} a las ${esc(ESTADO.horario)}hs
       </div>
       <form class="rv-form" id="rv-form">
@@ -222,6 +242,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           servicio_id: ESTADO.servicio.id,
+          profesional_id: ESTADO.profesional ? ESTADO.profesional.id : '',
           fecha: ESTADO.dia.fecha,
           hora_inicio: ESTADO.horario,
           nombre: document.getElementById('rv-nombre').value.trim(),
@@ -245,7 +266,7 @@
       <div class="rv-ok">
         <i class="fa-solid fa-circle-check"></i>
         <h2>¡Turno confirmado!</h2>
-        <p>${esc(ESTADO.servicio.nombre)} el ${esc(ESTADO.dia.dia_nombre)} ${ESTADO.dia.fecha.split('-').reverse().slice(0, 2).join('/')} a las ${esc(ESTADO.horario)}hs.<br>Te vamos a escribir por WhatsApp para confirmarlo.</p>
+        <p>${esc(ESTADO.servicio.nombre)}${ESTADO.profesional ? ` con ${esc(ESTADO.profesional.nombre)}` : ''} el ${esc(ESTADO.dia.dia_nombre)} ${ESTADO.dia.fecha.split('-').reverse().slice(0, 2).join('/')} a las ${esc(ESTADO.horario)}hs.<br>Te vamos a escribir por WhatsApp para confirmarlo.</p>
       </div>
     `;
   }
