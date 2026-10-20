@@ -91,6 +91,7 @@ function crearTarjeta(ficha, columna) {
     </div>
     <div class="card-body">"${esc((ficha.ultimo_mensaje || ficha.mensaje || '').slice(0, 100))}"</div>
     ${(ficha.etiquetas || []).length ? `<div class="card-etiquetas">${(ficha.etiquetas || []).map((e) => `<span class="etiqueta-chip">${esc(e)}</span>`).join('')}</div>` : ''}
+    ${ficha.asignado_a ? `<div class="card-asignado"><i class="fa-regular fa-user"></i> ${esc(ficha.asignado_a.nombre)}</div>` : ''}
     <div class="card-divider"></div>
     <div class="card-footer">
       ${montoTexto ? `<span class="card-value">${montoTexto}</span>` : `<span class="card-value sin-monto">Sin monto</span>`}
@@ -478,6 +479,16 @@ function abrirFicha(fichaId) {
       </select>
     </div>
 
+    <div class="ficha-mover">
+      <label for="asignar-select">Asignado a</label>
+      <select id="asignar-select">
+        <option value="">Sin asignar</option>
+        ${USUARIOS_ASIGNABLES.map((u) =>
+          `<option value="${esc(u._id)}" ${ficha.asignado_a?.usuario_id === u._id ? 'selected' : ''}>${esc(u.nombre)}</option>`
+        ).join('')}
+      </select>
+    </div>
+
     <h3>Notas internas <span class="ficha-notas-aviso">(el cliente no las ve)</span></h3>
     <div class="historial">
       ${(ficha.notas_internas || []).slice().reverse().map((n) => `
@@ -555,6 +566,19 @@ function abrirFicha(fichaId) {
     abrirFicha(fichaId);
   });
 
+  document.getElementById('asignar-select').addEventListener('change', async (e) => {
+    try {
+      const data = await api(`/api/admin/fichas/${fichaId}/asignar`, {
+        method: 'PUT',
+        body: JSON.stringify({ usuario_id: e.target.value || null })
+      });
+      ficha.asignado_a = data.asignado_a;
+      renderTablero();
+    } catch (err) {
+      alert('No se pudo asignar: ' + err.message);
+    }
+  });
+
   document.getElementById('ficha-overlay').hidden = false;
 }
 
@@ -583,9 +607,22 @@ async function cargarTablero() {
   renderTablero();
 }
 
+// Lista de a quién se le puede asignar una ficha - no cambia seguido, se carga una sola
+// vez (no en cada refresh de 20s como ESTADO) para no pedirla de más.
+let USUARIOS_ASIGNABLES = [];
+async function cargarUsuariosAsignables() {
+  try {
+    const { usuarios } = await api('/api/admin/usuarios/asignables');
+    USUARIOS_ASIGNABLES = usuarios;
+  } catch {
+    // si falla, el selector de la ficha simplemente queda vacío - no es crítico
+  }
+}
+
 cargarTablero().catch((err) => {
   document.getElementById('board').innerHTML = `<p class="loading">Error: ${err.message}</p>`;
 });
+cargarUsuariosAsignables();
 
 // Actualiza solo, cada 20s, para que aparezcan las fichas nuevas que van llegando por
 // WhatsApp o formulario sin tener que recargar la página a mano.

@@ -381,6 +381,7 @@ header {
   color: var(--accent-gold); border-radius: 100px; padding: 3px 10px; font-size: 11px; font-weight: 600;
 }
 .card-etiquetas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.card-asignado { font-size: 11px; color: var(--text-muted); margin-top: 8px; display: flex; align-items: center; gap: 5px; }
 .ficha-etiquetas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 18px; }
 .etiqueta-quitar {
   background: none; border: none; color: inherit; cursor: pointer; font-size: 13px;

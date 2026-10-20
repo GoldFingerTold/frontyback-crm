@@ -93,6 +93,7 @@ async function registrarConsulta({
     monto: null,
     notas_internas: [],
     etiquetas: [],
+    asignado_a: null,
     columna_id: columnaInicial,
     posicion,
     historial: [evento]
@@ -152,6 +153,7 @@ async function importarFichas(clienteId, columnas, filas) {
       monto,
       notas_internas: [],
       etiquetas,
+      asignado_a: null,
       columna_id: columna.id,
       posicion,
       historial: [{ tipo: 'importado', origen: 'importado', contenido: 'Contacto importado desde un archivo CSV.', fecha_hora: ahora }]

@@ -366,6 +366,47 @@ router.post('/fichas/:id/responder', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Lista liviana para el selector de "Asignar a" de la ficha - a diferencia de GET
+// /usuarios (solo Gerencia, con todos los datos), esto lo puede pedir cualquiera logueado:
+// un empleado ve a sus compañeros del mismo departamento (para poder derivar una ficha
+// entre ellos) más Gerencia; Gerencia ve a todos.
+router.get('/usuarios/asignables', asyncHandler(async (req, res) => {
+  const filtro = { cliente_id: new db.ObjectId(req.session.clienteId) };
+  if (!esGerencia(req)) {
+    filtro.$or = [{ departamento: req.session.departamento }, { rol: 'gerencia' }];
+  }
+  const usuarios = await db.getDb().collection('usuarios')
+    .find(filtro, { projection: { _id: 1, nombre: 1, departamento: 1, rol: 1 } })
+    .sort({ nombre: 1 })
+    .toArray();
+  res.json({ usuarios });
+}));
+
+// Asignar una ficha a un empleado puntual - además del departamento (que ya filtra quién
+// VE la ficha), esto deja claro quién la está ATENDIENDO cuando varias personas comparten
+// departamento. usuario_id: null para desasignar.
+router.put('/fichas/:id/asignar', asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const fichaId = new db.ObjectId(req.params.id);
+  const { usuario_id } = req.body || {};
+
+  const filtroFicha = { _id: fichaId, cliente_id: clienteId };
+  if (!esGerencia(req)) filtroFicha.departamento = req.session.departamento;
+
+  let asignadoA = null;
+  if (usuario_id) {
+    const usuario = await mongo.collection('usuarios').findOne({ _id: new db.ObjectId(usuario_id), cliente_id: clienteId });
+    if (!usuario) return res.status(400).json({ error: 'Ese usuario no existe.' });
+    asignadoA = { usuario_id: usuario._id, nombre: usuario.nombre };
+  }
+
+  const result = await mongo.collection('fichas').updateOne(filtroFicha, { $set: { asignado_a: asignadoA } });
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe esa ficha.' });
+
+  res.json({ ok: true, asignado_a: asignadoA });
+}));
+
 // ---------- Empleados (solo Gerencia) ----------
 // Cada empleado ve solo las fichas del departamento que se le asigna acá - los
 // departamentos disponibles son las etiquetas que Hugo ya les puso a las cuentas de
