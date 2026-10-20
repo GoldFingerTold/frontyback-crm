@@ -139,10 +139,14 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
      esquema de costo que "responder manualmente" (gratis si está dentro de las
      24hs, plantilla con costo si no). Endpoints nuevos: `GET /api/admin/etiquetas`,
      `POST /api/admin/mensajes-masivos`.
-  6. **Elegir profesional al reservar un turno** (no solo servicio+horario) - idea
-     sacada de AgendaPro, clave para peluquerías/salones donde cada empleado tiene
-     su propia agenda. Implica también disponibilidad semanal POR empleado, no una
-     sola para todo el negocio como hoy.
+  6. ✅ **Elegir profesional al reservar un turno** (20/10) - sección nueva
+     "Profesionales" en Turnos (Gerencia): cada uno con su propio horario semanal.
+     Apenas hay uno o más, `reservar.html` pide elegir con quién antes de mostrar
+     horarios, y los choques se chequean por profesional (dos pueden tener un
+     turno a la misma hora). Sin profesionales configurados, sigue funcionando
+     igual que antes (un solo horario compartido) - no rompe nada para los
+     clientes que ya usaban Turnos. `turnos_config.profesionales`,
+     `PUT /api/turnos/profesionales`, `turno.profesional_id/profesional_nombre`.
   7. **El cliente final puede cancelar/reprogramar su propio turno** desde el link
      del recordatorio, sin escribirle al negocio - otra idea de AgendaPro.
   8. **Cobro de seña al reservar un turno**, con **switch de activar/desactivar**
