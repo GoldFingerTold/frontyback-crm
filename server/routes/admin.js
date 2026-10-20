@@ -338,13 +338,31 @@ router.post('/fichas/:id/responder', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Esta ficha no tiene un número de WhatsApp asociado, no se le puede responder desde acá.' });
   }
 
+  let viaPlantilla = false;
   try {
     await whatsapp.enviarTexto({ phoneNumberId, para: ficha.contacto, texto });
   } catch (err) {
-    return res.status(400).json({ error: `No se pudo mandar el mensaje: ${err.message}` });
+    if (err.codigoMeta !== whatsapp.CODIGO_FUERA_DE_VENTANA) {
+      return res.status(400).json({ error: `No se pudo mandar el mensaje: ${err.message}` });
+    }
+    // Pasaron más de 24hs: reintentamos con la plantilla de seguimiento (tiene costo real,
+    // a cargo de la tarjeta que el cliente cargó en su cuenta de Meta Business) en vez de
+    // dejar al negocio sin forma de seguir la conversación.
+    try {
+      await whatsapp.enviarPlantilla({
+        phoneNumberId,
+        para: ficha.contacto,
+        nombrePlantilla: whatsapp.PLANTILLA_SEGUIMIENTO,
+        parametros: [ficha.nombre || 'Hola', texto]
+      });
+      viaPlantilla = true;
+    } catch (errPlantilla) {
+      return res.status(400).json({ error: `Pasaron más de 24hs y no se pudo mandar ni como plantilla: ${errPlantilla.message}` });
+    }
   }
 
   await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto });
+  if (viaPlantilla) return res.json({ ok: true, viaPlantilla: true });
   res.json({ ok: true });
 }));
 

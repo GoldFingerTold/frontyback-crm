@@ -160,6 +160,7 @@ router.post('/clientes/:id/whatsapp', asyncHandler(async (req, res) => {
   whatsapp.registrarNumero({ phoneNumberId, pin }).catch((err) => console.error('Error registrando el número para mensajería:', err.message));
   if (wabaId) {
     turnosWhatsapp.asegurarPlantillas(wabaId).catch((err) => console.error('Error asegurando plantillas de turnos:', err.message));
+    whatsapp.asegurarPlantillaSeguimiento(wabaId).catch((err) => console.error('Error asegurando plantilla de seguimiento:', err.message));
   }
 
   res.json({ ok: true });

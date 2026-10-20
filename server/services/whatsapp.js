@@ -38,7 +38,11 @@ async function postMensaje(phoneNumberId, para, payload) {
 
 async function enviarTexto({ phoneNumberId, para, texto }) {
   const { res, data } = await postMensaje(phoneNumberId, para, { type: 'text', text: { body: texto } });
-  if (!res.ok) throw new Error(`Error enviando WhatsApp texto: ${JSON.stringify(data)}`);
+  if (!res.ok) {
+    const err = new Error(`Error enviando WhatsApp texto: ${JSON.stringify(data)}`);
+    err.codigoMeta = data?.error?.code;
+    throw err;
+  }
   return data;
 }
 
@@ -158,4 +162,40 @@ async function registrarNumero({ phoneNumberId, pin }) {
   return data;
 }
 
-module.exports = { enviarTexto, enviarPlantilla, enviarAudio, descargarMedia, crearPlantilla, registrarNumero };
+// Código que devuelve Meta cuando se intenta mandar un mensaje de texto libre fuera de la
+// ventana de 24hs ("re-engagement message") - server/routes/admin.js lo usa para saber
+// cuándo reintentar con PLANTILLA_SEGUIMIENTO en vez de devolver el error tal cual.
+const CODIGO_FUERA_DE_VENTANA = 131047;
+
+// Plantilla genérica para poder seguir una conversación aunque ya hayan pasado las 24hs
+// gratis (a diferencia de las de turnos, que tienen un texto fijo puntual, esta deja
+// prácticamente todo el mensaje en una variable, para que el negocio pueda escribir lo
+// que necesite). Tiene costo real para el cliente, igual que las de turnos - se usa solo
+// como respaldo cuando el mensaje de texto libre no se pudo mandar.
+const PLANTILLA_SEGUIMIENTO = 'seguimiento_consulta';
+
+async function asegurarPlantillaSeguimiento(wabaId) {
+  if (!wabaId) return;
+  try {
+    await crearPlantilla({
+      wabaId,
+      nombre: PLANTILLA_SEGUIMIENTO,
+      textoBody: 'Hola {{1}}! Seguimos en contacto por tu consulta: {{2}}. Cualquier cosa, escribinos.',
+      ejemplos: ['Juan', 'Ya tenemos tu pedido listo, podés pasar a retirarlo.']
+    });
+  } catch (err) {
+    console.error(`No se pudo crear la plantilla "${PLANTILLA_SEGUIMIENTO}" en la WABA ${wabaId}:`, err.message);
+  }
+}
+
+module.exports = {
+  enviarTexto,
+  enviarPlantilla,
+  enviarAudio,
+  descargarMedia,
+  crearPlantilla,
+  registrarNumero,
+  asegurarPlantillaSeguimiento,
+  PLANTILLA_SEGUIMIENTO,
+  CODIGO_FUERA_DE_VENTANA
+};

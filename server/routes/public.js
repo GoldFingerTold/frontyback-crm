@@ -344,6 +344,7 @@ router.post('/whatsapp/conectar', asyncHandler(async (req, res) => {
   const pin = String(Math.floor(100000 + Math.random() * 900000));
   whatsapp.registrarNumero({ phoneNumberId, pin }).catch((err) => console.error('Error registrando el número para mensajería:', err.message));
   turnosWhatsapp.asegurarPlantillas(wabaId).catch((err) => console.error('Error asegurando plantillas de turnos:', err.message));
+  whatsapp.asegurarPlantillaSeguimiento(wabaId).catch((err) => console.error('Error asegurando plantilla de seguimiento:', err.message));
 
   console.log(`WhatsApp conectado OK (SDK) para "${slug}": WABA ${wabaId}, número ${phoneNumberId}.`);
   res.json({ ok: true });

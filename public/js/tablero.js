@@ -398,7 +398,7 @@ async function responderWhatsapp(fichaId, textoInput, statusEl) {
   statusEl.textContent = 'Enviando...';
   statusEl.className = 'ficha-monto-status';
   try {
-    await api(`/api/admin/fichas/${fichaId}/responder`, {
+    const data = await api(`/api/admin/fichas/${fichaId}/responder`, {
       method: 'POST',
       body: JSON.stringify({ texto })
     });
@@ -407,8 +407,13 @@ async function responderWhatsapp(fichaId, textoInput, statusEl) {
       ficha.historial = [...(ficha.historial || []), { tipo: 'respuesta_saliente', canal: 'whatsapp_texto', contenido: texto, fecha_hora: new Date().toISOString() }];
     }
     textoInput.value = '';
-    statusEl.textContent = '';
-    abrirFicha(fichaId);
+    if (data.viaPlantilla) {
+      statusEl.textContent = 'Enviado como plantilla con costo (≈ $37,68 ARS) - habían pasado más de 24hs.';
+      setTimeout(() => abrirFicha(fichaId), 2800);
+    } else {
+      statusEl.textContent = '';
+      abrirFicha(fichaId);
+    }
   } catch (err) {
     statusEl.textContent = err.message;
     statusEl.className = 'ficha-monto-status error';
@@ -491,7 +496,7 @@ function abrirFicha(fichaId) {
     ${/^\+?[\d\s-]{6,20}$/.test(ficha.contacto || '') ? `
       <h3>Responder por WhatsApp</h3>
       ${(Date.now() - new Date(ficha.fecha_hora_ultimo_mensaje || ficha.fecha_hora_recibido).getTime()) > 24 * 60 * 60 * 1000 ? `
-        <p class="ficha-notas-aviso" style="margin: -8px 0 10px; display: block;">Pasaron más de 24hs desde el último mensaje del cliente - WhatsApp puede rechazar el envío. Si pasa, escribile por otro medio.</p>
+        <p class="ficha-notas-aviso" style="margin: -8px 0 10px; display: block;">Pasaron más de 24hs desde el último mensaje del cliente - este mensaje se manda igual, pero como plantilla con costo real (≈ $37,68 ARS, a cargo de la tarjeta cargada en tu cuenta de Meta Business).</p>
       ` : ''}
       <div class="ficha-nota-nueva">
         <input id="responder-input" type="text" maxlength="4096" placeholder="Escribir un mensaje...">
