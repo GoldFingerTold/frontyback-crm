@@ -169,7 +169,13 @@ async function importarFichas(clienteId, columnas, filas) {
   return { creados, duplicados, invalidos };
 }
 
-async function registrarRespuesta(fichaId, { canal, texto }) {
+// manual: true cuando la respuesta la escribió una persona desde el botón "Responder por
+// WhatsApp" de la ficha (admin.js) - a diferencia de la autorespuesta automática (siempre
+// el mismo texto, instantánea), esto SÍ representa que el negocio atendió al lead, así que
+// es lo que mide el reporte de "tiempo de respuesta" en Estadísticas. Solo se guarda la
+// PRIMERA vez (no se pisa con respuestas posteriores), por eso va en un update aparte con
+// $exists: false en el filtro en vez de un $set directo.
+async function registrarRespuesta(fichaId, { canal, texto, manual = false }) {
   const mongo = db.getDb();
   const ahora = new Date();
   await mongo.collection('fichas').updateOne(
@@ -183,6 +189,12 @@ async function registrarRespuesta(fichaId, { canal, texto }) {
       }
     }
   );
+  if (manual) {
+    await mongo.collection('fichas').updateOne(
+      { _id: fichaId, primera_respuesta_manual: { $exists: false } },
+      { $set: { primera_respuesta_manual: ahora } }
+    );
+  }
 }
 
 module.exports = { registrarConsulta, registrarRespuesta, importarFichas };

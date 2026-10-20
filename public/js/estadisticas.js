@@ -27,6 +27,11 @@ function formatearARS(n) {
 function formatearNumero(n) {
   return Math.round(n || 0).toLocaleString('es-AR');
 }
+function formatearHoras(h) {
+  if (h < 1) return `${Math.round(h * 60)}min`;
+  if (h < 24) return `${h.toFixed(1)}hs`;
+  return `${(h / 24).toFixed(1)}d`;
+}
 
 // ---------- Paleta (validada con scripts/validate_palette.js contra el fondo oscuro del CRM) ----------
 // Rampa dorada (una sola tonalidad, clara->oscura) para el embudo por etapa - cada etapa es
@@ -183,6 +188,12 @@ async function cargarEstadisticas() {
       <p class="chart-sub">Requiere tener departamentos configurados (etiquetá tus cuentas de WhatsApp desde el super-admin, y creá empleados en "Empleados").</p>
       <div id="chart-departamento"></div>
     </div>
+
+    <div class="chart-card">
+      <h2>Tiempo de respuesta</h2>
+      <p class="chart-sub">Cuánto pasa entre que llega un lead nuevo por WhatsApp y que alguien del equipo le responde a mano desde la ficha (no cuenta la respuesta automática, que es instantánea).</p>
+      <div id="chart-respuesta"></div>
+    </div>
   `;
 
   // Embudo por etapa
@@ -247,6 +258,29 @@ async function cargarEstadisticas() {
       getValor: (d) => d.cantidad,
       getColor: (d) => colorPorNombre[d.nombre],
       formatearValor: (v) => `${formatearNumero(v)} fichas`
+    });
+  }
+
+  // Tiempo de respuesta - solo cuenta fichas donde alguien ya contestó a mano.
+  const { muestras, promedio_horas: promedioHoras, distribucion } = data.tiempo_respuesta;
+  const contRespuesta = document.getElementById('chart-respuesta');
+  if (muestras === 0) {
+    contRespuesta.innerHTML = '<p class="chart-vacio">Todavía no se respondió ninguna ficha a mano desde el CRM.</p>';
+  } else {
+    const colorRespuesta = rampaDorada(3)[1];
+    const resumen = document.createElement('p');
+    resumen.className = 'chart-sub';
+    resumen.style.marginTop = '-10px';
+    resumen.innerHTML = `Promedio: <strong style="color: var(--text-primary);">${formatearHoras(promedioHoras)}</strong> (sobre ${formatearNumero(muestras)} respuesta${muestras === 1 ? '' : 's'}).`;
+    contRespuesta.appendChild(resumen);
+    const chartDiv = document.createElement('div');
+    contRespuesta.appendChild(chartDiv);
+    chartDiv.id = 'chart-respuesta-barras';
+    renderBarras('chart-respuesta-barras', distribucion, {
+      getLabel: (b) => b.nombre,
+      getValor: (b) => b.cantidad,
+      getColor: () => colorRespuesta,
+      formatearValor: (v) => `${formatearNumero(v)} ficha${v === 1 ? '' : 's'}`
     });
   }
 

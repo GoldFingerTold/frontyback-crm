@@ -363,7 +363,7 @@ router.post('/fichas/:id/responder', asyncHandler(async (req, res) => {
     }
   }
 
-  await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto });
+  await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto, manual: true });
   if (viaPlantilla) return res.json({ ok: true, viaPlantilla: true });
   res.json({ ok: true });
 }));
@@ -486,7 +486,7 @@ router.get('/estadisticas', requireGerencia, asyncHandler(async (req, res) => {
 
   const fichasCol = mongo.collection('fichas');
 
-  const [porColumna, porOrigen, porDepartamento] = await Promise.all([
+  const [porColumna, porOrigen, porDepartamento, tiemposRespuesta] = await Promise.all([
     fichasCol.aggregate([
       { $match: { cliente_id: clienteId } },
       { $group: { _id: '$columna_id', cantidad: { $sum: 1 }, monto_total: { $sum: { $ifNull: ['$monto', 0] } } } }
@@ -498,6 +498,17 @@ router.get('/estadisticas', requireGerencia, asyncHandler(async (req, res) => {
     fichasCol.aggregate([
       { $match: { cliente_id: clienteId } },
       { $group: { _id: '$departamento', cantidad: { $sum: 1 } } }
+    ]).toArray(),
+    // Solo cuenta la respuesta MANUAL de una persona (fichas.js, registrarRespuesta con
+    // manual: true) - la autorespuesta automática es instantánea y no dice nada de qué tan
+    // rápido atiende el negocio de verdad.
+    fichasCol.aggregate([
+      { $match: { cliente_id: clienteId, primera_respuesta_manual: { $exists: true } } },
+      {
+        $project: {
+          horas: { $divide: [{ $subtract: ['$primera_respuesta_manual', '$fecha_hora_recibido'] }, 1000 * 60 * 60] }
+        }
+      }
     ]).toArray()
   ]);
 
@@ -541,12 +552,30 @@ router.get('/estadisticas', requireGerencia, asyncHandler(async (req, res) => {
   const ultimaColumna = embudo[embudo.length - 1];
   const tasaConversion = totalLeads > 0 ? (ultimaColumna.cantidad / totalLeads) * 100 : 0;
 
+  // Baldes en horas - pensados para que una respuesta "rápida" (menos de 1hs) se note
+  // separada de una "aceptable" (mismo día) y de una tardía (más de un día).
+  const BALDES_RESPUESTA = [
+    { id: '<1h', nombre: 'Menos de 1hs', max: 1 },
+    { id: '1-6h', nombre: '1 a 6hs', max: 6 },
+    { id: '6-24h', nombre: '6 a 24hs', max: 24 },
+    { id: '>24h', nombre: 'Más de 24hs', max: Infinity }
+  ];
+  const horasRespuesta = tiemposRespuesta.map((t) => Math.max(0, t.horas));
+  const distribucionRespuesta = BALDES_RESPUESTA.map((balde, i) => {
+    const min = i === 0 ? 0 : BALDES_RESPUESTA[i - 1].max;
+    return { id: balde.id, nombre: balde.nombre, cantidad: horasRespuesta.filter((h) => h >= min && h < balde.max).length };
+  });
+  const promedioHorasRespuesta = horasRespuesta.length
+    ? horasRespuesta.reduce((acc, h) => acc + h, 0) / horasRespuesta.length
+    : null;
+
   res.json({
     kpis: { total_leads: totalLeads, valor_total: valorTotal, tasa_conversion: tasaConversion, nombre_ultima_columna: ultimaColumna?.nombre || '' },
     embudo,
     valor_por_mes: valorPorMes,
     origen: porOrigen.map((o) => ({ origen: o._id, cantidad: o.cantidad })),
-    departamento: porDepartamento.map((d) => ({ departamento: d._id, cantidad: d.cantidad }))
+    departamento: porDepartamento.map((d) => ({ departamento: d._id, cantidad: d.cantidad })),
+    tiempo_respuesta: { promedio_horas: promedioHorasRespuesta, muestras: horasRespuesta.length, distribucion: distribucionRespuesta }
   });
 }));
 
