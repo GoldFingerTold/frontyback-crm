@@ -155,10 +155,28 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
      no muestran el botón). Reprogramar reusa `horariosDisponibles` para
      revalidar el horario elegido, misma lógica que ve el cliente al reservar.
      Rutas nuevas bajo `/api/public/turnos/gestionar/:token`.
-  8. **Cobro de seña al reservar un turno**, con **switch de activar/desactivar**
-     (mismo patrón que los switches de recordatorio WhatsApp/email) - con la cuenta
-     de MercadoPago del propio negocio, no la de FrontyBack. Tercera idea de
-     AgendaPro.
+  8. ✅ **Cobro de seña al reservar un turno** (20/10) - construido completo,
+     **falta un paso de Hugo para que funcione en producción** (ver abajo).
+     Switch "Pedir seña al reservar" en Turnos, con monto en ARS. El negocio
+     conecta SU PROPIA cuenta de Mercado Pago (OAuth "Connect", botón nuevo,
+     mismo patrón que Google Calendar) - la plata entra directo ahí, no a
+     FrontyBack. Si está activa, el turno nace `pendiente_pago` (ocupa el
+     horario igual, para que nadie más lo reserve) con 15 minutos para pagar en
+     un Checkout Pro; recién se avisa al negocio (ficha + WhatsApp/email) cuando
+     el webhook confirma el pago contra la API de Mercado Pago con el token del
+     propio negocio. Si no paga, `ciclo-turnos.js` lo cancela en la limpieza
+     horaria. Nuevo: `server/services/mercadopagoConnect.js`,
+     `turnos_config.sena_activa/sena_monto`, webhook
+     `POST /webhook/mercadopago-turno`.
+     **PENDIENTE (bloqueante para que el botón "Conectar Mercado Pago"
+     funcione)**: Hugo tiene que crear una **Aplicación** en
+     [Mercado Pago Developers](https://www.mercadopago.com.ar/developers/panel)
+     (tipo "Marketplace"/con OAuth) y cargar en el `.env` del VPS:
+     `MERCADOPAGO_CONNECT_CLIENT_ID`, `MERCADOPAGO_CONNECT_CLIENT_SECRET`, y
+     `MERCADOPAGO_CONNECT_REDIRECT_URI=https://crm.frontyback.com/api/admin/mercadopago/callback`
+     (esa URI de redirección hay que registrarla también del lado de Mercado
+     Pago, igual que se hizo con Google). Sin esto, el botón falla con un error
+     claro (no rompe nada), igual que quedó Google Calendar esta sesión.
 
 - Hugo va a empezar a contactar prospectos ahora que está todo publicado (precio real
   de WhatsApp, verificación de Meta resuelta, alta 100% autoservicio con botón de
