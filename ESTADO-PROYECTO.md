@@ -127,8 +127,12 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
      ficha lleva más de 5 días sin mensaje nuevo en una columna activa. Se dedupe con
      `ficha.aviso_fria_enviado`, que se resetea solo al volver a tener actividad real
      (mensaje nuevo en `fichas.js` o mover de columna en `admin.js`).
-  4. **Reportes de tiempo de respuesta** en Estadísticas (Premium/Elite) - cuánto
-     tarda el negocio en contestar un lead nuevo.
+  4. ✅ **Reportes de tiempo de respuesta** en Estadísticas (20/10) - mide desde
+     que llega un lead nuevo por WhatsApp hasta que alguien responde A MANO desde
+     la ficha (`ficha.primera_respuesta_manual`, se guarda una sola vez). No cuenta
+     la autorespuesta automática, que es instantánea y no refleja atención real.
+     Gráfico nuevo en Estadísticas: promedio + distribución en baldes de horas
+     (<1h / 1-6h / 6-24h / >24h).
   5. **Mensajes segmentados por etiqueta** (ej. mandarle algo a todos los "VIP") -
      mismo esquema de costo a cargo del cliente que Turnos.
   6. **Elegir profesional al reservar un turno** (no solo servicio+horario) - idea
