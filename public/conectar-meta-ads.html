@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conectar Meta Ads — FrontyBack CRM</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .cm-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .cm-header { display: flex; align-items: center; padding: 24px 32px; max-width: 1040px; margin: 0 auto; }
+  .cm-brand { display: flex; align-items: center; gap: 10px; }
+  .cm-brand span { font-family: 'Clash Display', sans-serif; font-weight: 600; font-size: 17px; }
+
+  .cm-card { max-width: 480px; margin: 40px auto; padding: 0 24px; }
+  .cm-card-inner {
+    background: rgba(28,29,31,0.8); border: 1px solid var(--border-subtle); border-radius: 16px;
+    padding: 36px; text-align: center;
+  }
+  .cm-card-inner i.fa-meta { font-size: 42px; color: var(--accent-gold); margin-bottom: 16px; }
+  .cm-card-inner h1 { font-family: 'Clash Display', sans-serif; font-size: 22px; font-weight: 600; margin: 0 0 10px; }
+  .cm-card-inner p { color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; margin: 0 0 26px; }
+  .cm-nombre { color: var(--accent-gold); font-weight: 600; }
+
+  #cm-btn {
+    width: 100%; padding: 13px; border-radius: 10px; border: none; cursor: pointer;
+    background: var(--accent-gold); color: #141517; font-weight: 700; font-size: 14.5px;
+    font-family: inherit;
+  }
+  #cm-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .cm-estado { margin-top: 20px; font-size: 13.5px; min-height: 1.4em; }
+  .cm-estado.ok { color: #2bb673; }
+  .cm-estado.error { color: var(--danger); }
+  .cm-estado.cargando { color: var(--text-muted); }
+
+  .cm-ayuda { font-size: 12px; color: var(--text-muted); margin-top: 18px; line-height: 1.5; }
+
+  .cm-paginas { text-align: left; margin-top: 10px; }
+  .cm-pagina-btn {
+    display: block; width: 100%; text-align: left; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px 14px;
+    color: var(--text-primary); font-family: inherit; font-size: 14px; cursor: pointer; margin-bottom: 8px;
+  }
+  .cm-pagina-btn:hover { border-color: var(--accent-gold); }
+</style>
+</head>
+<body>
+<div class="cm-shell">
+
+  <header class="cm-header">
+    <div class="cm-brand">
+      <div class="brand-logo">F</div>
+      <span>FrontyBack CRM</span>
+    </div>
+  </header>
+
+  <div class="cm-card">
+    <div class="cm-card-inner" id="cm-contenido">
+      <p class="loading">Cargando...</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = (params.get('slug') || '').trim();
+  const cont = document.getElementById('cm-contenido');
+
+  function esc(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  if (!slug) {
+    cont.innerHTML = '<h1>Falta un dato</h1><p>Este link no es válido. Pedile a FrontyBack que te mande el link de conexión de nuevo.</p>';
+  } else {
+    mostrarPantallaInicial();
+  }
+
+  function mostrarPantallaInicial() {
+    cont.innerHTML = `
+      <i class="fa-brands fa-meta"></i>
+      <h1>Conectá tu campaña de Meta Ads</h1>
+      <p>Vas a conectar la Página de Facebook de <span class="cm-nombre">${esc(slug)}</span> para que los leads de tus formularios instantáneos (Facebook o Instagram) entren solos al CRM, sin tener que descargar ningún Excel.</p>
+      <button type="button" id="cm-btn">Conectar con Facebook</button>
+      <p class="cm-estado" id="cm-estado"></p>
+      <p class="cm-ayuda">Necesitás ser administrador de la Página de Facebook que usás para tus campañas.</p>
+    `;
+    document.getElementById('cm-btn').addEventListener('click', iniciarConexion);
+  }
+
+  // ---------- SDK de Meta ----------
+  window.fbAsyncInit = function () {
+    FB.init({ appId: '1372277981557588', autoLogAppEvents: true, xfbml: false, version: 'v21.0' });
+  };
+
+  function iniciarConexion() {
+    const btn = document.getElementById('cm-btn');
+    const estado = document.getElementById('cm-estado');
+    btn.disabled = true;
+    estado.className = 'cm-estado cargando';
+    estado.textContent = 'Abriendo la ventana de Facebook...';
+
+    if (typeof FB === 'undefined') {
+      estado.className = 'cm-estado error';
+      estado.textContent = 'No se pudo cargar el inicio de sesión de Meta. Recargá la página e intentá de nuevo.';
+      btn.disabled = false;
+      return;
+    }
+
+    FB.login((response) => {
+      if (!response.authResponse) {
+        estado.className = 'cm-estado error';
+        estado.textContent = 'No se completó la conexión. Podés volver a intentarlo.';
+        btn.disabled = false;
+        return;
+      }
+      buscarPaginas(response.authResponse.accessToken);
+    }, { scope: 'pages_show_list,pages_manage_metadata,leads_retrieval' });
+  }
+
+  async function buscarPaginas(userAccessToken) {
+    const estado = document.getElementById('cm-estado');
+    estado.textContent = 'Buscando tus páginas...';
+    try {
+      const res = await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${encodeURIComponent(userAccessToken)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Error consultando tus páginas.');
+      const paginas = data.data || [];
+      if (!paginas.length) {
+        estado.className = 'cm-estado error';
+        estado.textContent = 'No encontramos ninguna Página de Facebook donde seas administrador.';
+        document.getElementById('cm-btn').disabled = false;
+        return;
+      }
+      if (paginas.length === 1) {
+        registrarConexion(paginas[0]);
+      } else {
+        mostrarSelectorPaginas(paginas);
+      }
+    } catch (err) {
+      estado.className = 'cm-estado error';
+      estado.textContent = err.message;
+      document.getElementById('cm-btn').disabled = false;
+    }
+  }
+
+  function mostrarSelectorPaginas(paginas) {
+    cont.innerHTML = `
+      <i class="fa-brands fa-meta"></i>
+      <h1>Elegí la Página</h1>
+      <p>Tenés acceso a varias páginas - elegí la que usás para tus campañas de <span class="cm-nombre">${esc(slug)}</span>.</p>
+      <div class="cm-paginas">
+        ${paginas.map((p) => `<button type="button" class="cm-pagina-btn" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join('')}
+      </div>
+      <p class="cm-estado" id="cm-estado"></p>
+    `;
+    cont.querySelectorAll('.cm-pagina-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pagina = paginas.find((p) => p.id === btn.dataset.id);
+        registrarConexion(pagina);
+      });
+    });
+  }
+
+  async function registrarConexion(pagina) {
+    mostrarPantallaInicial();
+    const estado = document.getElementById('cm-estado');
+    const btn = document.getElementById('cm-btn');
+    btn.disabled = true;
+    estado.className = 'cm-estado cargando';
+    estado.textContent = 'Terminando de conectar del lado del CRM...';
+    try {
+      const res = await fetch('/api/public/meta-leads/conectar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, page_id: pagina.id, page_name: pagina.name, page_access_token: pagina.access_token })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo registrar la conexión.');
+      estado.className = 'cm-estado ok';
+      estado.textContent = `¡Listo! "${pagina.name}" quedó conectada. Los leads de tus formularios instantáneos van a entrar solos al CRM.`;
+      btn.textContent = 'Conectado ✓';
+    } catch (err) {
+      estado.className = 'cm-estado error';
+      estado.textContent = `Error: ${err.message}`;
+      btn.disabled = false;
+    }
+  }
+</script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+</body>
+</html>

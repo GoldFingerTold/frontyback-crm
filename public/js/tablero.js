@@ -29,7 +29,8 @@ const ORIGEN_INFO = {
   formulario: { icon: 'fa-regular fa-envelope', label: 'Formulario' },
   whatsapp_texto: { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp' },
   whatsapp_audio: { icon: 'fa-solid fa-microphone', label: 'WhatsApp audio' },
-  importado: { icon: 'fa-solid fa-file-csv', label: 'Importado' }
+  importado: { icon: 'fa-solid fa-file-csv', label: 'Importado' },
+  meta_ads: { icon: 'fa-brands fa-meta', label: 'Meta Ads' }
 };
 
 function origenInfo(origen) {
@@ -224,6 +225,9 @@ function actualizarCabecera() {
     const btnConectarWhatsapp = document.getElementById('btn-conectar-whatsapp');
     btnConectarWhatsapp.hidden = !esGerencia;
     btnConectarWhatsapp.href = `/conectar-whatsapp.html?slug=${encodeURIComponent(ESTADO.cliente?.slug || '')}`;
+    const btnConectarMetaAds = document.getElementById('btn-conectar-meta-ads');
+    btnConectarMetaAds.hidden = !esGerencia;
+    btnConectarMetaAds.href = `/conectar-meta-ads.html?slug=${encodeURIComponent(ESTADO.cliente?.slug || '')}`;
     document.getElementById('btn-importar-csv').hidden = !esGerencia;
     // Solo la primera vez - si se vuelve a pisar en cada refresh automático (cada 20s),
     // se perdería el clic del usuario si tocó el checkbox justo antes de que refresque.

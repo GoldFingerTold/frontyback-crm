@@ -40,6 +40,7 @@ async function connect() {
 async function ensureIndexes() {
   await db.collection('clientes').createIndex({ slug: 1 }, { unique: true });
   await db.collection('clientes').createIndex({ 'whatsapp_numeros.phone_number_id': 1 });
+  await db.collection('clientes').createIndex({ 'meta_pages.page_id': 1 });
   await db.collection('fichas').createIndex({ cliente_id: 1, columna_id: 1, posicion: 1 });
   await db.collection('fichas').createIndex({ cliente_id: 1, contacto: 1 });
   await db.collection('fichas').createIndex({ cliente_id: 1, whatsapp_wa_id: 1 });
@@ -270,6 +271,33 @@ async function agregarWhatsappNumero(clienteId, { phone_number_id, waba_id = nul
         }
       }
     }
+  );
+}
+
+// Páginas de Facebook/Instagram conectadas para recibir leads de campañas de Meta Ads
+// (formularios instantáneos) - a diferencia de WhatsApp, no hay tope por plan, cualquier
+// cliente puede conectar las páginas que quiera.
+async function agregarMetaPage(clienteId, { page_id, page_name, page_access_token }) {
+  const mongo = getDb();
+  const id = normalizarClienteId(clienteId);
+  const cliente = await mongo.collection('clientes').findOne({ _id: id });
+  if (!cliente) throw new Error('No existe ese cliente.');
+  if (!page_id || !page_access_token) throw new Error('Faltan datos de la página.');
+
+  const paginas = cliente.meta_pages || [];
+  if (paginas.some((p) => p.page_id === page_id)) {
+    // Ya estaba conectada - actualizamos el token (puede haber cambiado) en vez de
+    // duplicarla o tirar error, para que reconectar sea siempre seguro de reintentar.
+    await mongo.collection('clientes').updateOne(
+      { _id: id, 'meta_pages.page_id': page_id },
+      { $set: { 'meta_pages.$.page_access_token': page_access_token, 'meta_pages.$.page_name': page_name || '' } }
+    );
+    return;
+  }
+
+  await mongo.collection('clientes').updateOne(
+    { _id: id },
+    { $push: { meta_pages: { page_id, page_name: page_name || '', page_access_token, conectado_en: new Date() } } }
   );
 }
 
@@ -1083,6 +1111,7 @@ module.exports = {
   eliminarPunto,
   maxWhatsappDeCliente,
   agregarWhatsappNumero,
+  agregarMetaPage,
   getTurnosConfig,
   guardarServicios,
   guardarDisponibilidad,

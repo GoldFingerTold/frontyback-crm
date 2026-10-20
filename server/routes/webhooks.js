@@ -9,6 +9,7 @@ const db = require('../db');
 const fichas = require('../services/fichas');
 const email = require('../services/email');
 const whatsapp = require('../services/whatsapp');
+const metaLeads = require('../services/metaLeads');
 const stt = require('../services/stt');
 const tts = require('../services/tts');
 const mercadopago = require('../services/mercadopago');
@@ -16,7 +17,7 @@ const push = require('../services/push');
 
 const router = express.Router();
 
-const ORIGEN_LABEL_CORTO = { whatsapp_texto: 'WhatsApp', whatsapp_audio: 'WhatsApp (audio)', formulario: 'el formulario', turno: 'un turno' };
+const ORIGEN_LABEL_CORTO = { whatsapp_texto: 'WhatsApp', whatsapp_audio: 'WhatsApp (audio)', formulario: 'el formulario', turno: 'un turno', meta_ads: 'una campaña de Meta Ads' };
 
 // Avisa por email y por notificación push (a quien instaló el CRM como PWA) al dueño del
 // negocio cuando entra un lead NUEVO (no en cada mensaje de seguimiento). El email se
@@ -210,6 +211,10 @@ function verificarFirmaMeta(req, res, buf) {
   if (!iguales) throw new Error('La firma del webhook de WhatsApp no coincide.');
 }
 
+// Meta manda TODOS los eventos de esta app (WhatsApp, y ahora también los leads de Meta
+// Ads) a esta misma URL de webhook - se distinguen por "object" en el body
+// ("whatsapp_business_account" vs "page"), no hace falta una URL ni un token de
+// verificación aparte por cada producto que se suscriba.
 router.post(
   '/whatsapp',
   express.json({ verify: verificarFirmaMeta }),
@@ -218,9 +223,13 @@ router.post(
     res.sendStatus(200);
 
     try {
-      await procesarEventoWhatsapp(req.body);
+      if (req.body?.object === 'page') {
+        await procesarEventoLeadgen(req.body);
+      } else {
+        await procesarEventoWhatsapp(req.body);
+      }
     } catch (err) {
-      console.error('Error procesando mensaje de WhatsApp:', err);
+      console.error('Error procesando webhook de Meta:', err);
     }
   })
 );
@@ -341,6 +350,49 @@ async function procesarEventoWhatsapp(body) {
       }
     }
     // Otros tipos (imagen, ubicación, etc.) se ignoran por ahora - se puede sumar después.
+  }
+}
+
+// ---------- Meta Ads (leads de formularios instantáneos) ----------
+async function procesarEventoLeadgen(body) {
+  for (const entry of body.entry || []) {
+    for (const cambio of entry.changes || []) {
+      if (cambio.field !== 'leadgen') continue;
+      const { leadgen_id: leadgenId, page_id: pageId } = cambio.value || {};
+      if (!leadgenId || !pageId) continue;
+
+      const cliente = await db.getDb().collection('clientes').findOne({ 'meta_pages.page_id': pageId });
+      if (!cliente) {
+        console.warn(`Llegó un lead de Meta Ads para una página sin cliente asociado (page_id=${pageId}).`);
+        continue;
+      }
+      if (!db.estadoPermiteCaptura(cliente.estado_pago)) continue;
+
+      const paginaInfo = cliente.meta_pages.find((p) => p.page_id === pageId);
+      let lead;
+      try {
+        lead = await metaLeads.obtenerLead({ leadgenId, pageAccessToken: paginaInfo.page_access_token });
+      } catch (err) {
+        console.error(`No se pudo obtener el lead ${leadgenId} de Meta Ads:`, err.message);
+        continue;
+      }
+
+      const { nombre, contacto, resumen } = metaLeads.mapearCamposLead(lead.field_data);
+      if (!contacto) {
+        console.warn(`Lead de Meta Ads ${leadgenId} sin teléfono ni email reconocible, se guarda igual con lo que mandó:`, JSON.stringify(lead.field_data));
+      }
+
+      const columnaInicial = cliente.columnas[0].id;
+      const ficha = await fichas.registrarConsulta({
+        clienteId: cliente._id,
+        columnaInicial,
+        contacto: contacto || `lead-${leadgenId}`,
+        nombre,
+        origen: 'meta_ads',
+        mensaje: resumen
+      });
+      await avisarLeadNuevo(cliente, ficha, { nombreContacto: nombre, contacto: contacto || nombre, origen: 'meta_ads', mensaje: resumen });
+    }
   }
 }
 

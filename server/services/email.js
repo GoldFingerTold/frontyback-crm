@@ -77,7 +77,8 @@ const ORIGEN_LABEL = {
   whatsapp_texto: 'WhatsApp',
   whatsapp_audio: 'WhatsApp (audio)',
   formulario: 'el formulario del sitio',
-  turno: 'una reserva de turno'
+  turno: 'una reserva de turno',
+  meta_ads: 'una campaña de Meta Ads'
 };
 
 // Aviso al dueño del negocio cada vez que entra un lead NUEVO (no en cada mensaje de

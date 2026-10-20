@@ -13,6 +13,7 @@ const turnosWhatsapp = require('../services/turnos');
 const whatsapp = require('../services/whatsapp');
 const asistente = require('../services/asistente');
 const googleCalendar = require('../services/googleCalendar');
+const metaLeads = require('../services/metaLeads');
 const { avisarLeadNuevo } = require('./webhooks');
 
 const router = express.Router();
@@ -345,6 +346,36 @@ router.post('/whatsapp/conectar', asyncHandler(async (req, res) => {
   turnosWhatsapp.asegurarPlantillas(wabaId).catch((err) => console.error('Error asegurando plantillas de turnos:', err.message));
 
   console.log(`WhatsApp conectado OK (SDK) para "${slug}": WABA ${wabaId}, número ${phoneNumberId}.`);
+  res.json({ ok: true });
+}));
+
+// ---------- Conexión de Meta Ads (leads de formularios instantáneos) ----------
+// Mismo patrón que /whatsapp/conectar: lo llama public/conectar-meta-ads.html con lo que
+// ya resolvió el SDK de JavaScript de Meta (login + /me/accounts), acá solo falta
+// suscribir la página al webhook de leadgen y guardarla.
+router.post('/meta-leads/conectar', asyncHandler(async (req, res) => {
+  const slug = String(req.body?.slug || '').trim();
+  const pageId = String(req.body?.page_id || '').trim();
+  const pageName = String(req.body?.page_name || '').trim();
+  const pageAccessToken = String(req.body?.page_access_token || '').trim();
+
+  const cliente = slug ? await db.getDb().collection('clientes').findOne({ slug }) : null;
+  if (!cliente) return res.status(404).json({ error: 'No pudimos identificar a qué cuenta pertenece esta conexión.' });
+  if (!pageId || !pageAccessToken) return res.status(400).json({ error: 'Faltan datos de la página.' });
+
+  try {
+    await metaLeads.suscribirPagina({ pageId, pageAccessToken });
+  } catch (err) {
+    return res.status(400).json({ error: `No se pudo suscribir la página a los leads: ${err.message}` });
+  }
+
+  try {
+    await db.agregarMetaPage(cliente._id, { page_id: pageId, page_name: pageName, page_access_token: pageAccessToken });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  console.log(`Meta Ads conectado OK para "${slug}": página ${pageId} (${pageName}).`);
   res.json({ ok: true });
 }));
 
