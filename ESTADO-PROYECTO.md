@@ -134,8 +134,7 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   8. **Cobro de seña al reservar un turno**, con **switch de activar/desactivar**
      (mismo patrón que los switches de recordatorio WhatsApp/email) - con la cuenta
      de MercadoPago del propio negocio, no la de FrontyBack. Tercera idea de
-     AgendaPro. Hugo iba a mandar una imagen de referencia para esto que no llegó -
-     pedírsela de nuevo antes de empezar.
+     AgendaPro.
 
 - Hugo va a empezar a contactar prospectos ahora que está todo publicado (precio real
   de WhatsApp, verificación de Meta resuelta, alta 100% autoservicio con botón de
