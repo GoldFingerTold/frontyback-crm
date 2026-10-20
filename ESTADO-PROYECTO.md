@@ -89,29 +89,53 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
      creados por la interfaz nueva de Google que quedan "pegados").
   Proyecto: `eighth-opus-391401` ("FrontyBack CRM" en Google Cloud).
 
-- **Integración de Meta Lead Ads** (pedida 18/10 a la noche, sin empezar): que un
-  cliente pueda conectar su campaña de Facebook/Instagram Ads y que los leads de sus
-  formularios instantáneos entren solos como fichas al CRM, en vez de quedar en el
-  Excel que Meta deja descargar a mano (y borra a los 90 días). Reusa la misma App de
-  Meta que ya tenemos ("Ai") - no hace falta una cuenta nueva. Falta: (1) pedir el
-  permiso `leads_retrieval` para la app (mismo tipo de trámite ya hecho con
-  `whatsapp_business_management` - funciona en modo prueba con la propia página de
-  Hugo sin esperar aprobación), (2) suscribir el webhook de la app al campo `leadgen`,
-  (3) programar: botón "Conectar campaña de Meta Ads" (Facebook Login, mismo patrón
-  que conectar-whatsapp.html), extender `server/routes/webhooks.js` para manejar
-  eventos `leadgen` además de los de WhatsApp, y un mapeo automático de las preguntas
-  del formulario a nombre/teléfono/email (parecido al mapeo que se hizo para la
-  importación de CSV).
+- **Integración de Meta Lead Ads: construida y conectada, falta la prueba end-to-end**
+  (19/10). Se programó todo (`server/services/metaLeads.js`, webhook extendido en
+  `server/routes/webhooks.js` para distinguir `object: "page"` vs
+  `"whatsapp_business_account"` en la misma URL, botón "Conectar campaña de Meta Ads"
+  en el tablero, página `public/conectar-meta-ads.html`). Del lado de Meta ya quedó
+  todo configurado: caso de uso "Atrae y administra clientes potenciales" agregado,
+  los 5 permisos (`leads_retrieval`, `pages_manage_ads`, `pages_manage_metadata`,
+  `pages_read_engagement`, `pages_show_list`) en "Listo para prueba", webhook
+  suscripto al campo `leadgen`. Se probó la conexión real con dos páginas de wye
+  ("www.webyeventos.com.ar" y "Mujer Poderosa") y quedaron guardadas correctamente en
+  `clientes.meta_pages` (verificado en la base). Lo único que falta: generar un lead
+  de prueba real para confirmar que el webhook dispara y crea la ficha - se intentó
+  con la Lead Ads Testing Tool de Meta (`developers.facebook.com/tools/lead-ads-testing`)
+  pero no reconocía el formulario de prueba recién creado (puede haber quedado en una
+  página distinta a la seleccionada - revisar a qué página pertenece el formulario
+  "Sin título 19/10/26" antes de seguir insistiendo, o directamente esperar un lead
+  real de una campaña de Hugo).
 
 - Confirmar si el tope de "Billing Hub" (moneda + método de pago) hay que
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
   con la cuenta de wye (que es del propio Hugo), falta confirmarlo con un cliente
   externo real.
-- **Pensar más funciones para diferenciarse de la competencia** (pedido 18/10 a la
-  noche, para arrancar el 19/10): repasar de nuevo qué ofrecen Clientify/HubSpot/
-  Pipedrive y qué más le sumaría valor real al CRM, mismo criterio que la tanda
-  anterior (notas internas, etiquetas, CSV export/import, fichas frías) - priorizar
-  lo que de verdad usa un negocio chico, no funciones de CRM enterprise.
+- **Tanda de funciones nuevas acordada para construir mañana (19/10 a la noche,
+  confirmado por Hugo "sumamos las 3... a lo propuesto por vos")** — sin orden
+  definido todavía, a definir mañana:
+  1. **Responder manualmente por WhatsApp desde la ficha** - sigue siendo el gap más
+     grande (ya lo habíamos marcado "importantísimo" el 18/10 y no se hizo). Hoy solo
+     hay 1 mensaje automático, después no hay forma de seguir la conversación desde
+     el CRM.
+  2. **Asignar una ficha a un empleado puntual** (no solo por departamento).
+  3. **Seguimiento activo de fichas frías** - hoy el aviso es solo visual, falta que
+     mande un email/push real al equipo cuando una ficha lleva X días sin movimiento.
+  4. **Reportes de tiempo de respuesta** en Estadísticas (Premium/Elite) - cuánto
+     tarda el negocio en contestar un lead nuevo.
+  5. **Mensajes segmentados por etiqueta** (ej. mandarle algo a todos los "VIP") -
+     mismo esquema de costo a cargo del cliente que Turnos.
+  6. **Elegir profesional al reservar un turno** (no solo servicio+horario) - idea
+     sacada de AgendaPro, clave para peluquerías/salones donde cada empleado tiene
+     su propia agenda. Implica también disponibilidad semanal POR empleado, no una
+     sola para todo el negocio como hoy.
+  7. **El cliente final puede cancelar/reprogramar su propio turno** desde el link
+     del recordatorio, sin escribirle al negocio - otra idea de AgendaPro.
+  8. **Cobro de seña al reservar un turno**, con **switch de activar/desactivar**
+     (mismo patrón que los switches de recordatorio WhatsApp/email) - con la cuenta
+     de MercadoPago del propio negocio, no la de FrontyBack. Tercera idea de
+     AgendaPro. Hugo iba a mandar una imagen de referencia para esto que no llegó -
+     pedírsela de nuevo antes de empezar.
 
 - Hugo va a empezar a contactar prospectos ahora que está todo publicado (precio real
   de WhatsApp, verificación de Meta resuelta, alta 100% autoservicio con botón de
