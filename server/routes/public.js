@@ -473,7 +473,86 @@ router.post('/turnos/:slug/reservar', reservaLimiter, asyncHandler(async (req, r
     console.error(`No se pudo crear el evento de Google Calendar para el turno de ${cliente.slug}:`, err.message)
   );
 
-  res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre, profesional_nombre: turno.profesional_nombre } });
+  res.json({
+    ok: true,
+    turno: {
+      fecha: turno.fecha,
+      hora_inicio: turno.hora_inicio,
+      servicio_nombre: turno.servicio_nombre,
+      profesional_nombre: turno.profesional_nombre,
+      token_gestion: turno.token_gestion
+    }
+  });
+}));
+
+// ---------- Gestión del turno por el cliente final, sin login (public/mi-turno.html) ----------
+// El token (server/db.js, crearTurno) identifica el turno sin necesitar el slug del
+// negocio - alcanza con tenerlo para cancelar o reprogramar, no hace falta loguearse ni
+// escribirle al negocio para un cambio simple.
+const gestionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  message: { error: 'Demasiados intentos seguidos desde acá. Probá de nuevo más tarde.' }
+});
+router.use('/turnos/gestionar', gestionLimiter);
+
+router.get('/turnos/gestionar/:token', asyncHandler(async (req, res) => {
+  const encontrado = await db.obtenerTurnoPorToken(req.params.token);
+  if (!encontrado) return res.status(404).json({ error: 'No encontramos ese turno.' });
+  const { turno, nombreNegocio, slugNegocio } = encontrado;
+  res.json({
+    nombre_negocio: nombreNegocio,
+    slug_negocio: slugNegocio,
+    turno: {
+      servicio_id: turno.servicio_id,
+      servicio_nombre: turno.servicio_nombre,
+      profesional_id: turno.profesional_id,
+      profesional_nombre: turno.profesional_nombre,
+      fecha: turno.fecha,
+      hora_inicio: turno.hora_inicio,
+      nombre_contacto: turno.nombre_contacto,
+      estado: turno.estado
+    }
+  });
+}));
+
+router.get('/turnos/gestionar/:token/horarios', asyncHandler(async (req, res) => {
+  const encontrado = await db.obtenerTurnoPorToken(req.params.token);
+  if (!encontrado) return res.status(404).json({ error: 'No encontramos ese turno.' });
+  try {
+    const dias = await db.horariosDisponibles(encontrado.turno.cliente_id, {
+      servicioId: encontrado.turno.servicio_id,
+      profesionalId: encontrado.turno.profesional_id || undefined
+    });
+    res.json({ dias });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}));
+
+router.post('/turnos/gestionar/:token/cancelar', asyncHandler(async (req, res) => {
+  try {
+    await db.cancelarTurnoPorToken(req.params.token);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}));
+
+router.post('/turnos/gestionar/:token/reprogramar', asyncHandler(async (req, res) => {
+  const fecha = String(req.body?.fecha || '');
+  const horaInicio = String(req.body?.hora_inicio || '');
+  if (!fecha || !horaInicio) return res.status(400).json({ error: 'Falta la fecha o el horario.' });
+
+  try {
+    const turno = await db.reprogramarTurnoPorToken(req.params.token, { fecha, hora_inicio: horaInicio });
+    res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre, profesional_nombre: turno.profesional_nombre } });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 }));
 
 // ---------- Catálogo público (public/pedir.html) ----------

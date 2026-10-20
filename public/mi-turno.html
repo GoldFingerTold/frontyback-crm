@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi turno — FrontyBack</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .rv-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  .rv-header { display: flex; align-items: center; justify-content: center; padding: 24px 32px; }
+  .rv-brand { display: flex; align-items: center; gap: 10px; }
+  .rv-brand span { font-family: 'Clash Display', sans-serif; font-weight: 600; font-size: 15px; color: var(--text-muted); }
+
+  .rv-card { max-width: 480px; margin: 10px auto 40px; padding: 0 24px; }
+  .rv-card-inner {
+    background: rgba(28,29,31,0.8); border: 1px solid var(--border-subtle); border-radius: 16px;
+    padding: 32px;
+  }
+  .rv-negocio { text-align: center; margin-bottom: 26px; }
+  .rv-negocio h1 { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .rv-negocio p { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+  .rv-paso-titulo { font-size: 13px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 12px; }
+
+  .rv-dia-btn {
+    display: block; width: 100%; text-align: left; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-subtle); border-radius: 10px; padding: 13px 16px;
+    color: var(--text-primary); font-family: inherit; font-size: 14px; cursor: pointer; margin-bottom: 8px;
+  }
+  .rv-dia-btn:hover { border-color: var(--accent-gold); }
+  .rv-dia-btn .cant { color: var(--text-muted); font-size: 12px; float: right; }
+
+  .rv-horarios { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .rv-horario-btn {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px;
+    padding: 9px 4px; color: var(--text-primary); font-family: inherit; font-size: 13px; cursor: pointer;
+    flex: 1 1 70px; text-align: center;
+  }
+  .rv-horario-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+  .rv-volver { background: none; border: none; color: var(--text-muted); font-size: 12.5px; cursor: pointer; padding: 0; margin-bottom: 14px; }
+  .rv-resumen { background: rgba(212,175,55,0.07); border: 1px solid rgba(212,175,55,0.2); border-radius: 10px; padding: 14px 16px; font-size: 13.5px; margin-bottom: 18px; line-height: 1.6; }
+  .rv-resumen .estado-cancelado { color: var(--danger); font-weight: 600; }
+
+  .mt-acciones { display: flex; flex-direction: column; gap: 10px; }
+  .mt-btn { padding: 12px; border-radius: 10px; border: 1px solid var(--border-subtle); cursor: pointer; background: rgba(255,255,255,0.03); color: var(--text-primary); font-weight: 600; font-size: 13.5px; font-family: inherit; }
+  .mt-btn:hover { border-color: var(--accent-gold); }
+  .mt-btn.danger { color: var(--danger); }
+  .mt-btn.danger:hover { border-color: var(--danger); }
+
+  .rv-estado { margin-top: 16px; font-size: 13.5px; text-align: center; }
+  .rv-estado.error { color: var(--danger); }
+  .rv-ok i { font-size: 38px; color: #2bb673; margin-bottom: 12px; }
+  .rv-ok { text-align: center; }
+  .rv-ok h2 { font-family: 'Clash Display', sans-serif; font-size: 19px; margin: 0 0 8px; }
+  .rv-ok p { color: var(--text-secondary); font-size: 14px; margin: 0; }
+  .rv-ok a { color: var(--accent-gold); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="rv-shell">
+  <header class="rv-header">
+    <div class="rv-brand">
+      <div class="brand-logo" style="width: 26px; height: 26px; font-size: 13px;">F</div>
+      <span>Reservas FrontyBack</span>
+    </div>
+  </header>
+
+  <div class="rv-card">
+    <div class="rv-card-inner" id="rv-contenido">
+      <p class="loading">Cargando...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const token = (params.get('token') || '').trim();
+  const cont = document.getElementById('rv-contenido');
+
+  function esc(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function formatearFecha(fechaIso) {
+    return fechaIso.split('-').reverse().slice(0, 2).join('/');
+  }
+
+  const ESTADO = { negocio: null, slug: null, turno: null, dias: null, dia: null, horario: null };
+
+  async function init() {
+    if (!token) {
+      cont.innerHTML = '<h1>Falta un dato</h1><p>Este link no es válido.</p>';
+      return;
+    }
+    try {
+      const data = await fetch(`/api/public/turnos/gestionar/${encodeURIComponent(token)}`).then((r) => {
+        if (!r.ok) throw new Error('No encontramos ese turno. Puede que el link ya no sea válido.');
+        return r.json();
+      });
+      ESTADO.negocio = data.nombre_negocio;
+      ESTADO.slug = data.slug_negocio;
+      ESTADO.turno = data.turno;
+      mostrarResumen();
+    } catch (err) {
+      cont.innerHTML = `<p class="loading">${esc(err.message)}</p>`;
+    }
+  }
+
+  function encabezado() {
+    return `<div class="rv-negocio"><h1>${esc(ESTADO.negocio)}</h1><p>Tu turno</p></div>`;
+  }
+
+  function lineaTurno(t) {
+    return `<strong>${esc(t.servicio_nombre)}</strong>${t.profesional_nombre ? ` con ${esc(t.profesional_nombre)}` : ''}<br>${formatearFecha(t.fecha)} a las ${esc(t.hora_inicio)}hs`;
+  }
+
+  function mostrarResumen() {
+    const t = ESTADO.turno;
+    if (t.estado === 'cancelado') {
+      cont.innerHTML = encabezado() + `
+        <div class="rv-resumen">${lineaTurno(t)}<br><span class="estado-cancelado">Este turno está cancelado.</span></div>
+        ${ESTADO.slug ? `<p class="loading">¿Necesitás un turno nuevo? <a href="/reservar.html?slug=${encodeURIComponent(ESTADO.slug)}" style="color: var(--accent-gold);">Reservá acá</a>.</p>` : ''}
+      `;
+      return;
+    }
+    cont.innerHTML = encabezado() + `
+      <div class="rv-resumen">${lineaTurno(t)}</div>
+      <div class="mt-acciones">
+        <button type="button" class="mt-btn" id="mt-reprogramar"><i class="fa-solid fa-calendar-days"></i> Cambiar de día u horario</button>
+        <button type="button" class="mt-btn danger" id="mt-cancelar"><i class="fa-solid fa-xmark"></i> Cancelar turno</button>
+      </div>
+      <p class="rv-estado" id="rv-estado"></p>
+    `;
+    document.getElementById('mt-cancelar').addEventListener('click', cancelar);
+    document.getElementById('mt-reprogramar').addEventListener('click', cargarHorarios);
+  }
+
+  async function cancelar() {
+    if (!confirm('¿Cancelar este turno? Esto no se puede deshacer.')) return;
+    const estadoEl = document.getElementById('rv-estado');
+    estadoEl.className = 'rv-estado';
+    estadoEl.textContent = 'Cancelando...';
+    try {
+      const res = await fetch(`/api/public/turnos/gestionar/${encodeURIComponent(token)}/cancelar`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cancelar.');
+      cont.innerHTML = encabezado() + `
+        <div class="rv-ok">
+          <i class="fa-solid fa-circle-check"></i>
+          <h2>Turno cancelado</h2>
+          <p>Avisamos al negocio. ${ESTADO.slug ? `<a href="/reservar.html?slug=${encodeURIComponent(ESTADO.slug)}">Reservar otro turno</a>` : ''}</p>
+        </div>
+      `;
+    } catch (err) {
+      estadoEl.className = 'rv-estado error';
+      estadoEl.textContent = err.message;
+    }
+  }
+
+  async function cargarHorarios() {
+    cont.innerHTML = encabezado() + '<p class="loading">Buscando horarios libres...</p>';
+    try {
+      const data = await fetch(`/api/public/turnos/gestionar/${encodeURIComponent(token)}/horarios`).then((r) => {
+        if (!r.ok) throw new Error('No se pudieron cargar los horarios.');
+        return r.json();
+      });
+      ESTADO.dias = data.dias;
+      mostrarPasoDia();
+    } catch (err) {
+      cont.innerHTML = encabezado() + `<p class="rv-estado error">${esc(err.message)}</p>`;
+    }
+  }
+
+  function mostrarPasoDia() {
+    if (!ESTADO.dias.length) {
+      cont.innerHTML = encabezado() + '<button type="button" class="rv-volver" id="rv-volver-resumen"><i class="fa-solid fa-arrow-left"></i> Volver</button><p class="loading">No hay otros horarios libres en los próximos días. Probá de nuevo más tarde.</p>';
+      document.getElementById('rv-volver-resumen').addEventListener('click', mostrarResumen);
+      return;
+    }
+    cont.innerHTML = encabezado() + `
+      <button type="button" class="rv-volver" id="rv-volver-resumen"><i class="fa-solid fa-arrow-left"></i> Volver</button>
+      <p class="rv-paso-titulo">${esc(ESTADO.turno.servicio_nombre)} — elegí un día</p>
+      ${ESTADO.dias.map((d) => `
+        <button type="button" class="rv-dia-btn" data-fecha="${d.fecha}">
+          ${esc(d.dia_nombre)} ${formatearFecha(d.fecha)} <span class="cant">${d.horarios.length} horarios</span>
+        </button>
+      `).join('')}
+    `;
+    document.getElementById('rv-volver-resumen').addEventListener('click', mostrarResumen);
+    cont.querySelectorAll('[data-fecha]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        ESTADO.dia = ESTADO.dias.find((d) => d.fecha === btn.dataset.fecha);
+        mostrarPasoHorario();
+      });
+    });
+  }
+
+  function mostrarPasoHorario() {
+    cont.innerHTML = encabezado() + `
+      <button type="button" class="rv-volver" id="rv-volver-dia"><i class="fa-solid fa-arrow-left"></i> Elegir otro día</button>
+      <p class="rv-paso-titulo">${esc(ESTADO.dia.dia_nombre)} ${formatearFecha(ESTADO.dia.fecha)} — elegí un horario</p>
+      <div class="rv-horarios">
+        ${ESTADO.dia.horarios.map((h) => `<button type="button" class="rv-horario-btn" data-hora="${h.hora_inicio}">${h.hora_inicio}</button>`).join('')}
+      </div>
+      <p class="rv-estado" id="rv-estado"></p>
+    `;
+    document.getElementById('rv-volver-dia').addEventListener('click', mostrarPasoDia);
+    cont.querySelectorAll('[data-hora]').forEach((btn) => {
+      btn.addEventListener('click', () => confirmarReprogramacion(btn.dataset.hora));
+    });
+  }
+
+  async function confirmarReprogramacion(horaInicio) {
+    const estadoEl = document.getElementById('rv-estado');
+    estadoEl.className = 'rv-estado';
+    estadoEl.textContent = 'Cambiando el turno...';
+    try {
+      const res = await fetch(`/api/public/turnos/gestionar/${encodeURIComponent(token)}/reprogramar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha: ESTADO.dia.fecha, hora_inicio: horaInicio })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cambiar el turno.');
+      cont.innerHTML = encabezado() + `
+        <div class="rv-ok">
+          <i class="fa-solid fa-circle-check"></i>
+          <h2>¡Turno actualizado!</h2>
+          <p>${esc(data.turno.servicio_nombre)}${data.turno.profesional_nombre ? ` con ${esc(data.turno.profesional_nombre)}` : ''} el ${formatearFecha(data.turno.fecha)} a las ${esc(data.turno.hora_inicio)}hs.</p>
+        </div>
+      `;
+    } catch (err) {
+      estadoEl.className = 'rv-estado error';
+      estadoEl.textContent = err.message;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -173,7 +173,14 @@ function formatearFechaTurno(fechaISO) {
   return `${dia}/${mes}`;
 }
 
-async function enviarConfirmacionTurno({ emailDestinatario, nombreCliente, nombreContacto, servicioNombre, fecha, horaInicio }) {
+// linkGestion: turnos de antes de que existiera el token de gestión no lo tienen
+// (server/db.js, crearTurno) - en ese caso no se incluye el botón, no hay nada que mostrar.
+function botonGestion(linkGestion) {
+  if (!linkGestion) return '';
+  return `<p><a href="${escHtml(linkGestion)}" style="display:inline-block;background:rgba(212,175,55,0.12);color:#d4af37;font-weight:600;padding:9px 18px;border-radius:8px;text-decoration:none;font-size:13px;">Cancelar o cambiar mi turno</a></p>`;
+}
+
+async function enviarConfirmacionTurno({ emailDestinatario, nombreCliente, nombreContacto, servicioNombre, fecha, horaInicio, linkGestion }) {
   const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
   await getResend().emails.send({
     from,
@@ -182,12 +189,13 @@ async function enviarConfirmacionTurno({ emailDestinatario, nombreCliente, nombr
     html: `
       <p>Hola ${escHtml(nombreContacto)}!</p>
       <p>Tu turno para <strong>${escHtml(servicioNombre)}</strong> en <strong>${escHtml(nombreCliente)}</strong> quedó confirmado para el ${escHtml(formatearFechaTurno(fecha))} a las ${escHtml(horaInicio)}hs.</p>
+      ${botonGestion(linkGestion)}
       <p>Cualquier cambio, avisanos.</p>
     `
   });
 }
 
-async function enviarRecordatorioTurno({ emailDestinatario, nombreCliente, nombreContacto, servicioNombre, horaInicio }) {
+async function enviarRecordatorioTurno({ emailDestinatario, nombreCliente, nombreContacto, servicioNombre, horaInicio, linkGestion }) {
   const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
   await getResend().emails.send({
     from,
@@ -196,6 +204,7 @@ async function enviarRecordatorioTurno({ emailDestinatario, nombreCliente, nombr
     html: `
       <p>Hola ${escHtml(nombreContacto)}!</p>
       <p>Te recordamos tu turno para <strong>${escHtml(servicioNombre)}</strong> en <strong>${escHtml(nombreCliente)}</strong> mañana a las ${escHtml(horaInicio)}hs.</p>
+      ${botonGestion(linkGestion)}
     `
   });
 }

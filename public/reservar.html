@@ -253,7 +253,7 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo reservar.');
-      mostrarExito();
+      mostrarExito(data.turno.token_gestion);
     } catch (err) {
       estadoEl.className = 'rv-estado error';
       estadoEl.textContent = err.message;
@@ -261,12 +261,14 @@
     }
   }
 
-  function mostrarExito() {
+  function mostrarExito(tokenGestion) {
+    const linkGestion = tokenGestion ? `${window.location.origin}/mi-turno.html?token=${tokenGestion}` : null;
     cont.innerHTML = `
       <div class="rv-ok">
         <i class="fa-solid fa-circle-check"></i>
         <h2>¡Turno confirmado!</h2>
         <p>${esc(ESTADO.servicio.nombre)}${ESTADO.profesional ? ` con ${esc(ESTADO.profesional.nombre)}` : ''} el ${esc(ESTADO.dia.dia_nombre)} ${ESTADO.dia.fecha.split('-').reverse().slice(0, 2).join('/')} a las ${esc(ESTADO.horario)}hs.<br>Te vamos a escribir por WhatsApp para confirmarlo.</p>
+        ${linkGestion ? `<p style="margin-top: 16px; font-size: 12.5px;">¿Necesitás cancelar o cambiar el horario después?<br><a href="${esc(linkGestion)}" style="color: var(--accent-gold);">Guardá este link</a> (también te lo mandamos por email si lo cargaste).</p>` : ''}
       </div>
     `;
   }

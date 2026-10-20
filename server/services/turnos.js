@@ -58,7 +58,8 @@ async function intentarEnviarEmail(cliente, turno, tipo) {
       nombreCliente: cliente.nombre,
       nombreContacto: turno.nombre_contacto,
       servicioNombre: turno.servicio_nombre,
-      horaInicio: turno.hora_inicio
+      horaInicio: turno.hora_inicio,
+      linkGestion: turno.token_gestion ? `https://crm.frontyback.com/mi-turno.html?token=${turno.token_gestion}` : null
     };
     if (tipo === 'confirmacion') {
       await email.enviarConfirmacionTurno({ ...datos, fecha: turno.fecha });

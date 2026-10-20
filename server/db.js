@@ -652,6 +652,17 @@ function minutosAHora(min) {
   return `${h}:${m}`;
 }
 
+// Compartida entre horariosDisponibles, crearTurno y reprogramarTurnoPorToken - un
+// bloque choca con otro si se superponen en el tiempo (no alcanza con que no sean el
+// mismo hora_inicio exacto).
+function existeChoqueHorario(turnosOcupados, inicioMin, finMin) {
+  return turnosOcupados.some((t) => {
+    const tInicio = horaAMinutos(t.hora_inicio);
+    const tFin = horaAMinutos(t.hora_fin);
+    return inicioMin < tFin && finMin > tInicio;
+  });
+}
+
 async function getTurnosConfig(clienteId) {
   const col = db.collection('turnos_config');
   const id = normalizarClienteId(clienteId);
@@ -783,12 +794,7 @@ async function horariosDisponibles(clienteId, { servicioId, profesionalId, dias 
     for (let inicio = inicioDia; inicio + servicio.duracion_min <= finDia; inicio += servicio.duracion_min) {
       const fin = inicio + servicio.duracion_min;
       if (i === 0 && inicio <= ahoraMin + 30) continue; // hoy: no ofrecer horarios que ya pasaron (30 min de margen)
-      const choca = ocupados.some((t) => {
-        const tInicio = horaAMinutos(t.hora_inicio);
-        const tFin = horaAMinutos(t.hora_fin);
-        return inicio < tFin && fin > tInicio;
-      });
-      if (!choca) horarios.push({ hora_inicio: minutosAHora(inicio), hora_fin: minutosAHora(fin) });
+      if (!existeChoqueHorario(ocupados, inicio, fin)) horarios.push({ hora_inicio: minutosAHora(inicio), hora_fin: minutosAHora(fin) });
     }
     if (horarios.length) resultado.push({ fecha: fechaStr, dia_nombre: DIA_NOMBRE[diaSemana], horarios });
   }
@@ -823,12 +829,7 @@ async function crearTurno(clienteId, datos) {
     estado: 'confirmado',
     ...(profesional ? { profesional_id: profesional.id } : {})
   }).toArray();
-  const choca = existentes.some((t) => {
-    const tInicio = horaAMinutos(t.hora_inicio);
-    const tFin = horaAMinutos(t.hora_fin);
-    return inicio < tFin && fin > tInicio;
-  });
-  if (choca) throw new Error('Ese horario ya no está disponible, elegí otro.');
+  if (existeChoqueHorario(existentes, inicio, fin)) throw new Error('Ese horario ya no está disponible, elegí otro.');
 
   const doc = {
     cliente_id: id,
@@ -844,6 +845,10 @@ async function crearTurno(clienteId, datos) {
     email_contacto: String(datos.email_contacto || '').trim().slice(0, 150),
     estado: 'confirmado',
     recordatorio_enviado: false,
+    // Token para que el cliente final pueda cancelar/reprogramar su turno sin loguearse ni
+    // escribirle al negocio (public/mi-turno.html) - va en el link del email de confirmación
+    // y recordatorio, y se muestra en la pantalla de éxito al reservar.
+    token_gestion: crypto.randomBytes(20).toString('hex'),
     created_at: new Date()
   };
   const { insertedId } = await getDb().collection('turnos').insertOne(doc);
@@ -856,6 +861,48 @@ async function cancelarTurno(clienteId, turnoId) {
     { _id: new ObjectId(turnoId), cliente_id: id },
     { $set: { estado: 'cancelado' } }
   );
+}
+
+// ---------- Gestión del turno por el cliente final (sin login, por token) ----------
+async function obtenerTurnoPorToken(token) {
+  if (!token) return null;
+  const turno = await getDb().collection('turnos').findOne({ token_gestion: token });
+  if (!turno) return null;
+  const cliente = await getDb().collection('clientes').findOne({ _id: turno.cliente_id });
+  return { turno, nombreNegocio: cliente?.nombre || '', slugNegocio: cliente?.slug || '' };
+}
+
+async function cancelarTurnoPorToken(token) {
+  const encontrado = await obtenerTurnoPorToken(token);
+  if (!encontrado) throw new Error('No encontramos ese turno.');
+  if (encontrado.turno.estado === 'cancelado') throw new Error('Ese turno ya estaba cancelado.');
+  await getDb().collection('turnos').updateOne({ _id: encontrado.turno._id }, { $set: { estado: 'cancelado' } });
+  return encontrado.turno;
+}
+
+// Reusa horariosDisponibles (el mismo cálculo que ve el cliente al reservar) para
+// revalidar que el horario pedido sigue libre antes de mover el turno - evita duplicar la
+// lógica de choques/disponibilidad semanal en un tercer lugar.
+async function reprogramarTurnoPorToken(token, { fecha, hora_inicio }) {
+  const encontrado = await obtenerTurnoPorToken(token);
+  if (!encontrado) throw new Error('No encontramos ese turno.');
+  const { turno } = encontrado;
+  if (turno.estado === 'cancelado') throw new Error('Este turno ya está cancelado, no se puede reprogramar.');
+
+  const dias = await horariosDisponibles(turno.cliente_id, {
+    servicioId: turno.servicio_id,
+    profesionalId: turno.profesional_id || undefined,
+    dias: 30
+  });
+  const diaElegido = dias.find((d) => d.fecha === fecha);
+  const horarioElegido = diaElegido?.horarios.find((h) => h.hora_inicio === hora_inicio);
+  if (!horarioElegido) throw new Error('Ese horario ya no está disponible, elegí otro.');
+
+  await getDb().collection('turnos').updateOne(
+    { _id: turno._id },
+    { $set: { fecha, hora_inicio: horarioElegido.hora_inicio, hora_fin: horarioElegido.hora_fin, recordatorio_enviado: false } }
+  );
+  return { ...turno, fecha, hora_inicio: horarioElegido.hora_inicio, hora_fin: horarioElegido.hora_fin };
 }
 
 async function listarTurnos(clienteId, { desde, hasta } = {}) {
@@ -1161,6 +1208,9 @@ module.exports = {
   crearTurno,
   cancelarTurno,
   listarTurnos,
+  obtenerTurnoPorToken,
+  cancelarTurnoPorToken,
+  reprogramarTurnoPorToken,
   maxTurnosMensajesDeCliente,
   contarUsoTurnosEsteMes,
   registrarUsoTurno,
