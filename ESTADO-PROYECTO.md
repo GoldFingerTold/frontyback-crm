@@ -147,8 +147,14 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
      igual que antes (un solo horario compartido) - no rompe nada para los
      clientes que ya usaban Turnos. `turnos_config.profesionales`,
      `PUT /api/turnos/profesionales`, `turno.profesional_id/profesional_nombre`.
-  7. **El cliente final puede cancelar/reprogramar su propio turno** desde el link
-     del recordatorio, sin escribirle al negocio - otra idea de AgendaPro.
+  7. ✅ **El cliente final puede cancelar/reprogramar su propio turno** (20/10) -
+     página nueva `public/mi-turno.html`, accesible por un token sin login
+     (`turno.token_gestion`, generado en `crearTurno`). El link aparece en la
+     pantalla de éxito al reservar y en los emails de confirmación/recordatorio
+     (turnos de antes de este cambio no tienen token, no rompe nada - simplemente
+     no muestran el botón). Reprogramar reusa `horariosDisponibles` para
+     revalidar el horario elegido, misma lógica que ve el cliente al reservar.
+     Rutas nuevas bajo `/api/public/turnos/gestionar/:token`.
   8. **Cobro de seña al reservar un turno**, con **switch de activar/desactivar**
      (mismo patrón que los switches de recordatorio WhatsApp/email) - con la cuenta
      de MercadoPago del propio negocio, no la de FrontyBack. Tercera idea de
