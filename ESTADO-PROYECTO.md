@@ -133,8 +133,12 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
      la autorespuesta automática, que es instantánea y no refleja atención real.
      Gráfico nuevo en Estadísticas: promedio + distribución en baldes de horas
      (<1h / 1-6h / 6-24h / >24h).
-  5. **Mensajes segmentados por etiqueta** (ej. mandarle algo a todos los "VIP") -
-     mismo esquema de costo a cargo del cliente que Turnos.
+  5. ✅ **Mensajes segmentados por etiqueta** (20/10) - botón "Mensajes por
+     etiqueta" en el tablero (solo Gerencia): elige una etiqueta (ej. "VIP") y
+     manda el mismo texto por WhatsApp a todos los contactos que la tengan. Mismo
+     esquema de costo que "responder manualmente" (gratis si está dentro de las
+     24hs, plantilla con costo si no). Endpoints nuevos: `GET /api/admin/etiquetas`,
+     `POST /api/admin/mensajes-masivos`.
   6. **Elegir profesional al reservar un turno** (no solo servicio+horario) - idea
      sacada de AgendaPro, clave para peluquerías/salones donde cada empleado tiene
      su propia agenda. Implica también disponibilidad semanal POR empleado, no una
