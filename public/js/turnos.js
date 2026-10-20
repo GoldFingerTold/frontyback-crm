@@ -427,7 +427,7 @@ async function abrirSena() {
   try {
     const [config] = await Promise.all([api('/api/turnos/config'), actualizarEstadoMercadoPago()]);
     document.getElementById('sena-activa').checked = config.sena_activa === true;
-    document.getElementById('sena-monto').value = config.sena_monto || '';
+    document.getElementById('sena-monto').value = config.sena_monto ? config.sena_monto.toLocaleString('es-AR') : '';
   } catch (err) {
     document.getElementById('sena-status').textContent = err.message;
   }
@@ -446,7 +446,10 @@ document.getElementById('sena-guardar').addEventListener('click', async () => {
       method: 'PUT',
       body: JSON.stringify({
         activa: document.getElementById('sena-activa').checked,
-        monto: parseFloat(document.getElementById('sena-monto').value) || 0
+        // El campo es de texto libre a propósito: "5.000" (con punto de miles, como se
+        // escribe en Argentina) tipeado en un <input type="number"> se leía como 5 - acá
+        // se sacan los puntos/comas/espacios y se interpreta todo como pesos enteros.
+        monto: parseInt(document.getElementById('sena-monto').value.replace(/[.,\s]/g, ''), 10) || 0
       })
     });
     status.textContent = 'Guardado.';
