@@ -111,16 +111,22 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
   con la cuenta de wye (que es del propio Hugo), falta confirmarlo con un cliente
   externo real.
-- **Tanda de funciones nuevas acordada para construir mañana (19/10 a la noche,
-  confirmado por Hugo "sumamos las 3... a lo propuesto por vos")** — sin orden
-  definido todavía, a definir mañana:
-  1. **Responder manualmente por WhatsApp desde la ficha** - sigue siendo el gap más
-     grande (ya lo habíamos marcado "importantísimo" el 18/10 y no se hizo). Hoy solo
-     hay 1 mensaje automático, después no hay forma de seguir la conversación desde
-     el CRM.
-  2. **Asignar una ficha a un empleado puntual** (no solo por departamento).
-  3. **Seguimiento activo de fichas frías** - hoy el aviso es solo visual, falta que
-     mande un email/push real al equipo cuando una ficha lleva X días sin movimiento.
+- **Tanda de funciones nuevas acordada el 19/10 ("sumamos las 3... a lo propuesto
+  por vos")** — en construcción el 20/10, items 1-3 ya hechos y desplegados:
+  1. ✅ **Responder manualmente por WhatsApp desde la ficha** (20/10) - botón en la
+     ficha, manda mensaje de sesión (gratis) si está dentro de las 24hs; si pasaron,
+     cae automático a la plantilla `seguimiento_consulta` (con costo, igual que
+     turnos) para no perder la conversación. Template verificado como APPROVED en
+     Meta (estaba PENDING el día que se creó).
+  2. ✅ **Asignar una ficha a un empleado puntual** (20/10) - selector en la ficha,
+     endpoint `GET /usuarios/asignables` (gerencia ve todos, el resto solo su
+     departamento) + `PUT /fichas/:id/asignar`.
+  3. ✅ **Seguimiento activo de fichas frías** (20/10) - antes solo había el ícono
+     visual del tablero, ahora `server/services/ciclo-fichas-frias.js` corre cada
+     6hs y manda un email agrupado (mismo switch `avisos_lead_email`) cuando una
+     ficha lleva más de 5 días sin mensaje nuevo en una columna activa. Se dedupe con
+     `ficha.aviso_fria_enviado`, que se resetea solo al volver a tener actividad real
+     (mensaje nuevo en `fichas.js` o mover de columna en `admin.js`).
   4. **Reportes de tiempo de respuesta** en Estadísticas (Premium/Elite) - cuánto
      tarda el negocio en contestar un lead nuevo.
   5. **Mensajes segmentados por etiqueta** (ej. mandarle algo a todos los "VIP") -
