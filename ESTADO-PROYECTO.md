@@ -91,6 +91,50 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   nada más. Proyecto: `eighth-opus-391401` ("FrontyBack CRM" en Google
   Cloud).
 
+- **Internacionalización: Hotmart para clientes fuera de Argentina - construido
+  completo, falta que Hugo arme los productos en Hotmart** (21/10). La landing
+  (`public/index.html`, `public/js/planes.js`) detecta el país del visitante
+  (`geoip-lite`, `GET /api/public/geo`) y muestra ARS/Mercado Pago/formulario
+  propio para Argentina, o USD/Hotmart para cualquier otro país (botones que
+  van directo al checkout de Hotmart - ahí Hotmart maneja su propio período
+  de prueba con tarjeta, no FrontyBack). Al confirmarse una compra
+  (`POST /webhook/hotmart`), la cuenta se **crea sola** (usuario/contraseña
+  generados, mandados por email) - no pasa por el formulario de alta. Una
+  cancelación/reembolso entra al mismo período de gracia de 7 días que ya
+  usa Mercado Pago (`db.cortarPorFaltaDePago`, sin cambios, ya era agnóstico
+  de pasarela). `db.crearCliente` ahora guarda `pasarela_pago` (default
+  `'mercado_pago'`, no rompe ningún cliente existente) y `hotmart_data`.
+  `scripts/test-hotmart-webhook.js` simula todo el flujo contra Mongo
+  (alta, no-duplicar en reintento, cancelación) - corrido en local, los 4
+  casos pasan.
+  **PENDIENTE de Hugo, en orden:**
+  1. Crear en su cuenta de Hotmart los 4 planes como productos de
+     suscripción (con período de prueba), cada uno con oferta mensual y
+     anual (8 ofertas en total) - los montos ya están definidos
+     (Esencial USD 10/100, Profesional USD 20/200, Premium USD 30/300,
+     Elite USD 40/400 - mensual/anual).
+  2. Copiar los 8 links de checkout y cargarlos en el `.env` del VPS
+     (`HOTMART_PLAN1_MENSUAL`...`HOTMART_PLAN4_ANUAL` - hoy tienen el
+     placeholder `"link_generico"`, con eso el botón queda deshabilitado en
+     la landing en vez de roto).
+  3. Configurar el Webhook en Hotmart (Herramientas → Webhook): copiar el
+     "Hottok" de la pestaña Autenticación a `HOTMART_WEBHOOK_SECRET` en el
+     `.env`, y cargar `https://crm.frontyback.com/webhook/hotmart` como URL
+     de entrega, tildando como mínimo los eventos de compra aprobada y de
+     cancelación/reembolso.
+  4. **Mandar un webhook de PRUEBA desde el panel de Hotmart** y revisar los
+     logs del servidor (`pm2 logs crm-frontyback`) - el formato exacto del
+     payload (nombres de campo, cómo viaja el Hottok) está armado con el
+     formato más común documentado por Hotmart pero sin confirmar contra
+     uno real todavía. Si no matchea, ajustar
+     `server/services/hotmart.js` (`extraerDatosCompra`,
+     `identificarPlanPorMonto`) - los logs quedan con el payload completo
+     cuando algo no se reconoce, para poder ajustar rápido.
+  Pendiente de pulido (no bloqueante): las preguntas frecuentes de la
+  landing siguen mencionando "7 días gratis, sin tarjeta" y "Mercado Pago"
+  en los dos idiomas de la página, sin diferenciar para visitantes
+  internacionales.
+
 - **Integración de Meta Lead Ads: construida y conectada, falta la prueba end-to-end**
   (19/10). Se programó todo (`server/services/metaLeads.js`, webhook extendido en
   `server/routes/webhooks.js` para distinguir `object: "page"` vs
