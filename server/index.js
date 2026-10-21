@@ -72,6 +72,15 @@ app.get('/planes.html', (req, res) => res.redirect(301, '/'));
 // se ve poco profesional para un cliente del CRM. Esta ruta va ANTES del estático: si hay un
 // ?slug= válido, inyecta el nombre del negocio en el HTML antes de servirlo; si no, cae al
 // archivo estático de siempre (next()), con el título genérico de FrontyBack.
+const escHtml = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function conTituloYOg(archivo, tituloOriginal, titulo, descripcion) {
+  let html = fs.readFileSync(path.join(__dirname, '..', 'public', archivo), 'utf-8');
+  return html.replace(tituloOriginal, `<title>${titulo}</title>
+<meta property="og:title" content="${titulo}">
+<meta property="og:description" content="${descripcion}">`);
+}
+
 app.get('/reservar.html', asyncHandler(async (req, res, next) => {
   const slug = String(req.query.slug || '').trim();
   if (!slug) return next();
@@ -79,15 +88,32 @@ app.get('/reservar.html', asyncHandler(async (req, res, next) => {
   const cliente = await db.getDb().collection('clientes').findOne({ slug });
   if (!cliente) return next();
 
-  const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const titulo = `Reservar turno — ${esc(cliente.nombre)}`;
-  const descripcion = `Reservá tu turno online en ${esc(cliente.nombre)}.`;
+  const nombre = escHtml(cliente.nombre);
+  const html = conTituloYOg(
+    'reservar.html',
+    '<title>Reservar turno — FrontyBack</title>',
+    `Reservar turno — ${nombre}`,
+    `Reservá tu turno online en ${nombre}.`
+  );
+  res.set('Content-Type', 'text/html; charset=utf-8').send(html);
+}));
 
-  let html = fs.readFileSync(path.join(__dirname, '..', 'public', 'reservar.html'), 'utf-8');
-  html = html.replace('<title>Reservar turno — FrontyBack</title>', `<title>${titulo}</title>
-<meta property="og:title" content="${titulo}">
-<meta property="og:description" content="${descripcion}">`);
+// Mismo motivo que reservar.html arriba, pero acá el negocio se encuentra a través del
+// turno (mi-turno.html solo recibe ?token=, no ?slug=).
+app.get('/mi-turno.html', asyncHandler(async (req, res, next) => {
+  const token = String(req.query.token || '').trim();
+  if (!token) return next();
 
+  const encontrado = await db.obtenerTurnoPorToken(token);
+  if (!encontrado || !encontrado.nombreNegocio) return next();
+
+  const nombre = escHtml(encontrado.nombreNegocio);
+  const html = conTituloYOg(
+    'mi-turno.html',
+    '<title>Mi turno — FrontyBack</title>',
+    `Mi turno — ${nombre}`,
+    `Gestioná tu turno en ${nombre}.`
+  );
   res.set('Content-Type', 'text/html; charset=utf-8').send(html);
 }));
 
