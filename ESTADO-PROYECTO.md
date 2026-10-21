@@ -155,28 +155,45 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
      no muestran el botón). Reprogramar reusa `horariosDisponibles` para
      revalidar el horario elegido, misma lógica que ve el cliente al reservar.
      Rutas nuevas bajo `/api/public/turnos/gestionar/:token`.
-  8. ✅ **Cobro de seña al reservar un turno** (20/10) - construido completo,
-     **falta un paso de Hugo para que funcione en producción** (ver abajo).
-     Switch "Pedir seña al reservar" en Turnos, con monto en ARS. El negocio
-     conecta SU PROPIA cuenta de Mercado Pago (OAuth "Connect", botón nuevo,
-     mismo patrón que Google Calendar) - la plata entra directo ahí, no a
-     FrontyBack. Si está activa, el turno nace `pendiente_pago` (ocupa el
-     horario igual, para que nadie más lo reserve) con 15 minutos para pagar en
-     un Checkout Pro; recién se avisa al negocio (ficha + WhatsApp/email) cuando
-     el webhook confirma el pago contra la API de Mercado Pago con el token del
-     propio negocio. Si no paga, `ciclo-turnos.js` lo cancela en la limpieza
-     horaria. Nuevo: `server/services/mercadopagoConnect.js`,
+  8. ✅ **Cobro de seña al reservar un turno** (20/10) - **probado de punta a
+     punta con plata real** (cuenta de wye, $5 ARS): conexión OAuth, switch,
+     monto, Checkout Pro, webhook confirma el pago contra la API con el token
+     del propio negocio, turno pasa de `pendiente_pago` a `confirmado`, ficha
+     creada, plata acreditada en la cuenta de Mercado Pago de wye (collector_id
+     verificado) con liberación en ~18 días (política estándar de MP para
+     cuentas nuevas en esto, no algo de la integración). Credenciales ya
+     cargadas en el `.env` del VPS (`MERCADOPAGO_CONNECT_CLIENT_ID/SECRET/
+     REDIRECT_URI`, reutilizando la misma Aplicación "FrontyBack CRM" que ya
+     existía en Mercado Pago Developers, con la redirect URI agregada ahí en
+     "Configuración de la aplicación" → "Configuración avanzada"). Nuevo:
+     `server/services/mercadopagoConnect.js`,
      `turnos_config.sena_activa/sena_monto`, webhook
      `POST /webhook/mercadopago-turno`.
-     **PENDIENTE (bloqueante para que el botón "Conectar Mercado Pago"
-     funcione)**: Hugo tiene que crear una **Aplicación** en
-     [Mercado Pago Developers](https://www.mercadopago.com.ar/developers/panel)
-     (tipo "Marketplace"/con OAuth) y cargar en el `.env` del VPS:
-     `MERCADOPAGO_CONNECT_CLIENT_ID`, `MERCADOPAGO_CONNECT_CLIENT_SECRET`, y
-     `MERCADOPAGO_CONNECT_REDIRECT_URI=https://crm.frontyback.com/api/admin/mercadopago/callback`
-     (esa URI de redirección hay que registrarla también del lado de Mercado
-     Pago, igual que se hizo con Google). Sin esto, el botón falla con un error
-     claro (no rompe nada), igual que quedó Google Calendar esta sesión.
+
+- **Ajustes post-prueba en vivo del 20/10** (todos desplegados, probados con
+  wye + un contacto real pagando/reprogramando/cancelando un turno real):
+  - El número de WhatsApp de wye nunca había completado el paso de
+    `registrarNumero` (error 133010 "Account not registered") - se registró a
+    mano, ya resuelto. Si otro cliente tiene el mismo síntoma (plantillas
+    fallan con 133010 pero el número está "conectado"), correr
+    `whatsapp.registrarNumero({ phoneNumberId, pin })` para ese número.
+  - `reservar.html` y `mi-turno.html` mostraban "FrontyBack" en la vista
+    previa de WhatsApp en vez del nombre del negocio (leen el `<title>`
+    estático, sin ejecutar JS) - `server/index.js` ahora intercepta esas dos
+    rutas antes del estático y les inyecta el nombre real + `og:title/
+    description` cuando hay `?slug=`/`?token=` válido.
+  - Reprogramar un turno desde `mi-turno.html` no avisaba nada ni actualizaba
+    la ficha - ahora manda la misma confirmación por WhatsApp/email y
+    refresca la ficha del tablero (sale de "fría" si estaba marcada así).
+  - Botón de copiar el link de gestión del turno (🔗) en cada fila de la
+    agenda de Turnos - para cuando un cliente pide cancelar/cambiar y perdió
+    el link; a propósito NO se lo ofrece el sistema de forma proactiva (ver
+    memoria `frontyback-crm-no-exponer-cancelacion`, Hugo prefiere no
+    invitar a cancelar).
+  - Switch "Recordatorio por WhatsApp" de Turnos se había apagado sin querer
+    durante las pruebas - si un cliente reporta que no le llegan
+    confirmaciones/recordatorios de turno, lo primero a chequear es ese
+    switch en Turnos → Recordatorios.
 
 - Hugo va a empezar a contactar prospectos ahora que está todo publicado (precio real
   de WhatsApp, verificación de Meta resuelta, alta 100% autoservicio con botón de
