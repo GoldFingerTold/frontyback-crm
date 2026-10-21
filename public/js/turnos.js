@@ -80,12 +80,30 @@ async function cargarTurnos() {
                 <div class="tn-servicio">${esc(t.servicio_nombre)}${t.profesional_nombre ? ` · ${esc(t.profesional_nombre)}` : ''}${t.estado === 'cancelado' ? ' · <span style="color: var(--danger);">Cancelado</span>' : ''}${t.estado === 'pendiente_pago' ? ' · <span style="color: var(--accent-gold);">Esperando pago de seña</span>' : ''}</div>
                 <div class="tn-contacto">${esc(t.nombre_contacto)} · ${esc(t.telefono_contacto)}</div>
               </div>
+              ${t.token_gestion ? `<button type="button" class="tn-copiar-link" data-copiar-link="${t.token_gestion}" title="Copiar el link para que el cliente cambie o cancele su turno"><i class="fa-solid fa-link"></i></button>` : ''}
               ${ESTADO.esGerencia && t.estado !== 'cancelado' ? `<button type="button" class="tn-cancelar" data-cancelar="${t._id}">Cancelar</button>` : ''}
             </div>
           `).join('')}
         </div>
       `;
     }).join('');
+
+    // Para cuando un cliente escribe pidiendo cambiar o cancelar su turno - el CRM no se
+    // lo ofrece solo a nadie (sería invitar a cancelar), pero el negocio sí puede copiarlo
+    // acá y mandárselo a mano cuando se lo piden.
+    cont.querySelectorAll('[data-copiar-link]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const link = `${location.origin}/mi-turno.html?token=${btn.dataset.copiarLink}`;
+        try {
+          await navigator.clipboard.writeText(link);
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+          setTimeout(() => { btn.innerHTML = original; }, 1500);
+        } catch {
+          prompt('Copiá este link:', link);
+        }
+      });
+    });
 
     cont.querySelectorAll('[data-cancelar]').forEach((btn) => {
       btn.addEventListener('click', async () => {
