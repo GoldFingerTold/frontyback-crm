@@ -74,20 +74,22 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
 
 ## Pendiente / abierto
 
-- **Google Calendar: resolver "Error 401: invalid_client"** (sesión del 18/10 a la
-  noche, sin resolver). La integración está programada y desplegada
-  (`server/services/googleCalendar.js`, botón en Turnos), credenciales cargadas en
-  el `.env` del VPS, el Client ID coincide exacto entre Google Cloud Console y lo que
-  lee el proceso en vivo (verificado). Probamos: esperar propagación (no sirvió),
-  activar la cuenta de Google Cloud (tenía el trial vencido - no sirvió), agregar a
-  Hugo como usuario de prueba (no sirvió). El error pasó de "invalid_client" genérico
-  a "The OAuth client was not found" y volvió a "invalid_client" - parece intermitente,
-  no un error de configuración nuestra. Dos cosas para probar mañana, en orden:
-  1. Revisar **"Información de la marca"** en Google Auth Platform por si falta algún
-     campo obligatorio.
-  2. Si no, **borrar el cliente OAuth y crear uno nuevo** (hay reportes de clientes
-     creados por la interfaz nueva de Google que quedan "pegados").
-  Proyecto: `eighth-opus-391401` ("FrontyBack CRM" en Google Cloud).
+- ✅ **Google Calendar: resuelto** (21/10). Causa real: el cliente OAuth
+  original ("Cliente web 1", creado 18/10) tenía tildada una casilla nueva de
+  Google llamada **"Use this client for an AI-powered agent"** - al
+  destildarla Google pidió confirmar con un diálogo de advertencia ("may
+  affect how your application works... may need to create a new client"),
+  pero ni así se arregló (seguía "invalid_client"). Se terminó **borrando ese
+  cliente y creando uno nuevo** (mismo tipo "Aplicación web", misma redirect
+  URI `https://crm.frontyback.com/api/admin/calendar/google-callback`, SIN
+  tildar esa casilla esta vez) - funcionó de inmediato. Client ID/Secret
+  nuevos ya cargados en el `.env` del VPS. Probado de punta a punta: turno de
+  prueba reservado → evento "Pedicuría - Celi" creado en el Google Calendar
+  de Hugo (verificado contra la API, `timeMin/timeMax` del día del turno).
+  Si algún otro cliente en el futuro reporta el mismo error con Google
+  Calendar (u otro OAuth de Google), revisar primero esa casilla antes de
+  nada más. Proyecto: `eighth-opus-391401` ("FrontyBack CRM" en Google
+  Cloud).
 
 - **Integración de Meta Lead Ads: construida y conectada, falta la prueba end-to-end**
   (19/10). Se programó todo (`server/services/metaLeads.js`, webhook extendido en
