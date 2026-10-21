@@ -546,6 +546,14 @@ router.post('/turnos/gestionar/:token/reprogramar', asyncHandler(async (req, res
 
   try {
     const turno = await db.reprogramarTurnoPorToken(req.params.token, { fecha, hora_inicio: horaInicio });
+
+    // Mismo mensaje que al reservar por primera vez, ahora con la fecha/hora nueva - el
+    // cliente ve el cambio confirmado en la pantalla, pero sin esto no le queda ningún
+    // registro en el chat de WhatsApp (puede tener costo real si pasaron las 24hs, igual
+    // que cualquier mensaje proactivo de turnos).
+    const cliente = await db.getDb().collection('clientes').findOne({ _id: turno.cliente_id });
+    if (cliente) await turnosWhatsapp.enviarConfirmacion(cliente, turno);
+
     res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre, profesional_nombre: turno.profesional_nombre } });
   } catch (err) {
     res.status(400).json({ error: err.message });
