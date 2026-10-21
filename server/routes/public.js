@@ -552,7 +552,22 @@ router.post('/turnos/gestionar/:token/reprogramar', asyncHandler(async (req, res
     // registro en el chat de WhatsApp (puede tener costo real si pasaron las 24hs, igual
     // que cualquier mensaje proactivo de turnos).
     const cliente = await db.getDb().collection('clientes').findOne({ _id: turno.cliente_id });
-    if (cliente) await turnosWhatsapp.enviarConfirmacion(cliente, turno);
+    if (cliente) {
+      await turnosWhatsapp.enviarConfirmacion(cliente, turno);
+
+      // La ficha del tablero quedaba con el mensaje de la reserva ORIGINAL para siempre -
+      // esto la actualiza (y la saca de "fría" si estaba marcada así) cada vez que el
+      // cliente cambia de día u horario, igual que un mensaje nuevo de WhatsApp.
+      const conProfesional = turno.profesional_nombre ? `, con ${turno.profesional_nombre}` : '';
+      await fichas.registrarConsulta({
+        clienteId: cliente._id,
+        columnaInicial: cliente.columnas[0].id,
+        contacto: turno.telefono_contacto,
+        nombre: turno.nombre_contacto,
+        origen: 'turno',
+        mensaje: `Cambió su turno a: ${turno.servicio_nombre}${conProfesional}, ${turno.fecha} a las ${turno.hora_inicio}hs.`
+      });
+    }
 
     res.json({ ok: true, turno: { fecha: turno.fecha, hora_inicio: turno.hora_inicio, servicio_nombre: turno.servicio_nombre, profesional_nombre: turno.profesional_nombre } });
   } catch (err) {
