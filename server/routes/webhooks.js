@@ -14,6 +14,7 @@ const stt = require('../services/stt');
 const tts = require('../services/tts');
 const mercadopago = require('../services/mercadopago');
 const mercadopagoConnect = require('../services/mercadopagoConnect');
+const hotmart = require('../services/hotmart');
 const push = require('../services/push');
 const turnosWhatsapp = require('../services/turnos');
 const googleCalendar = require('../services/googleCalendar');
@@ -522,6 +523,137 @@ async function procesarNotificacionMercadoPagoTurno(body, query) {
   await confirmarYNotificarTurno(cliente, { ...turno, estado: 'confirmado' });
 }
 
+// ---------- Hotmart (suscripción de clientes internacionales, fuera de Argentina) ----------
+// Mismo propósito que el webhook de Mercado Pago de arriba (activar/cortar la suscripción
+// del CRM), pero para los que compran afuera: Hugo vende los 4 planes como productos de
+// Hotmart, con el período de prueba manejado del lado de Hotmart (con tarjeta) - acá solo
+// reaccionamos a sus eventos. A diferencia de Mercado Pago, la cuenta NO existe de antes
+// (nadie pasó por el formulario de alta de FrontyBack): la primera compra aprobada CREA la
+// cuenta sola y le manda las credenciales por email (server/services/email.js,
+// enviarCredencialesHotmart).
+router.post(
+  '/hotmart',
+  express.json(),
+  asyncHandler(async (req, res) => {
+    res.sendStatus(200);
+    try {
+      await procesarNotificacionHotmart(req.body || {}, req.query || {});
+    } catch (err) {
+      console.error('Error procesando notificación de Hotmart:', err);
+    }
+  })
+);
+
+// Nombres de evento documentados por Hotmart para "se aprobó la compra" y "se dio de baja"
+// - sin confirmar todavía contra un webhook real (ver server/services/hotmart.js).
+const EVENTOS_HOTMART_APROBADO = ['PURCHASE_APPROVED', 'PURCHASE_COMPLETE'];
+const EVENTOS_HOTMART_BAJA = ['PURCHASE_CANCELED', 'PURCHASE_REFUNDED', 'PURCHASE_CHARGEBACK', 'SUBSCRIPTION_CANCELLATION'];
+
+function generarSlugDesdeNombre(nombre) {
+  return (
+    String(nombre || 'cliente')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // saca acentos
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'cliente'
+  );
+}
+
+async function generarSlugUnico(nombre) {
+  const mongo = db.getDb();
+  const base = generarSlugDesdeNombre(nombre);
+  let slug = base;
+  let i = 1;
+  while (await mongo.collection('clientes').findOne({ slug })) {
+    i += 1;
+    slug = `${base}-${i}`;
+  }
+  return slug;
+}
+
+async function procesarNotificacionHotmart(body, query) {
+  if (!hotmart.hottokValido(body, query)) {
+    console.warn('Webhook de Hotmart con Hottok inválido o ausente - ignorado.');
+    return;
+  }
+
+  const datos = hotmart.extraerDatosCompra(body);
+  if (!datos.evento) {
+    console.warn('Webhook de Hotmart sin evento reconocible, payload completo:', JSON.stringify(body));
+    return;
+  }
+
+  const mongo = db.getDb();
+
+  if (EVENTOS_HOTMART_APROBADO.includes(datos.evento)) {
+    if (!datos.email) {
+      console.error('Compra aprobada de Hotmart sin email de comprador, payload completo:', JSON.stringify(body));
+      return;
+    }
+
+    const existente = await mongo.collection('clientes').findOne({ email_notificacion: datos.email, pasarela_pago: 'hotmart' });
+    if (existente) {
+      // Renovación o reintento del mismo evento - la cuenta ya existe, solo nos aseguramos
+      // de que siga activa (p.ej. si había entrado en gracia por un pago anterior fallido).
+      await db.activarPorPago(existente._id, {});
+      return;
+    }
+
+    const planes = await db.getPlanes();
+    const identificado = hotmart.identificarPlanPorMonto(datos.monto, planes);
+    if (!identificado) {
+      console.error(`No se pudo identificar qué plan se compró en Hotmart (monto=${datos.monto}, moneda=${datos.moneda}) - payload completo:`, JSON.stringify(body));
+      return;
+    }
+
+    const plan = planes[identificado.planId];
+    const slug = await generarSlugUnico(datos.nombre || datos.email.split('@')[0]);
+    const password = crypto.randomBytes(9).toString('base64url');
+    const precio = identificado.frecuencia === 'anual' ? plan.precio_ars_anual : plan.precio_ars;
+
+    const cliente = await db.crearCliente({
+      slug,
+      nombre: datos.nombre || slug,
+      email_notificacion: datos.email,
+      admin_password: password,
+      plan: identificado.planId,
+      precio_pactado: precio,
+      frecuencia_pago: identificado.frecuencia,
+      origen: 'hotmart',
+      pasarela_pago: 'hotmart',
+      hotmart_data: { transaccion: datos.transaccion, subscriber_code: datos.subscriberCode, monto: datos.monto, moneda: datos.moneda }
+    });
+
+    try {
+      await email.enviarCredencialesHotmart({
+        emailDestinatario: datos.email,
+        nombreCliente: cliente.nombre,
+        slug,
+        password,
+        nombrePlan: plan.nombre
+      });
+    } catch (err) {
+      console.error(`No se pudo mandar las credenciales a ${datos.email} (la cuenta "${slug}" quedó creada igual):`, err.message);
+    }
+
+    console.log(`Cuenta nueva creada vía Hotmart: "${slug}" (plan ${identificado.planId}, ${identificado.frecuencia}).`);
+  } else if (EVENTOS_HOTMART_BAJA.includes(datos.evento)) {
+    const filtro = datos.subscriberCode
+      ? { 'hotmart_data.subscriber_code': datos.subscriberCode }
+      : { email_notificacion: datos.email, pasarela_pago: 'hotmart' };
+    const cliente = await mongo.collection('clientes').findOne(filtro);
+    if (!cliente) {
+      console.warn(`Baja de Hotmart sin cliente identificable (email="${datos.email}", subscriber_code="${datos.subscriberCode}").`);
+      return;
+    }
+    await db.cortarPorFaltaDePago(cliente._id);
+  } else {
+    console.log(`Evento de Hotmart no manejado ("${datos.evento}"), se ignora.`);
+  }
+}
+
 module.exports = router;
 module.exports.avisarLeadNuevo = avisarLeadNuevo;
 module.exports.confirmarYNotificarTurno = confirmarYNotificarTurno;
+module.exports.procesarNotificacionHotmart = procesarNotificacionHotmart;

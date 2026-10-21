@@ -14,6 +14,8 @@ const whatsapp = require('../services/whatsapp');
 const asistente = require('../services/asistente');
 const metaLeads = require('../services/metaLeads');
 const mercadopagoConnect = require('../services/mercadopagoConnect');
+const hotmart = require('../services/hotmart');
+const geoip = require('geoip-lite');
 const { avisarLeadNuevo, confirmarYNotificarTurno } = require('./webhooks');
 
 const router = express.Router();
@@ -64,8 +66,18 @@ router.post('/asistente', asistenteLimiter, asyncHandler(async (req, res) => {
 
 router.get('/planes', asyncHandler(async (req, res) => {
   const planes = await db.getPlanes();
-  res.json({ planes, dias_prueba: db.DIAS_PRUEBA_GRATIS });
+  res.json({ planes, dias_prueba: db.DIAS_PRUEBA_GRATIS, hotmart_links: hotmart.linksDeCheckout() });
 }));
+
+// Detecta de qué país viene el visitante (para que la landing muestre precios en ARS vía
+// Mercado Pago a Argentina, y en USD vía Hotmart a cualquier otro país - public/js/
+// planes.js). "trust proxy" ya está configurado en server/index.js, así que req.ip es la
+// IP real del visitante y no la del proxy de nginx delante del servidor.
+router.get('/geo', (req, res) => {
+  const ip = String(req.ip || '').replace(/^::ffff:/, '');
+  const geo = geoip.lookup(ip);
+  res.json({ pais: geo?.country === 'AR' ? 'AR' : 'otro' });
+});
 
 // Validación "en vivo" del código mientras el visitante lo escribe en el formulario, para
 // mostrarle de una el descuento antes de mandar el alta.

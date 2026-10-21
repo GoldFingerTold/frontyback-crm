@@ -355,7 +355,10 @@ const COLUMNAS_DEFAULT = [
 const LIMITE_AUDIOS_CODIGO_GRATIS = 30;
 
 // origen: 'superadmin' (alta manual, sin período de prueba, se asume ya acordado con
-// Hugo) | 'landing' (autoservicio, arranca en prueba gratis).
+// Hugo) | 'landing' (autoservicio vía Mercado Pago, arranca en prueba gratis sin tarjeta,
+// FrontyBack maneja el plazo de 7 días) | 'hotmart' (autoservicio internacional: Hotmart ya
+// aprobó el pago/arrancó su propio período de prueba con tarjeta de su lado, así que acá
+// arranca "activo" de una - no hay un segundo período de prueba corriendo en paralelo).
 // El login ya no vive en el cliente - se crea acá mismo el primer usuario, con rol
 // "gerencia" (ve todas las fichas, sin importar el departamento) y usuario = el slug,
 // para no cambiarle nada al formulario de alta ni a la pantalla de login existentes.
@@ -370,7 +373,9 @@ async function crearCliente({
   origen = 'superadmin',
   codigo_referido = null,
   descuento_pct_aplicado = 0,
-  comision_pct_aplicada = 0
+  comision_pct_aplicada = 0,
+  pasarela_pago = 'mercado_pago',
+  hotmart_data = null
 }) {
   const ahora = new Date();
   const esAltaAutoservicio = origen === 'landing';
@@ -390,6 +395,10 @@ async function crearCliente({
     comision_pct_aplicada,
     limite_audios_mes: descuento_pct_aplicado >= 100 ? LIMITE_AUDIOS_CODIGO_GRATIS : null,
     avisos_lead_email: true,
+    // Qué pasarela cobra la suscripción de este cliente - default 'mercado_pago' para no
+    // dejar sin valor a ningún cliente existente (todos los de antes de esto son de MP).
+    pasarela_pago,
+    hotmart_data,
     estado_pago: esAltaAutoservicio ? 'prueba' : 'activo',
     prueba_termina: esAltaAutoservicio
       ? new Date(ahora.getTime() + DIAS_PRUEBA_GRATIS * 24 * 60 * 60 * 1000)

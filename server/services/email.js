@@ -209,6 +209,26 @@ async function enviarRecordatorioTurno({ emailDestinatario, nombreCliente, nombr
   });
 }
 
+// Cuenta creada sola a partir de una compra en Hotmart (clientes fuera de Argentina) - a
+// diferencia del alta por Mercado Pago, acá nadie eligió un usuario/contraseña a mano, así
+// que es el único lugar donde el cliente se entera de sus credenciales.
+async function enviarCredencialesHotmart({ emailDestinatario, nombreCliente, slug, password, nombrePlan }) {
+  const from = process.env.RESEND_FROM_EMAIL || 'FrontyBack <no-reply@frontyback.com>';
+
+  await getResend().emails.send({
+    from,
+    to: emailDestinatario,
+    subject: `Tu cuenta del CRM FrontyBack está lista`,
+    html: `
+      <p>Hola!</p>
+      <p>Gracias por tu compra del plan <strong>${escHtml(nombrePlan)}</strong>. Ya creamos tu cuenta del CRM de FrontyBack, lista para usar:</p>
+      <p><strong>Usuario:</strong> ${escHtml(slug)}<br><strong>Contraseña:</strong> ${escHtml(password)}</p>
+      <p><a href="https://crm.frontyback.com/login.html" style="display:inline-block;background:#d4af37;color:#141517;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">Entrar al CRM</a></p>
+      <p style="color:#888;font-size:12px;">Por seguridad, te recomendamos cambiar la contraseña la primera vez que entres.</p>
+    `
+  });
+}
+
 module.exports = {
   enviarAutorespuesta,
   enviarAvisoPago,
@@ -217,5 +237,6 @@ module.exports = {
   enviarResumenSemanal,
   enviarConfirmacionTurno,
   enviarRecordatorioTurno,
-  enviarAvisoFichasFrias
+  enviarAvisoFichasFrias,
+  enviarCredencialesHotmart
 };
