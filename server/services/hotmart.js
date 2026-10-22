@@ -49,12 +49,25 @@ function extraerDatosCompra(body) {
     evento: String(body?.event || data?.event || '').toUpperCase(),
     email: data?.buyer?.email || data?.buyer?.checkout_phone || '',
     nombre: data?.buyer?.name || '',
+    pais: data?.buyer?.address?.country || data?.buyer?.document_type || '',
     monto: Number(data?.purchase?.price?.value ?? data?.purchase?.original_offer_price?.value ?? NaN),
     moneda: data?.purchase?.price?.currency_value || data?.currency || '',
     transaccion: data?.purchase?.transaction || null,
     subscriberCode: data?.subscription?.subscriber?.code || null,
     estadoCompra: String(data?.purchase?.status || data?.status || '').toUpperCase()
   };
+}
+
+// Idioma para guardar en el cliente nuevo (landing en 3 idiomas - ver public/i18n/) - lo
+// más confiable que tenemos del payload de Hotmart es la MONEDA del cobro, no el país (ese
+// campo varía más entre integraciones). BRL es casi siempre Brasil -> portugués; el resto
+// de Latinoamérica compra mayormente en USD igual que el resto del mundo, así que no hay
+// forma confiable de distinguir "español" de "inglés" solo con esto - default a inglés,
+// que es lo esperable para alguien que llega por un checkout de Hotmart en vez del
+// formulario en español de la landing.
+function inferirIdioma({ moneda }) {
+  if (String(moneda || '').toUpperCase() === 'BRL') return 'pt';
+  return 'en';
 }
 
 // Encuentra qué plan y frecuencia compró, comparando el monto cobrado contra los precios
@@ -72,4 +85,4 @@ function identificarPlanPorMonto(monto, planes) {
   return null;
 }
 
-module.exports = { linksDeCheckout, hottokValido, extraerDatosCompra, identificarPlanPorMonto, ORDEN_PLANES_HOTMART };
+module.exports = { linksDeCheckout, hottokValido, extraerDatosCompra, identificarPlanPorMonto, inferirIdioma, ORDEN_PLANES_HOTMART };

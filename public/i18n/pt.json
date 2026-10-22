@@ -1,0 +1,112 @@
+{
+  "meta_title": "CRM FrontyBack — WhatsApp e formulário com resposta automática",
+  "meta_description": "Centralize as consultas do seu negócio por WhatsApp e formulário, com resposta automática e acompanhamento comercial. Experimente grátis por 7 dias.",
+
+  "nav_login": "Já tenho conta",
+
+  "trial_badge": "7 dias grátis, sem cartão",
+  "trial_badge_hotmart": "Comece com o período de teste da Hotmart",
+  "hero_titulo": "Responda aos seus clientes na hora, sem ficar grudado no celular",
+  "hero_subtitulo": "Centralize as consultas do WhatsApp e do seu formulário em um único painel, com resposta automática assim que te escrevem.",
+
+  "plan_boton_mensual": "Escolher mensal",
+  "plan_boton_anual": "Escolher plano anual",
+  "plan_badge_anual": "2 meses grátis pagando o ano",
+  "plan_per_mes_ars": "ARS / mês (≈ USD {usd} hoje)",
+  "plan_per_anio_ars": "ARS / ano (≈ USD {usd} hoje)",
+  "plan_per_mes_usd": "USD / mês",
+  "plan_per_anio_usd": "USD / ano",
+  "plan_boton_no_disponible": "Ainda não disponível",
+  "plan_select_sufijo": "/mês",
+
+  "faq_titulo": "Perguntas frequentes",
+  "faq1_q": "Preciso de cartão para o período de teste grátis?",
+  "faq1_a": "Não. Você tem 7 dias completos grátis sem cadastrar nenhum dado de pagamento. Só configuramos a cobrança quando você decidir continuar.",
+  "faq2_q": "O que acontece se eu não pagar depois do teste?",
+  "faq2_a": "Nada é cortado de um dia para o outro. Primeiro você entra em um período de carência de 7 dias: continua recebendo as consultas, mas a resposta automática é desativada. Se mesmo assim não pagar, o serviço é pausado por completo - mas seus dados e as consultas que já recebeu continuam salvos, e tudo volta a funcionar assim que você pagar.",
+  "faq3_q": "Tem fidelidade ou preciso assinar algo?",
+  "faq3_a": "Não. Você pode cancelar quando quiser, sem contrato nem permanência mínima.",
+  "faq4_q": "Preciso trocar meu número de WhatsApp?",
+  "faq4_a": "Não, conectamos o seu próprio número do WhatsApp Business. Vamos te guiando passo a passo, sem precisar de conhecimento técnico.",
+  "faq5_q": "Posso trocar de plano mais adiante?",
+  "faq5_a": "Sim, é só nos chamar quando quiser que a gente ajusta.",
+  "faq6_q": "Qual a diferença entre pagar mensal ou o ano completo?",
+  "faq6_a": "Pagando o ano adiantado você ganha 2 meses grátis - o mesmo serviço, mais barato.",
+  "faq7_q": "O que acontece com minhas informações se eu cancelar?",
+  "faq7_a": "Nada é apagado. Todas as consultas que você já recebeu continuam disponíveis na sua conta, use ou não.",
+  "faq8_q": "Viu algo que gostou em outro site e quer ter no seu?",
+  "faq8_a": "A gente desenvolve e aplica para você. Conte o que viu e onde, e te explicamos como incluir no seu site ou no seu CRM.",
+  "faq_whatsapp_pre": "Sua dúvida não está aqui?",
+  "faq_whatsapp_link": "Fale conosco pelo WhatsApp",
+
+  "form_titulo": "Comece seu teste grátis",
+  "form_subtitulo": "7 dias sem cobrança. Depois combinamos o pagamento pelo WhatsApp.",
+  "form_label_nombre": "Nome do negócio",
+  "form_label_slug": "Usuário (para entrar no CRM)",
+  "form_label_email": "Email de contato",
+  "form_label_password": "Senha",
+  "form_label_plan": "Plano",
+  "form_label_frecuencia": "Forma de pagamento",
+  "form_frecuencia_mensual": "Mensal",
+  "form_frecuencia_anual": "Anual (2 meses grátis)",
+  "form_label_codigo": "Código de desconto (opcional)",
+  "form_codigo_placeholder": "Se você tiver um",
+  "form_submit": "Começar teste grátis",
+  "form_creando": "Criando sua conta...",
+  "form_error_generico": "Não foi possível criar sua conta.",
+
+  "codigo_valido": "Código válido: {pct}% de desconto",
+  "codigo_invalido": "Esse código não existe ou não está mais ativo.",
+  "precio_con_descuento": "Com o desconto:",
+  "unidad_mes": "mês",
+  "unidad_anio": "ano",
+
+  "planes": {
+    "esencial": {
+      "nombre": "Essencial",
+      "descripcion": "Formulário + WhatsApp (texto) com resposta automática, agendamento online, catálogo com pedidos pelo WhatsApp, cartão de fidelidade digital com QR, página única com todos os seus links e painel de acompanhamento.",
+      "features": [
+        "Formulário e WhatsApp (texto)",
+        "Resposta automática na hora",
+        "Agendamento online, com lembrete por WhatsApp e email",
+        "Catálogo com pedidos direto pelo WhatsApp",
+        "Cartão de fidelidade digital com QR",
+        "Página única com todos os seus links, para a bio das redes",
+        "Resumo semanal por email e pedido de avaliações em um clique",
+        "Painel Kanban",
+        "1 conta de WhatsApp conectada"
+      ]
+    },
+    "completo": {
+      "nombre": "Profissional",
+      "descripcion": "Tudo do plano Essencial, mais WhatsApp com áudio, colunas personalizadas e até 5 contas de WhatsApp.",
+      "features": [
+        "Tudo do plano Essencial",
+        "WhatsApp com áudio (transcrição e resposta por voz)",
+        "Colunas do painel personalizáveis",
+        "Consultas ilimitadas",
+        "Até 5 contas de WhatsApp conectadas"
+      ]
+    },
+    "premium": {
+      "nombre": "Premium",
+      "descripcion": "Tudo do plano Profissional, pensado para negócios com várias filiais ou linhas de WhatsApp.",
+      "features": [
+        "Tudo do plano Profissional",
+        "Até 20 contas de WhatsApp conectadas",
+        "Estatísticas e gráficos do funil de vendas",
+        "Ideal para várias filiais ou equipes"
+      ]
+    },
+    "elite": {
+      "nombre": "Elite",
+      "descripcion": "Tudo do plano Premium, mais o Mapa do Salão: organize as mesas, monte o salão no formato do seu espaço e marque o status em tempo real.",
+      "features": [
+        "Tudo do plano Premium",
+        "Mapa do salão interativo (mesas e status em tempo real)",
+        "Formato do salão editável, no tamanho do seu espaço",
+        "Pensado para gastronomia e organização de eventos"
+      ]
+    }
+  }
+}

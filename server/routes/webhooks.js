@@ -622,7 +622,8 @@ async function procesarNotificacionHotmart(body, query) {
       frecuencia_pago: identificado.frecuencia,
       origen: 'hotmart',
       pasarela_pago: 'hotmart',
-      hotmart_data: { transaccion: datos.transaccion, subscriber_code: datos.subscriberCode, monto: datos.monto, moneda: datos.moneda }
+      hotmart_data: { transaccion: datos.transaccion, subscriber_code: datos.subscriberCode, monto: datos.monto, moneda: datos.moneda },
+      idioma: hotmart.inferirIdioma({ moneda: datos.moneda })
     });
 
     try {

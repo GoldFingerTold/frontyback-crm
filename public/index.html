@@ -113,6 +113,12 @@
   }
   .pl-faq-whatsapp a { color: var(--accent-gold); text-decoration: none; }
   .pl-faq-whatsapp a:hover { text-decoration: underline; }
+
+  .pl-idioma {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px;
+    color: var(--text-primary); font-family: inherit; font-size: 13px; padding: 8px 10px;
+    margin-right: 10px; cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -123,100 +129,107 @@
       <div class="brand-logo">F</div>
       <span>FrontyBack CRM</span>
     </div>
-    <a href="/login.html" class="btn-ghost" style="padding: 9px 16px; font-size: 13px; text-decoration: none;">Ya tengo cuenta</a>
+    <div style="display: flex; align-items: center;">
+      <select class="pl-idioma" id="selector-idioma" aria-label="Idioma / Language / Idioma">
+        <option value="es">🇦🇷 Español</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="pt">🇧🇷 Português</option>
+      </select>
+      <a href="/login.html" class="btn-ghost" id="link-login" data-i18n="nav_login" style="padding: 9px 16px; font-size: 13px; text-decoration: none;">Ya tengo cuenta</a>
+    </div>
   </header>
 
   <section class="pl-hero">
-    <div class="pl-trial-badge" id="trial-badge"><i class="fa-solid fa-sparkles"></i> 7 días gratis, sin tarjeta</div>
-    <h1>Respondé a tus clientes al instante, sin estar pendiente del celular</h1>
-    <p>Centralizá las consultas de WhatsApp y de tu formulario en un solo tablero, con respuesta automática apenas te escriben.</p>
+    <div class="pl-trial-badge" id="trial-badge"><i class="fa-solid fa-sparkles"></i> <span data-i18n="trial_badge">7 días gratis, sin tarjeta</span></div>
+    <h1 data-i18n="hero_titulo">Respondé a tus clientes al instante, sin estar pendiente del celular</h1>
+    <p data-i18n="hero_subtitulo">Centralizá las consultas de WhatsApp y de tu formulario en un solo tablero, con respuesta automática apenas te escriben.</p>
   </section>
 
   <section class="pl-planes" id="planes"></section>
 
   <section class="pl-faq">
-    <h2>Preguntas frecuentes</h2>
+    <h2 data-i18n="faq_titulo">Preguntas frecuentes</h2>
 
     <details class="pl-faq-item">
-      <summary>¿Necesito tarjeta para la prueba gratis?</summary>
-      <p>No. Tenés 7 días completos gratis sin cargar ningún dato de pago. Recién cuando decidís seguir, coordinamos el cobro.</p>
+      <summary data-i18n="faq1_q">¿Necesito tarjeta para la prueba gratis?</summary>
+      <p data-i18n="faq1_a">No. Tenés 7 días completos gratis sin cargar ningún dato de pago. Recién cuando decidís seguir, coordinamos el cobro.</p>
     </details>
 
     <details class="pl-faq-item">
-      <summary>¿Qué pasa si no pago después de la prueba?</summary>
-      <p>No se corta todo de un día para el otro. Primero entrás en 7 días de gracia: seguís recibiendo las consultas, pero se corta la respuesta automática. Si después tampoco pagás, se corta el servicio del todo - pero tus datos y las consultas que ya recibiste quedan guardados, y en cuanto pagás se reactiva todo solo.</p>
+      <summary data-i18n="faq2_q">¿Qué pasa si no pago después de la prueba?</summary>
+      <p data-i18n="faq2_a">No se corta todo de un día para el otro. Primero entrás en 7 días de gracia: seguís recibiendo las consultas, pero se corta la respuesta automática. Si después tampoco pagás, se corta el servicio del todo - pero tus datos y las consultas que ya recibiste quedan guardados, y en cuanto pagás se reactiva todo solo.</p>
     </details>
 
     <details class="pl-faq-item">
-      <summary>¿Hay permanencia o tengo que firmar algo?</summary>
-      <p>No. Podés cancelar cuando quieras, no hay contrato ni permanencia mínima.</p>
+      <summary data-i18n="faq3_q">¿Hay permanencia o tengo que firmar algo?</summary>
+      <p data-i18n="faq3_a">No. Podés cancelar cuando quieras, no hay contrato ni permanencia mínima.</p>
     </details>
 
     <details class="pl-faq-item">
-      <summary>¿Tengo que cambiar mi número de WhatsApp?</summary>
-      <p>No, conectamos tu mismo número de WhatsApp Business. Te vamos guiando paso a paso, no necesitás saber nada técnico.</p>
+      <summary data-i18n="faq4_q">¿Tengo que cambiar mi número de WhatsApp?</summary>
+      <p data-i18n="faq4_a">No, conectamos tu mismo número de WhatsApp Business. Te vamos guiando paso a paso, no necesitás saber nada técnico.</p>
     </details>
 
     <details class="pl-faq-item">
-      <summary>¿Puedo cambiar de plan más adelante?</summary>
-      <p>Sí, escribinos cuando quieras y te lo ajustamos.</p>
+      <summary data-i18n="faq5_q">¿Puedo cambiar de plan más adelante?</summary>
+      <p data-i18n="faq5_a">Sí, escribinos cuando quieras y te lo ajustamos.</p>
     </details>
 
     <details class="pl-faq-item">
-      <summary>¿Qué diferencia hay entre pagar mes a mes o el año completo?</summary>
-      <p>Pagando el año adelantado tenés 2 meses gratis - el mismo servicio, más barato.</p>
+      <summary data-i18n="faq6_q">¿Qué diferencia hay entre pagar mes a mes o el año completo?</summary>
+      <p data-i18n="faq6_a">Pagando el año adelantado tenés 2 meses gratis - el mismo servicio, más barato.</p>
     </details>
 
     <details class="pl-faq-item">
-      <summary>¿Qué pasa con mi información si decido cancelar?</summary>
-      <p>Nada se borra. Todas las consultas que ya recibiste quedan disponibles en tu cuenta, la uses o no.</p>
+      <summary data-i18n="faq7_q">¿Qué pasa con mi información si decido cancelar?</summary>
+      <p data-i18n="faq7_a">Nada se borra. Todas las consultas que ya recibiste quedan disponibles en tu cuenta, la uses o no.</p>
     </details>
 
     <details class="pl-faq-item">
-      <summary>¿Viste algo que te gusta en otra página y querés eso en la tuya?</summary>
-      <p>Lo desarrollamos y te lo aplicamos. Contanos qué viste y dónde, y te decimos cómo sumarlo a tu sitio o a tu CRM.</p>
+      <summary data-i18n="faq8_q">¿Viste algo que te gusta en otra página y querés eso en la tuya?</summary>
+      <p data-i18n="faq8_a">Lo desarrollamos y te lo aplicamos. Contanos qué viste y dónde, y te decimos cómo sumarlo a tu sitio o a tu CRM.</p>
     </details>
 
     <p class="pl-faq-whatsapp">
-      ¿Tu duda no está acá? <a href="https://wa.me/5491162195243?text=Hola!%20Tengo%20una%20duda%20sobre%20el%20CRM%20de%20FrontyBack%20antes%20de%20anotarme.">Escribinos por WhatsApp</a>
+      <span data-i18n="faq_whatsapp_pre">¿Tu duda no está acá?</span> <a href="https://wa.me/5491162195243?text=Hola!%20Tengo%20una%20duda%20sobre%20el%20CRM%20de%20FrontyBack%20antes%20de%20anotarme." data-i18n="faq_whatsapp_link">Escribinos por WhatsApp</a>
     </p>
   </section>
 
   <section class="pl-form-section" id="pl-form-section">
     <form id="signup-form" class="pl-form-card">
-      <h2 id="form-titulo">Empezá tu prueba gratis</h2>
-      <p class="hint" style="margin: 0; color: var(--text-muted); font-size: 13px;">7 días sin cargo. Después coordinamos el pago por WhatsApp.</p>
+      <h2 id="form-titulo" data-i18n="form_titulo">Empezá tu prueba gratis</h2>
+      <p class="hint" style="margin: 0; color: var(--text-muted); font-size: 13px;" data-i18n="form_subtitulo">7 días sin cargo. Después coordinamos el pago por WhatsApp.</p>
 
       <div class="pl-field">
-        <label for="f-nombre">Nombre del negocio</label>
+        <label for="f-nombre" data-i18n="form_label_nombre">Nombre del negocio</label>
         <input type="text" id="f-nombre" required>
       </div>
       <div class="pl-field">
-        <label for="f-slug">Usuario (para entrar al CRM)</label>
+        <label for="f-slug" data-i18n="form_label_slug">Usuario (para entrar al CRM)</label>
         <input type="text" id="f-slug" required>
       </div>
       <div class="pl-field">
-        <label for="f-email">Email de contacto</label>
+        <label for="f-email" data-i18n="form_label_email">Email de contacto</label>
         <input type="email" id="f-email" required>
       </div>
       <div class="pl-field">
-        <label for="f-password">Contraseña</label>
+        <label for="f-password" data-i18n="form_label_password">Contraseña</label>
         <input type="password" id="f-password" required minlength="8">
       </div>
       <div class="pl-field">
-        <label for="f-plan">Plan</label>
+        <label for="f-plan" data-i18n="form_label_plan">Plan</label>
         <select id="f-plan"></select>
       </div>
       <div class="pl-field">
-        <label for="f-frecuencia">Forma de pago</label>
+        <label for="f-frecuencia" data-i18n="form_label_frecuencia">Forma de pago</label>
         <select id="f-frecuencia">
-          <option value="mensual">Mes a mes</option>
-          <option value="anual">Anual (2 meses gratis)</option>
+          <option value="mensual" data-i18n="form_frecuencia_mensual">Mes a mes</option>
+          <option value="anual" data-i18n="form_frecuencia_anual">Anual (2 meses gratis)</option>
         </select>
       </div>
       <div class="pl-field">
-        <label for="f-codigo">Código de descuento (opcional)</label>
-        <input type="text" id="f-codigo" placeholder="Si tenés uno">
+        <label for="f-codigo" data-i18n="form_label_codigo">Código de descuento (opcional)</label>
+        <input type="text" id="f-codigo" data-i18n-placeholder="form_codigo_placeholder" placeholder="Si tenés uno">
         <p class="pl-codigo-status" id="codigo-status"></p>
       </div>
 
@@ -228,7 +241,7 @@
         <input type="text" id="f-hp" name="_hp" tabindex="-1" autocomplete="off">
       </div>
 
-      <button type="submit" class="btn btn-primary">Empezar prueba gratis</button>
+      <button type="submit" class="btn btn-primary" data-i18n="form_submit">Empezar prueba gratis</button>
       <p class="form-status" id="signup-status"></p>
     </form>
   </section>

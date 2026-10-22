@@ -78,6 +78,7 @@ async function main() {
   assert(cliente.pasarela_pago === 'hotmart', 'pasarela_pago quedó "hotmart"');
   assert(cliente.estado_pago === 'activo', `el estado quedó "activo" (quedó "${cliente?.estado_pago}")`);
   assert(cliente.hotmart_data?.subscriber_code === 'SUBTEST1', 'se guardó el subscriber_code');
+  assert(cliente.idioma === 'en', `sin moneda BRL, el idioma quedó "en" (quedó "${cliente?.idioma}")`);
 
   console.log('\n--- 3. El mismo evento de nuevo (reintento/renovación): NO tiene que duplicar la cuenta ---');
   await procesarNotificacionHotmart(payloadCompra({ monto: 10, transaccion: 'HPTEST1', subscriberCode: 'SUBTEST1' }), {});

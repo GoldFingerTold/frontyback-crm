@@ -1,0 +1,112 @@
+{
+  "meta_title": "FrontyBack CRM — WhatsApp and web form with instant replies",
+  "meta_description": "Centralize your business inquiries from WhatsApp and your web form, with automatic replies and sales follow-up. Try it free for 7 days.",
+
+  "nav_login": "I already have an account",
+
+  "trial_badge": "7 days free, no card needed",
+  "trial_badge_hotmart": "Start with Hotmart's free trial",
+  "hero_titulo": "Reply to your customers instantly, without being glued to your phone",
+  "hero_subtitulo": "Bring your WhatsApp and web form inquiries into one board, with automatic replies the moment someone writes to you.",
+
+  "plan_boton_mensual": "Choose monthly",
+  "plan_boton_anual": "Choose annual plan",
+  "plan_badge_anual": "2 months free paying yearly",
+  "plan_per_mes_ars": "ARS / month (≈ USD {usd} today)",
+  "plan_per_anio_ars": "ARS / year (≈ USD {usd} today)",
+  "plan_per_mes_usd": "USD / month",
+  "plan_per_anio_usd": "USD / year",
+  "plan_boton_no_disponible": "Not available yet",
+  "plan_select_sufijo": "/month",
+
+  "faq_titulo": "Frequently asked questions",
+  "faq1_q": "Do I need a card for the free trial?",
+  "faq1_a": "No. You get 7 full days free without entering any payment info. We only set up payment once you decide to continue.",
+  "faq2_q": "What happens if I don't pay after the trial?",
+  "faq2_a": "Nothing gets cut off overnight. First you enter a 7-day grace period: you keep receiving inquiries, but automatic replies stop. If you still don't pay after that, the service pauses completely - but your data and the inquiries you already received stay saved, and everything turns back on as soon as you pay.",
+  "faq3_q": "Is there a minimum commitment or contract to sign?",
+  "faq3_a": "No. You can cancel whenever you want, no contract or minimum term.",
+  "faq4_q": "Do I need to change my WhatsApp number?",
+  "faq4_a": "No, we connect your own WhatsApp Business number. We'll guide you step by step, no technical knowledge needed.",
+  "faq5_q": "Can I change plans later?",
+  "faq5_a": "Yes, just message us whenever you want and we'll adjust it.",
+  "faq6_q": "What's the difference between paying monthly or the full year?",
+  "faq6_a": "Paying the year upfront gets you 2 months free - same service, cheaper overall.",
+  "faq7_q": "What happens to my information if I cancel?",
+  "faq7_a": "Nothing gets deleted. Every inquiry you already received stays available in your account, whether you use it or not.",
+  "faq8_q": "Saw something you like on another site and want it on yours?",
+  "faq8_a": "We'll build it and apply it for you. Tell us what you saw and where, and we'll tell you how to add it to your site or your CRM.",
+  "faq_whatsapp_pre": "Still have a question?",
+  "faq_whatsapp_link": "Write to us on WhatsApp",
+
+  "form_titulo": "Start your free trial",
+  "form_subtitulo": "7 days free, no charge. We set up payment afterward, by WhatsApp.",
+  "form_label_nombre": "Business name",
+  "form_label_slug": "Username (to log into the CRM)",
+  "form_label_email": "Contact email",
+  "form_label_password": "Password",
+  "form_label_plan": "Plan",
+  "form_label_frecuencia": "Billing frequency",
+  "form_frecuencia_mensual": "Monthly",
+  "form_frecuencia_anual": "Annual (2 months free)",
+  "form_label_codigo": "Discount code (optional)",
+  "form_codigo_placeholder": "If you have one",
+  "form_submit": "Start free trial",
+  "form_creando": "Creating your account...",
+  "form_error_generico": "We couldn't create your account.",
+
+  "codigo_valido": "Valid code: {pct}% off",
+  "codigo_invalido": "That code doesn't exist or isn't active anymore.",
+  "precio_con_descuento": "With the discount:",
+  "unidad_mes": "month",
+  "unidad_anio": "year",
+
+  "planes": {
+    "esencial": {
+      "nombre": "Essential",
+      "descripcion": "Web form + WhatsApp (text) with automatic replies, online booking, a WhatsApp-ready catalog, a digital loyalty card with QR, a single link page, and a sales tracking board.",
+      "features": [
+        "Web form and WhatsApp (text)",
+        "Instant automatic replies",
+        "Online appointment booking, with WhatsApp and email reminders",
+        "Catalog with orders placed directly over WhatsApp",
+        "Digital loyalty card with QR code",
+        "Single link-in-bio page for your social media",
+        "Weekly email summary and one-click review requests",
+        "Kanban board",
+        "1 connected WhatsApp account"
+      ]
+    },
+    "completo": {
+      "nombre": "Professional",
+      "descripcion": "Everything in Essential, plus WhatsApp with voice messages, custom board columns, and up to 5 WhatsApp accounts.",
+      "features": [
+        "Everything in Essential",
+        "WhatsApp with voice (transcription and voice replies)",
+        "Customizable board columns",
+        "Unlimited inquiries",
+        "Up to 5 connected WhatsApp accounts"
+      ]
+    },
+    "premium": {
+      "nombre": "Premium",
+      "descripcion": "Everything in Professional, built for businesses with multiple locations or WhatsApp lines.",
+      "features": [
+        "Everything in Professional",
+        "Up to 20 connected WhatsApp accounts",
+        "Sales funnel statistics and charts",
+        "Ideal for multiple locations or teams"
+      ]
+    },
+    "elite": {
+      "nombre": "Elite",
+      "descripcion": "Everything in Premium, plus Floor Plan: organize tables, lay out your venue to match your space, and mark table status live.",
+      "features": [
+        "Everything in Premium",
+        "Interactive floor plan (tables and live status)",
+        "Editable layout, matching your venue",
+        "Built for restaurants and event planning"
+      ]
+    }
+  }
+}

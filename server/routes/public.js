@@ -69,6 +69,21 @@ router.get('/planes', asyncHandler(async (req, res) => {
   res.json({ planes, dias_prueba: db.DIAS_PRUEBA_GRATIS, hotmart_links: hotmart.linksDeCheckout() });
 }));
 
+// Países de habla hispana - sirve solo para SUGERIR el idioma de la landing (public/js/
+// planes.js), no para la moneda/pasarela de pago (eso sigue siendo "AR" vs "el resto",
+// más abajo) - un visitante de México o España ve precios en USD/Hotmart igual, pero el
+// texto en español.
+const PAISES_HISPANOHABLANTES = new Set([
+  'AR', 'ES', 'MX', 'CO', 'CL', 'PE', 'VE', 'EC', 'GT', 'CU', 'BO', 'DO', 'HN', 'PY', 'SV', 'NI', 'CR', 'PA', 'UY', 'PR', 'GQ'
+]);
+
+function idiomaSugeridoPorPais(pais) {
+  if (!pais) return 'es'; // sin IP detectable (localhost, VPN, etc.) - español por default, el mercado principal hoy
+  if (PAISES_HISPANOHABLANTES.has(pais)) return 'es';
+  if (pais === 'BR') return 'pt';
+  return 'en';
+}
+
 // Detecta de qué país viene el visitante (para que la landing muestre precios en ARS vía
 // Mercado Pago a Argentina, y en USD vía Hotmart a cualquier otro país - public/js/
 // planes.js). "trust proxy" ya está configurado en server/index.js, así que req.ip es la
@@ -76,7 +91,10 @@ router.get('/planes', asyncHandler(async (req, res) => {
 router.get('/geo', (req, res) => {
   const ip = String(req.ip || '').replace(/^::ffff:/, '');
   const geo = geoip.lookup(ip);
-  res.json({ pais: geo?.country === 'AR' ? 'AR' : 'otro' });
+  res.json({
+    pais: geo?.country === 'AR' ? 'AR' : 'otro',
+    idioma_sugerido: idiomaSugeridoPorPais(geo?.country)
+  });
 });
 
 // Validación "en vivo" del código mientras el visitante lo escribe en el formulario, para
@@ -110,6 +128,7 @@ router.post(
     const planId = String(body.plan || '');
     const frecuencia = body.frecuencia === 'anual' ? 'anual' : 'mensual';
     const codigoTexto = String(body.codigo || '').trim().toUpperCase();
+    const idioma = ['es', 'en', 'pt'].includes(body.idioma) ? body.idioma : 'es';
 
     if (!nombre || !slug || !email || !password) {
       return res.status(400).json({ error: 'Faltan datos.' });
@@ -170,7 +189,8 @@ router.post(
       origen: 'landing',
       codigo_referido: codigoGuardado,
       descuento_pct_aplicado: descuentoPct,
-      comision_pct_aplicada: comisionPct
+      comision_pct_aplicada: comisionPct,
+      idioma
     });
 
     req.session.clienteId = cliente._id.toString();
@@ -654,3 +674,4 @@ router.get('/fidelidad/:slug/tarjeta/:codigo', asyncHandler(async (req, res) => 
 }));
 
 module.exports = router;
+module.exports.idiomaSugeridoPorPais = idiomaSugeridoPorPais;

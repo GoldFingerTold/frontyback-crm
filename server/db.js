@@ -375,7 +375,8 @@ async function crearCliente({
   descuento_pct_aplicado = 0,
   comision_pct_aplicada = 0,
   pasarela_pago = 'mercado_pago',
-  hotmart_data = null
+  hotmart_data = null,
+  idioma = 'es'
 }) {
   const ahora = new Date();
   const esAltaAutoservicio = origen === 'landing';
@@ -399,6 +400,10 @@ async function crearCliente({
     // dejar sin valor a ningún cliente existente (todos los de antes de esto son de MP).
     pasarela_pago,
     hotmart_data,
+    // Idioma de la landing al momento del alta (español/inglés/portugués por ahora) - el
+    // dashboard interno y las respuestas de WhatsApp todavía son solo en español, esto por
+    // ahora solo queda guardado para cuando se traduzcan también.
+    idioma,
     estado_pago: esAltaAutoservicio ? 'prueba' : 'activo',
     prueba_termina: esAltaAutoservicio
       ? new Date(ahora.getTime() + DIAS_PRUEBA_GRATIS * 24 * 60 * 60 * 1000)
