@@ -135,6 +135,28 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   en los dos idiomas de la página, sin diferenciar para visitantes
   internacionales.
 
+- **Landing en 3 idiomas (ES/EN/PT), construida y en producción** (21/10).
+  Detección automática por país (`GET /api/public/geo` devuelve
+  `idioma_sugerido`, países hispanohablantes → es, Brasil → pt, el resto →
+  en) + selector manual en el header que pisa la detección y se guarda en
+  cookie (`frontyback_idioma`, 1 año). Diccionarios en
+  `public/i18n/{es,en,pt}.json` (incluyen nombre/descripción/features de
+  cada plan, el precio sigue viniendo de Mongo). El idioma elegido queda
+  guardado en `clientes.idioma` al dar de alta (por Mercado Pago o por
+  Hotmart - en Hotmart se infiere de la moneda del cobro: BRL → pt, el
+  resto → en por defecto, ya que no hay forma confiable de distinguir
+  español de inglés solo con eso).
+  `scripts/test-i18n.js` verifica que los 3 diccionarios tengan
+  exactamente las mismas keys y que la detección por país funcione para
+  varios continentes.
+  **Alcance acordado explícitamente con Hugo**: por ahora SOLO la landing
+  de ventas. El dashboard interno del CRM (tablero, turnos, etc.) y las
+  respuestas automáticas de WhatsApp siguen en español - traducir
+  WhatsApp requeriría que Meta apruebe una plantilla por idioma por cada
+  WABA conectada, no es algo que el código resuelva solo. Si en algún
+  momento se pide ampliar esto, confirmar bien el alcance antes de
+  arrancar (cientos de strings por cada pantalla nueva que se sume).
+
 - **Integración de Meta Lead Ads: construida y conectada, falta la prueba end-to-end**
   (19/10). Se programó todo (`server/services/metaLeads.js`, webhook extendido en
   `server/routes/webhooks.js` para distinguir `object: "page"` vs
