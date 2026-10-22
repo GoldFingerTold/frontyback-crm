@@ -35,6 +35,8 @@ document.getElementById('btn-ver-planes')?.addEventListener('click', () => {
       particula.className = 'pl-destello';
       const angulo = (Math.PI * 2 * i) / cantidad + Math.random() * 0.25;
       const distancia = 55 + Math.random() * 55;
+      const tamano = 3 + Math.random() * 4; // varía el tamaño para que no se vean todas iguales
+      particula.style.width = particula.style.height = `${tamano}px`;
       particula.style.left = `${cx}px`;
       particula.style.top = `${cy}px`;
       particula.style.setProperty('--tx', `${Math.cos(angulo) * distancia}px`);

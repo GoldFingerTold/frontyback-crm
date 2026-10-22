@@ -7,77 +7,98 @@
 <meta name="description" content="Centralizá las consultas de tu negocio por WhatsApp y formulario, con respuesta automática y seguimiento comercial. Probalo gratis 7 días.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="/css/style.css">
 <style>
-  .pl-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #0e0f10); }
+  /* Paleta "SaaS premium" solo para esta página - redefine las mismas variables que usa
+     el resto del sitio (public/css/style.css), pero como esto vive en el <style> propio
+     de index.html, no se filtra a ninguna otra pantalla del CRM (tablero, turnos, etc.),
+     esas siguen con la paleta de siempre. */
+  :root {
+    --bg-main: #0b0b0c;
+    --bg-surface: #16161a;
+    --border-subtle: #2a2a32;
+    --accent-gold: #e5a93b;
+    --accent-gold-glow: rgba(229, 169, 59, 0.14);
+    --accent-gradient: linear-gradient(135deg, #f7dc8a 0%, #e5a93b 55%, #b8860b 100%);
+    --text-primary: #ffffff;
+    --text-secondary: #b7b7c0;
+    --text-muted: #7c7c86;
+  }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+  .pl-shell { min-height: 100vh; background: linear-gradient(to bottom, var(--bg-main), #060607); }
   .pl-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 24px 32px; max-width: 1040px; margin: 0 auto;
+    padding: 28px 32px; max-width: 1080px; margin: 0 auto;
   }
   .pl-brand { display: flex; align-items: center; gap: 10px; }
-  .pl-brand span { font-family: 'Clash Display', sans-serif; font-weight: 600; font-size: 17px; }
-  .pl-hero { max-width: 760px; margin: 20px auto 56px; padding: 0 24px; text-align: center; }
+  .pl-brand span { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .pl-hero { max-width: 780px; margin: 36px auto; padding: 0 24px 96px; text-align: center; }
   .pl-hero h1 {
-    font-family: 'Clash Display', sans-serif; font-weight: 600;
-    font-size: clamp(28px, 5vw, 44px); line-height: 1.15; margin: 0 0 16px;
+    font-weight: 800; letter-spacing: -0.02em;
+    font-size: clamp(32px, 5.5vw, 54px); line-height: 1.1; margin: 0 0 20px;
+    background: linear-gradient(180deg, #ffffff 0%, #c9c9d2 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
   }
-  .pl-hero p { color: var(--text-secondary); font-size: 16px; line-height: 1.6; max-width: 540px; margin: 0 auto; }
+  .pl-hero p { color: var(--text-secondary); font-size: 16.5px; line-height: 1.65; max-width: 560px; margin: 0 auto; }
   .pl-trial-badge {
-    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px;
-    padding: 6px 16px; border-radius: 100px; background: rgba(212,175,55,0.08);
-    border: 1px solid rgba(212,175,55,0.2); color: var(--accent-gold); font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;
+    padding: 7px 16px; border-radius: 100px; background: var(--accent-gold-glow);
+    border: 1px solid rgba(229,169,59,0.28); color: var(--accent-gold); font-size: 13px; font-weight: 600;
   }
 
-  .pl-planes { max-width: 1320px; margin: 0 auto 64px; padding: 0 24px; display: grid; grid-template-columns: 1fr; gap: 18px; }
+  .pl-planes { max-width: 1320px; margin: 0 auto; padding: 0 24px 100px; display: grid; grid-template-columns: 1fr; gap: 18px; }
   @media (min-width: 640px) { .pl-planes { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 1040px) { .pl-planes { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
   .pl-plan {
-    background: rgba(28,29,31,0.6); border: 1px solid var(--border-subtle); border-radius: 16px;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 14px;
     padding: 28px 24px; display: flex; flex-direction: column; gap: 18px;
   }
-  .pl-plan.destacado { border-color: rgba(212,175,55,0.3); box-shadow: 0 0 30px rgba(212,175,55,0.06); }
-  .pl-plan-nombre { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 600; }
+  .pl-plan.destacado { border-color: rgba(229,169,59,0.35); box-shadow: 0 0 36px rgba(229,169,59,0.08); }
+  .pl-plan-nombre { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
   .pl-plan-precio { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-  .pl-plan-precio .num { font-family: 'Clash Display', sans-serif; font-size: 40px; font-weight: 600; color: var(--accent-gold); white-space: nowrap; }
+  .pl-plan-precio .num { font-size: 38px; font-weight: 800; letter-spacing: -0.01em; color: var(--accent-gold); white-space: nowrap; }
   .pl-plan-precio .per { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; }
   .pl-plan-desc { color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
   .pl-plan ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
   .pl-plan li { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--text-secondary); }
   .pl-plan li i { color: var(--accent-gold); margin-top: 3px; font-size: 12px; }
-  .pl-plan button { margin-top: auto; }
+  .pl-plan button, .pl-plan a.btn, .pl-plan a.btn-ghost { margin-top: auto; }
 
   .pl-plan-anual {
     border-top: 1px solid var(--border-subtle); padding-top: 16px;
     display: flex; flex-direction: column; gap: 10px;
   }
   .pl-plan-anual-precio { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-  .pl-plan-anual-precio .num { font-family: 'Clash Display', sans-serif; font-size: 22px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+  .pl-plan-anual-precio .num { font-size: 21px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
   .pl-plan-anual-precio .per { color: var(--text-muted); font-size: 11.5px; white-space: nowrap; }
   .pl-plan-anual-badge {
     display: inline-flex; align-self: flex-start; align-items: center; gap: 5px;
     font-size: 11px; font-weight: 600; color: var(--accent-gold);
-    background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.2);
+    background: var(--accent-gold-glow); border: 1px solid rgba(229,169,59,0.28);
     padding: 3px 9px; border-radius: 100px;
   }
 
-  .pl-form-section { max-width: 460px; margin: 0 auto 80px; padding: 0 24px; }
+  .pl-form-section { max-width: 460px; margin: 0 auto; padding: 0 24px 110px; }
   .pl-form-card {
-    background: rgba(28,29,31,0.8); border: 1px solid var(--border-subtle); border-radius: 16px;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 16px;
     padding: 36px; display: flex; flex-direction: column; gap: 16px;
   }
-  .pl-form-card h2 { font-family: 'Clash Display', sans-serif; font-size: 19px; font-weight: 600; margin: 0 0 2px; }
+  .pl-form-card h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 2px; }
   .pl-form-card label {
     display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 6px;
   }
   .pl-form-card input, .pl-form-card select {
-    width: 100%; padding: 11px 13px; background: var(--bg-surface); border: 1px solid var(--border-subtle);
-    border-radius: 9px; font-size: 0.9rem; font-family: inherit; color: var(--text-primary); outline: none;
+    width: 100%; padding: 12px 13px; background: #1e1e24; border: 1px solid var(--border-subtle);
+    border-radius: 10px; font-size: 0.9rem; font-family: inherit; color: #ffffff; outline: none;
+    transition: border-color .15s, box-shadow .15s;
   }
-  .pl-form-card input:focus, .pl-form-card select:focus { border-color: rgba(212,175,55,0.4); }
+  .pl-form-card input:focus, .pl-form-card select:focus {
+    border-color: var(--accent-gold); box-shadow: 0 0 0 3px var(--accent-gold-glow);
+  }
   .pl-field { display: flex; flex-direction: column; }
   .pl-codigo-status { font-size: 12px; min-height: 1.2em; margin-top: 4px; }
   .pl-codigo-status.ok { color: var(--accent-gold); }
@@ -88,13 +109,13 @@
   /* Campo trampa para bots: invisible para una persona */
   .pl-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
-  .pl-faq { max-width: 640px; margin: 0 auto 64px; padding: 0 24px; }
+  .pl-faq { max-width: 640px; margin: 0 auto; padding: 0 24px 96px; }
   .pl-faq h2 {
-    font-family: 'Clash Display', sans-serif; font-size: 22px; font-weight: 600;
-    text-align: center; margin: 0 0 24px;
+    font-size: 24px; font-weight: 700; letter-spacing: -0.01em;
+    text-align: center; margin: 0 0 28px;
   }
   .pl-faq-item {
-    background: rgba(28,29,31,0.6); border: 1px solid var(--border-subtle); border-radius: 12px;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;
     margin-bottom: 10px; padding: 4px 18px;
   }
   .pl-faq-item summary {
@@ -120,21 +141,35 @@
     margin-right: 10px; cursor: pointer;
   }
 
-  .pl-hero-cta { margin-top: 24px; }
+  .pl-hero-cta { margin-top: 28px; }
+
+  /* Botones: la paleta nueva pisa el .btn-primary/.btn-ghost compartidos del resto del
+     CRM solo acá adentro (mayor especificidad por el .pl-shell), sin tocar ese archivo. */
+  .pl-shell .btn-primary {
+    background: var(--accent-gradient); color: #15130a; border: none;
+    box-shadow: 0 8px 22px rgba(229,169,59,0.22);
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, filter .2s;
+  }
+  .pl-shell .btn-primary:hover { transform: scale(1.035); box-shadow: 0 12px 30px rgba(229,169,59,0.32); filter: brightness(1.04); }
+  .pl-shell .btn-ghost {
+    background: transparent; border: 1px solid var(--border-subtle); color: var(--text-secondary);
+    transition: border-color .2s, color .2s;
+  }
+  .pl-shell .btn-ghost:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
 
   /* ---------- "Qué es un CRM" + demo de tablero animado ---------- */
-  .pl-explica { max-width: 1040px; margin: 0 auto 72px; padding: 0 24px; }
-  .pl-explica-texto { text-align: center; max-width: 620px; margin: 0 auto 36px; }
-  .pl-explica-texto h2 { font-family: 'Clash Display', sans-serif; font-size: clamp(22px, 4vw, 30px); font-weight: 600; margin: 0 0 14px; }
-  .pl-explica-texto p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+  .pl-explica { max-width: 1040px; margin: 0 auto; padding: 0 24px 100px; }
+  .pl-explica-texto { text-align: center; max-width: 640px; margin: 0 auto 40px; }
+  .pl-explica-texto h2 { font-size: clamp(24px, 4vw, 32px); font-weight: 700; letter-spacing: -0.01em; margin: 0 0 14px; }
+  .pl-explica-texto p { color: var(--text-secondary); font-size: 15.5px; line-height: 1.65; }
 
   .pl-kanban-demo {
     position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-    background: rgba(255,255,255,0.015); border: 1px solid var(--border-subtle); border-radius: 18px;
-    padding: 20px 14px 90px; overflow: hidden;
+    background: linear-gradient(165deg, #121216, #0e0e11); border: 1px solid var(--border-subtle); border-radius: 18px;
+    padding: 22px 14px 96px; overflow: hidden;
   }
   .pl-kanban-col {
-    background: rgba(28,29,31,0.5); border: 1px dashed var(--border-subtle); border-radius: 12px;
+    background: #121216; border: 1px dashed var(--border-subtle); border-radius: 12px;
     padding: 12px 8px; min-height: 70px;
   }
   .pl-kanban-col-titulo {
@@ -145,39 +180,42 @@
   @media (min-width: 540px) { .pl-kanban-col-titulo { font-size: 12px; } }
 
   .pl-kanban-card {
-    position: absolute; top: 108px; width: 160px;
-    background: linear-gradient(135deg, #1c1d1f, #141517); border: 1px solid rgba(212,175,55,0.35);
-    border-radius: 10px; padding: 11px 13px; font-size: 12.5px; font-weight: 600; color: var(--text-primary);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.35); transition: left 1s cubic-bezier(.65,0,.35,1), opacity .45s;
+    position: absolute; top: 110px; width: 162px;
+    background: linear-gradient(150deg, #fdfbf5, #f1ece0); border: none;
+    border-radius: 11px; padding: 11px 13px; font-size: 12.5px; font-weight: 700; color: #16151a;
+    box-shadow: 0 16px 34px rgba(0,0,0,0.5), 0 2px 10px rgba(0,0,0,0.3);
+    transition: left 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s;
   }
   .pl-kanban-card.oculta { opacity: 0; }
-  @media (min-width: 540px) { .pl-kanban-card { top: 90px; width: 190px; font-size: 13.5px; } }
+  @media (min-width: 540px) { .pl-kanban-card { top: 92px; width: 192px; font-size: 13.5px; } }
 
   .pl-destello {
-    position: absolute; width: 6px; height: 6px; border-radius: 50%;
-    background: radial-gradient(circle, #ffeeb3, var(--accent-gold));
-    pointer-events: none; animation: pl-destello-vuelo .85s ease-out forwards;
+    position: absolute; width: 5px; height: 5px; border-radius: 50%;
+    background: radial-gradient(circle, #fff6d9, var(--accent-gold) 70%);
+    box-shadow: 0 0 6px 1px rgba(229,169,59,0.55);
+    pointer-events: none; animation: pl-destello-vuelo .9s cubic-bezier(.22,.68,0,1) forwards;
   }
   @keyframes pl-destello-vuelo {
     0% { transform: translate(0, 0) scale(1); opacity: 1; }
-    100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0.15); opacity: 0; }
   }
 
   /* ---------- "Lo que ofrecemos" ---------- */
-  .pl-features { max-width: 1040px; margin: 0 auto 72px; padding: 0 24px; }
+  .pl-features { max-width: 1040px; margin: 0 auto; padding: 0 24px 100px; }
   .pl-features h2 {
-    font-family: 'Clash Display', sans-serif; font-size: clamp(22px, 4vw, 30px); font-weight: 600;
-    text-align: center; margin: 0 0 32px;
+    font-size: clamp(24px, 4vw, 32px); font-weight: 700; letter-spacing: -0.01em;
+    text-align: center; margin: 0 0 36px;
   }
   .pl-features-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
   @media (min-width: 640px) { .pl-features-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 1040px) { .pl-features-grid { grid-template-columns: repeat(4, 1fr); } }
   .pl-feature {
-    background: rgba(28,29,31,0.6); border: 1px solid var(--border-subtle); border-radius: 14px;
-    padding: 24px 20px; text-align: center;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;
+    padding: 26px 20px; text-align: center; transition: border-color .2s, transform .2s;
   }
+  .pl-feature:hover { border-color: rgba(229,169,59,0.3); transform: translateY(-2px); }
   .pl-feature i { font-size: 22px; color: var(--accent-gold); margin-bottom: 14px; }
-  .pl-feature h3 { font-family: 'Clash Display', sans-serif; font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+  .pl-feature h3 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
   .pl-feature p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin: 0; }
 </style>
 </head>
