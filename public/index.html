@@ -119,6 +119,66 @@
     color: var(--text-primary); font-family: inherit; font-size: 13px; padding: 8px 10px;
     margin-right: 10px; cursor: pointer;
   }
+
+  .pl-hero-cta { margin-top: 24px; }
+
+  /* ---------- "Qué es un CRM" + demo de tablero animado ---------- */
+  .pl-explica { max-width: 1040px; margin: 0 auto 72px; padding: 0 24px; }
+  .pl-explica-texto { text-align: center; max-width: 620px; margin: 0 auto 36px; }
+  .pl-explica-texto h2 { font-family: 'Clash Display', sans-serif; font-size: clamp(22px, 4vw, 30px); font-weight: 600; margin: 0 0 14px; }
+  .pl-explica-texto p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+
+  .pl-kanban-demo {
+    position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    background: rgba(255,255,255,0.015); border: 1px solid var(--border-subtle); border-radius: 18px;
+    padding: 20px 14px 90px; overflow: hidden;
+  }
+  .pl-kanban-col {
+    background: rgba(28,29,31,0.5); border: 1px dashed var(--border-subtle); border-radius: 12px;
+    padding: 12px 8px; min-height: 70px;
+  }
+  .pl-kanban-col-titulo {
+    display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--text-muted); text-align: center;
+  }
+  .pl-kanban-col[data-col="2"] .pl-kanban-col-titulo { color: var(--accent-gold); }
+  @media (min-width: 540px) { .pl-kanban-col-titulo { font-size: 12px; } }
+
+  .pl-kanban-card {
+    position: absolute; top: 108px; width: 160px;
+    background: linear-gradient(135deg, #1c1d1f, #141517); border: 1px solid rgba(212,175,55,0.35);
+    border-radius: 10px; padding: 11px 13px; font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35); transition: left 1s cubic-bezier(.65,0,.35,1), opacity .45s;
+  }
+  .pl-kanban-card.oculta { opacity: 0; }
+  @media (min-width: 540px) { .pl-kanban-card { top: 90px; width: 190px; font-size: 13.5px; } }
+
+  .pl-destello {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    background: radial-gradient(circle, #ffeeb3, var(--accent-gold));
+    pointer-events: none; animation: pl-destello-vuelo .85s ease-out forwards;
+  }
+  @keyframes pl-destello-vuelo {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
+  }
+
+  /* ---------- "Lo que ofrecemos" ---------- */
+  .pl-features { max-width: 1040px; margin: 0 auto 72px; padding: 0 24px; }
+  .pl-features h2 {
+    font-family: 'Clash Display', sans-serif; font-size: clamp(22px, 4vw, 30px); font-weight: 600;
+    text-align: center; margin: 0 0 32px;
+  }
+  .pl-features-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 640px) { .pl-features-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1040px) { .pl-features-grid { grid-template-columns: repeat(4, 1fr); } }
+  .pl-feature {
+    background: rgba(28,29,31,0.6); border: 1px solid var(--border-subtle); border-radius: 14px;
+    padding: 24px 20px; text-align: center;
+  }
+  .pl-feature i { font-size: 22px; color: var(--accent-gold); margin-bottom: 14px; }
+  .pl-feature h3 { font-family: 'Clash Display', sans-serif; font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+  .pl-feature p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin: 0; }
 </style>
 </head>
 <body>
@@ -143,6 +203,46 @@
     <div class="pl-trial-badge" id="trial-badge"><i class="fa-solid fa-sparkles"></i> <span data-i18n="trial_badge">7 días gratis, sin tarjeta</span></div>
     <h1 data-i18n="hero_titulo">Respondé a tus clientes al instante, sin estar pendiente del celular</h1>
     <p data-i18n="hero_subtitulo">Centralizá las consultas de WhatsApp y de tu formulario en un solo tablero, con respuesta automática apenas te escriben.</p>
+    <button type="button" class="btn btn-primary pl-hero-cta" id="btn-ver-planes" data-i18n="hero_cta">Ver planes y empezar gratis</button>
+  </section>
+
+  <section class="pl-explica">
+    <div class="pl-explica-texto">
+      <h2 data-i18n="explica_titulo">¿Qué es un CRM y cómo funciona?</h2>
+      <p data-i18n="explica_texto">FrontyBack centraliza las consultas que te llegan por WhatsApp y por el formulario de tu sitio en un solo lugar, responde automáticamente apenas te escriben, y organiza cada conversación en un tablero para que no se te escape ningún cliente.</p>
+    </div>
+    <div class="pl-kanban-demo">
+      <div class="pl-kanban-col" data-col="0"><span class="pl-kanban-col-titulo" data-i18n="kanban_col1">Nuevos Leads</span></div>
+      <div class="pl-kanban-col" data-col="1"><span class="pl-kanban-col-titulo" data-i18n="kanban_col2">En Seguimiento</span></div>
+      <div class="pl-kanban-col" data-col="2"><span class="pl-kanban-col-titulo" data-i18n="kanban_col3">¡Venta Cerrada!</span></div>
+      <div class="pl-kanban-card" id="kanban-card"><span data-i18n="kanban_card_nombre">Juan</span> - <span data-i18n="kanban_card_texto">Interesado en Plan Pro</span> 💬</div>
+    </div>
+  </section>
+
+  <section class="pl-features">
+    <h2 data-i18n="features_titulo">Lo que ofrecemos</h2>
+    <div class="pl-features-grid">
+      <div class="pl-feature">
+        <i class="fa-solid fa-layer-group"></i>
+        <h3 data-i18n="feature1_titulo">Todo centralizado</h3>
+        <p data-i18n="feature1_desc">WhatsApp y formulario en un solo tablero, sin saltar entre apps.</p>
+      </div>
+      <div class="pl-feature">
+        <i class="fa-solid fa-bolt"></i>
+        <h3 data-i18n="feature2_titulo">Respuestas automáticas 24/7</h3>
+        <p data-i18n="feature2_desc">Nadie espera: cada consulta recibe respuesta al instante, a cualquier hora.</p>
+      </div>
+      <div class="pl-feature">
+        <i class="fa-solid fa-table-columns"></i>
+        <h3 data-i18n="feature3_titulo">Tablero visual</h3>
+        <p data-i18n="feature3_desc">Seguí cada oportunidad de venta de un vistazo, de nuevo lead a cliente.</p>
+      </div>
+      <div class="pl-feature">
+        <i class="fa-solid fa-shield-halved"></i>
+        <h3 data-i18n="feature4_titulo">Historial protegido</h3>
+        <p data-i18n="feature4_desc">Ninguna consulta se borra - queda guardada aunque canceles el servicio.</p>
+      </div>
+    </div>
   </section>
 
   <section class="pl-planes" id="planes"></section>
@@ -248,5 +348,6 @@
 
 </div>
 <script src="/js/planes.js"></script>
+<script src="/js/landing-demo.js"></script>
 </body>
 </html>
