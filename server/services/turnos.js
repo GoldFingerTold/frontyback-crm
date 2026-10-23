@@ -33,7 +33,7 @@ async function intentarEnviarWhatsapp(cliente, { nombrePlantilla, parametros, pa
   if (!phoneNumberId) return { enviado: false, motivo: 'sin_whatsapp' };
 
   try {
-    await whatsapp.enviarPlantilla({ phoneNumberId, para, nombrePlantilla, parametros });
+    await whatsapp.enviarPlantilla({ phoneNumberId, para, nombrePlantilla, parametros, idioma: whatsapp.localeMeta(cliente.idioma) });
     await db.registrarUsoTurno(cliente._id);
     if (cliente.whatsapp_pago_pendiente) await db.marcarWhatsappPagoPendiente(cliente._id, false);
     return { enviado: true };
@@ -108,29 +108,37 @@ async function enviarRecordatorio(cliente, turno) {
   return { enviado: enviadoAlgo || !huboCanalDisponible };
 }
 
-// Da de alta las 2 plantillas de turnos en la WABA de un cliente apenas conecta su
-// WhatsApp (Embedded Signup o carga manual del super-admin) - así Hugo no tiene que
-// entrar a mano a Meta por cada cliente nuevo. Mejor esfuerzo: si falla, se loguea pero no
-// rompe la conexión del número (la plantilla se puede crear después a mano si hace falta).
+// Textos de las 2 plantillas de turnos en los 3 idiomas que soporta la landing (público/
+// i18n/) - se registran los 3 en cada WABA, y a la hora de mandar se elige según
+// cliente.idioma (whatsapp.localeMeta, en intentarEnviarWhatsapp más arriba).
+const TEXTOS_PLANTILLAS = {
+  [PLANTILLA_CONFIRMACION]: {
+    es_AR: { textoBody: 'Hola {{1}}! Tu turno para {{2}} quedó confirmado para el {{3}} a las {{4}}hs. Cualquier cambio, escribinos por acá.', ejemplos: ['Juan', 'Consulta', '15/10', '10:00'] },
+    en_US: { textoBody: 'Hi {{1}}! Your appointment for {{2}} is confirmed for {{3}} at {{4}}. Message us here for any changes.', ejemplos: ['John', 'Consultation', '10/15', '10:00'] },
+    pt_BR: { textoBody: 'Oi {{1}}! Seu horário para {{2}} foi confirmado para o dia {{3}} às {{4}}h. Qualquer mudança, é só chamar por aqui.', ejemplos: ['João', 'Consulta', '15/10', '10:00'] }
+  },
+  [PLANTILLA_RECORDATORIO]: {
+    es_AR: { textoBody: 'Hola {{1}}! Te recordamos tu turno para {{2}} mañana a las {{3}}hs.', ejemplos: ['Juan', 'Consulta', '10:00'] },
+    en_US: { textoBody: 'Hi {{1}}! Just a reminder about your appointment for {{2}} tomorrow at {{3}}.', ejemplos: ['John', 'Consultation', '10:00'] },
+    pt_BR: { textoBody: 'Oi {{1}}! Lembrando do seu horário para {{2}} amanhã às {{3}}h.', ejemplos: ['João', 'Consulta', '10:00'] }
+  }
+};
+
+// Da de alta las plantillas de turnos (en los 3 idiomas) en la WABA de un cliente apenas
+// conecta su WhatsApp (Embedded Signup o carga manual del super-admin) - así Hugo no tiene
+// que entrar a mano a Meta por cada cliente nuevo. Mejor esfuerzo: si falla, se loguea pero
+// no rompe la conexión del número (la plantilla se puede crear después a mano si hace
+// falta). Idempotente - whatsapp.crearPlantilla no falla si la plantilla ya existe, así que
+// también sirve para agregarle los idiomas nuevos a una WABA ya conectada antes.
 async function asegurarPlantillas(wabaId) {
   if (!wabaId) return;
-  const intentos = [
-    {
-      nombre: PLANTILLA_CONFIRMACION,
-      textoBody: 'Hola {{1}}! Tu turno para {{2}} quedó confirmado para el {{3}} a las {{4}}hs. Cualquier cambio, escribinos por acá.',
-      ejemplos: ['Juan', 'Consulta', '15/10', '10:00']
-    },
-    {
-      nombre: PLANTILLA_RECORDATORIO,
-      textoBody: 'Hola {{1}}! Te recordamos tu turno para {{2}} mañana a las {{3}}hs.',
-      ejemplos: ['Juan', 'Consulta', '10:00']
-    }
-  ];
-  for (const plantilla of intentos) {
-    try {
-      await whatsapp.crearPlantilla({ wabaId, ...plantilla });
-    } catch (err) {
-      console.error(`No se pudo crear la plantilla "${plantilla.nombre}" en la WABA ${wabaId}:`, err.message);
+  for (const [nombre, porIdioma] of Object.entries(TEXTOS_PLANTILLAS)) {
+    for (const [idioma, { textoBody, ejemplos }] of Object.entries(porIdioma)) {
+      try {
+        await whatsapp.crearPlantilla({ wabaId, nombre, idioma, textoBody, ejemplos });
+      } catch (err) {
+        console.error(`No se pudo crear la plantilla "${nombre}" (${idioma}) en la WABA ${wabaId}:`, err.message);
+      }
     }
   }
 }

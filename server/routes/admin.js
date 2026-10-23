@@ -361,11 +361,14 @@ router.post('/fichas/:id/responder', asyncHandler(async (req, res) => {
   const ficha = await mongo.collection('fichas').findOne(filtro);
   if (!ficha) return res.status(404).json({ error: 'No existe esa ficha.' });
 
+  // Se busca siempre (no solo cuando falta whatsapp_phone_number_id) porque también hace
+  // falta el idioma del negocio para la plantilla de seguimiento, más abajo.
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+
   let phoneNumberId = ficha.whatsapp_phone_number_id;
   if (!phoneNumberId) {
     // Fichas de antes de que empezáramos a guardar este dato: si el cliente solo tiene un
     // número de WhatsApp conectado, no hay ambigüedad posible, se puede usar igual.
-    const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
     if (cliente?.whatsapp_numeros?.length === 1) phoneNumberId = cliente.whatsapp_numeros[0].phone_number_id;
   }
   if (!phoneNumberId) {
@@ -387,7 +390,8 @@ router.post('/fichas/:id/responder', asyncHandler(async (req, res) => {
         phoneNumberId,
         para: ficha.contacto,
         nombrePlantilla: whatsapp.PLANTILLA_SEGUIMIENTO,
-        parametros: [ficha.nombre || 'Hola', texto]
+        parametros: [ficha.nombre || 'Hola', texto],
+        idioma: whatsapp.localeMeta(cliente?.idioma)
       });
       viaPlantilla = true;
     } catch (errPlantilla) {
@@ -680,7 +684,8 @@ router.post('/mensajes-masivos', requireGerencia, asyncHandler(async (req, res) 
           phoneNumberId,
           para: ficha.contacto,
           nombrePlantilla: whatsapp.PLANTILLA_SEGUIMIENTO,
-          parametros: [ficha.nombre || 'Hola', texto]
+          parametros: [ficha.nombre || 'Hola', texto],
+          idioma: whatsapp.localeMeta(cliente?.idioma)
         });
         viaPlantilla++;
       }

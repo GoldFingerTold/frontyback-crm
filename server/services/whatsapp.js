@@ -167,6 +167,16 @@ async function registrarNumero({ phoneNumberId, pin }) {
 // cuándo reintentar con PLANTILLA_SEGUIMIENTO en vez de devolver el error tal cual.
 const CODIGO_FUERA_DE_VENTANA = 131047;
 
+// Mapea el idioma de FrontyBack (es/en/pt, cliente.idioma - público/i18n/) al código que
+// pide Meta para las plantillas. Las plantillas de turnos y seguimiento se registran en
+// los 3 (asegurarPlantillas/asegurarPlantillaSeguimiento) y se elige cuál mandar acá según
+// el idioma del NEGOCIO (no del cliente final que recibe el mensaje, no tenemos forma de
+// saber el de él).
+const LOCALES_META = { es: 'es_AR', en: 'en_US', pt: 'pt_BR' };
+function localeMeta(idioma) {
+  return LOCALES_META[idioma] || LOCALES_META.es;
+}
+
 // Plantilla genérica para poder seguir una conversación aunque ya hayan pasado las 24hs
 // gratis (a diferencia de las de turnos, que tienen un texto fijo puntual, esta deja
 // prácticamente todo el mensaje en una variable, para que el negocio pueda escribir lo
@@ -174,17 +184,20 @@ const CODIGO_FUERA_DE_VENTANA = 131047;
 // como respaldo cuando el mensaje de texto libre no se pudo mandar.
 const PLANTILLA_SEGUIMIENTO = 'seguimiento_consulta';
 
+const TEXTOS_SEGUIMIENTO = {
+  es_AR: { textoBody: 'Hola {{1}}! Seguimos en contacto por tu consulta: {{2}}. Cualquier cosa, escribinos.', ejemplos: ['Juan', 'Ya tenemos tu pedido listo, podés pasar a retirarlo.'] },
+  en_US: { textoBody: "Hi {{1}}! Just following up on your inquiry: {{2}}. Let us know if you need anything else.", ejemplos: ['John', 'Your order is ready, you can come pick it up.'] },
+  pt_BR: { textoBody: 'Oi {{1}}! Continuando o contato sobre sua consulta: {{2}}. Qualquer coisa, é só chamar.', ejemplos: ['João', 'Seu pedido já está pronto, pode vir retirar.'] }
+};
+
 async function asegurarPlantillaSeguimiento(wabaId) {
   if (!wabaId) return;
-  try {
-    await crearPlantilla({
-      wabaId,
-      nombre: PLANTILLA_SEGUIMIENTO,
-      textoBody: 'Hola {{1}}! Seguimos en contacto por tu consulta: {{2}}. Cualquier cosa, escribinos.',
-      ejemplos: ['Juan', 'Ya tenemos tu pedido listo, podés pasar a retirarlo.']
-    });
-  } catch (err) {
-    console.error(`No se pudo crear la plantilla "${PLANTILLA_SEGUIMIENTO}" en la WABA ${wabaId}:`, err.message);
+  for (const [idioma, { textoBody, ejemplos }] of Object.entries(TEXTOS_SEGUIMIENTO)) {
+    try {
+      await crearPlantilla({ wabaId, nombre: PLANTILLA_SEGUIMIENTO, idioma, textoBody, ejemplos });
+    } catch (err) {
+      console.error(`No se pudo crear la plantilla "${PLANTILLA_SEGUIMIENTO}" (${idioma}) en la WABA ${wabaId}:`, err.message);
+    }
   }
 }
 
@@ -197,5 +210,6 @@ module.exports = {
   registrarNumero,
   asegurarPlantillaSeguimiento,
   PLANTILLA_SEGUIMIENTO,
-  CODIGO_FUERA_DE_VENTANA
+  CODIGO_FUERA_DE_VENTANA,
+  localeMeta
 };
