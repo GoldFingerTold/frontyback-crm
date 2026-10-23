@@ -45,6 +45,8 @@
   "faq1_a_intl": "Sí: al entrar a la prueba por Hotmart te van a pedir la tarjeta (así maneja Hotmart el período de prueba), pero no te cobran nada hasta que termine.",
   "faq2_q": "¿Qué pasa si no pago después de la prueba?",
   "faq2_a": "No se corta todo de un día para el otro. Primero entrás en 7 días de gracia: seguís recibiendo las consultas, pero se corta la respuesta automática. Si después tampoco pagás, se corta el servicio del todo - pero tus datos y las consultas que ya recibiste quedan guardados, y en cuanto pagás se reactiva todo solo.",
+  "faq2_q_intl": "¿Qué pasa si no quiero seguir después de la prueba?",
+  "faq2_a_intl": "A diferencia de Argentina, acá no hay un paso de \"no pagar\": Hotmart cobra automático la tarjeta que cargaste apenas termina el día 7, salvo que canceles antes desde tu panel de compras de Hotmart. Si cancelás después de que ya te cobraron, ahí sí entrás en los mismos 7 días de gracia que cualquier otro cliente.",
   "faq3_q": "¿Hay permanencia o tengo que firmar algo?",
   "faq3_a": "No. Podés cancelar cuando quieras, no hay contrato ni permanencia mínima.",
   "faq4_q": "¿Tengo que cambiar mi número de WhatsApp?",
