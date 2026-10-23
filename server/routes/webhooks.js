@@ -608,9 +608,9 @@ async function procesarNotificacionHotmart(body, query, headers = {}) {
     }
 
     const planes = await db.getPlanes();
-    const identificado = hotmart.identificarPlanPorMonto(datos.monto, planes);
+    const identificado = hotmart.identificarPlan(datos, planes);
     if (!identificado) {
-      console.error(`No se pudo identificar qué plan se compró en Hotmart (monto=${datos.monto}, moneda=${datos.moneda}) - payload completo:`, JSON.stringify(body));
+      console.error(`No se pudo identificar qué plan se compró en Hotmart (oferta="${datos.ofertaCodigo}", monto=${datos.monto}, moneda=${datos.moneda}) - payload completo:`, JSON.stringify(body));
       return;
     }
 

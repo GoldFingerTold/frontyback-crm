@@ -15,15 +15,21 @@ const db = require('../server/db');
 const { procesarNotificacionHotmart } = require('../server/routes/webhooks');
 
 const EMAIL_PRUEBA = 'test-hotmart@frontyback.com';
+const EMAIL_PRUEBA_OFERTA = 'test-hotmart-oferta@frontyback.com';
 const HOTTOK = process.env.HOTMART_WEBHOOK_SECRET;
 
-function payloadCompra({ monto, transaccion, subscriberCode, email = EMAIL_PRUEBA }) {
+function payloadCompra({ monto, transaccion, subscriberCode, ofertaCodigo = null, moneda = 'USD', email = EMAIL_PRUEBA }) {
   return {
     event: 'PURCHASE_APPROVED',
     hottok: HOTTOK,
     data: {
       buyer: { email, name: 'Cliente De Prueba' },
-      purchase: { status: 'APPROVED', transaction: transaccion, price: { value: monto, currency_value: 'USD' } },
+      purchase: {
+        status: 'APPROVED',
+        transaction: transaccion,
+        price: { value: monto, currency_value: moneda },
+        ...(ofertaCodigo ? { offer: { code: ofertaCodigo } } : {})
+      },
       subscription: { subscriber: { code: subscriberCode } }
     }
   };
@@ -42,11 +48,13 @@ function payloadBaja({ subscriberCode, email = EMAIL_PRUEBA }) {
 }
 
 async function limpiar(mongo) {
-  const cliente = await mongo.collection('clientes').findOne({ email_notificacion: EMAIL_PRUEBA, pasarela_pago: 'hotmart' });
-  if (!cliente) return;
-  await mongo.collection('usuarios').deleteMany({ cliente_id: cliente._id });
-  await mongo.collection('clientes').deleteOne({ _id: cliente._id });
-  console.log(`(limpieza: borrado el cliente de prueba "${cliente.slug}")`);
+  for (const email of [EMAIL_PRUEBA, EMAIL_PRUEBA_OFERTA]) {
+    const cliente = await mongo.collection('clientes').findOne({ email_notificacion: email, pasarela_pago: 'hotmart' });
+    if (!cliente) continue;
+    await mongo.collection('usuarios').deleteMany({ cliente_id: cliente._id });
+    await mongo.collection('clientes').deleteOne({ _id: cliente._id });
+    console.log(`(limpieza: borrado el cliente de prueba "${cliente.slug}")`);
+  }
 }
 
 function assert(cond, mensaje) {
@@ -79,6 +87,17 @@ async function main() {
   assert(cliente.estado_pago === 'activo', `el estado quedó "activo" (quedó "${cliente?.estado_pago}")`);
   assert(cliente.hotmart_data?.subscriber_code === 'SUBTEST1', 'se guardó el subscriber_code');
   assert(cliente.idioma === 'en', `sin moneda BRL, el idioma quedó "en" (quedó "${cliente?.idioma}")`);
+
+  console.log('\n--- 2b. Código de oferta real de Plan 3 Mensual (Premium), pagado en BRL (monto que NO matchea ningún precio USD) ---');
+  await procesarNotificacionHotmart(
+    payloadCompra({ monto: 150, moneda: 'BRL', transaccion: 'HPTEST2', subscriberCode: 'SUBTEST2', ofertaCodigo: '3zqjxnux', email: EMAIL_PRUEBA_OFERTA }),
+    {}
+  );
+  const clienteOferta = await mongo.collection('clientes').findOne({ email_notificacion: EMAIL_PRUEBA_OFERTA });
+  assert(Boolean(clienteOferta), 'se creó la cuenta aunque el monto (BRL) no matcheaba ningún precio en USD');
+  assert(clienteOferta?.plan === 'premium', `el plan quedó "premium" por el código de oferta (quedó "${clienteOferta?.plan}")`);
+  assert(clienteOferta?.frecuencia_pago === 'mensual', `la frecuencia quedó "mensual" (quedó "${clienteOferta?.frecuencia_pago}")`);
+  assert(clienteOferta?.idioma === 'pt', `con moneda BRL, el idioma quedó "pt" (quedó "${clienteOferta?.idioma}")`);
 
   console.log('\n--- 3. El mismo evento de nuevo (reintento/renovación): NO tiene que duplicar la cuenta ---');
   await procesarNotificacionHotmart(payloadCompra({ monto: 10, transaccion: 'HPTEST1', subscriberCode: 'SUBTEST1' }), {});

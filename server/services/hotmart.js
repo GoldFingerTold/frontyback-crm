@@ -4,12 +4,9 @@
 // reaccionamos a los webhooks que manda cuando pasa algo (compra aprobada, cancelación,
 // reembolso). Ver server/routes/webhooks.js para el endpoint que usa esto.
 //
-// OJO: el formato exacto del payload de Hotmart (nombres de campos, cómo manda el Hottok)
-// está armado acá con el formato más común documentado por Hotmart y por integraciones de
-// terceros (v2.0.0), pero NO está confirmado contra un webhook real todavía - en cuanto
-// Hugo tenga el producto creado en Hotmart, hay que mandar un webhook de prueba desde su
-// panel y revisar los logs del servidor (quedan logueados completos si no matchea nada)
-// para ajustar los nombres de campo si hace falta.
+// Formato del payload confirmado contra un webhook real el 22/10 (sandbox de prueba de
+// Hotmart, evento PURCHASE_APPROVED, v2.0.0) - los nombres de campo de acá abajo son los
+// reales, no una suposición.
 
 // Los 4 planes de FrontyBack, en el mismo orden que ya usan los precios de referencia en
 // USD (server/db.js, precio_usd_ref) - plan 1 es el más barato (Esencial), plan 4 el más
@@ -26,6 +23,27 @@ function linksDeCheckout() {
     };
   });
   return links;
+}
+
+// El código de oferta (?off=xxxxx al final de cada link de checkout) es el identificador
+// MÁS confiable de qué plan se compró - a diferencia del monto, no depende de en qué
+// moneda haya pagado el comprador (Hotmart puede convertir a la moneda local). Arma el
+// mapa {codigo: {planId, frecuencia}} leyendo el query param de cada link ya configurado.
+function mapaOfertas() {
+  const mapa = {};
+  const links = linksDeCheckout();
+  for (const [planId, frecuencias] of Object.entries(links)) {
+    for (const [frecuencia, url] of Object.entries(frecuencias)) {
+      if (!url) continue;
+      try {
+        const codigo = new URL(url).searchParams.get('off');
+        if (codigo) mapa[codigo] = { planId, frecuencia };
+      } catch {
+        // URL mal formada en el .env - se ignora, identificarPlan cae al respaldo por monto
+      }
+    }
+  }
+  return mapa;
 }
 
 // Hotmart no manda un header de firma HMAC como Meta/Mercado Pago - manda un "Hottok", un
@@ -49,7 +67,8 @@ function extraerDatosCompra(body) {
     evento: String(body?.event || data?.event || '').toUpperCase(),
     email: data?.buyer?.email || data?.buyer?.checkout_phone || '',
     nombre: data?.buyer?.name || '',
-    pais: data?.buyer?.address?.country || data?.buyer?.document_type || '',
+    pais: data?.buyer?.address?.country_iso || data?.buyer?.address?.country || '',
+    ofertaCodigo: data?.purchase?.offer?.code || null,
     monto: Number(data?.purchase?.price?.value ?? data?.purchase?.original_offer_price?.value ?? NaN),
     moneda: data?.purchase?.price?.currency_value || data?.currency || '',
     transaccion: data?.purchase?.transaction || null,
@@ -70,11 +89,10 @@ function inferirIdioma({ moneda }) {
   return 'en';
 }
 
-// Encuentra qué plan y frecuencia compró, comparando el monto cobrado contra los precios
-// de referencia en USD (server/db.js, precio_usd_ref/precio_usd_ref_anual) - con un margen
-// chico de tolerancia porque Hotmart puede convertir a la moneda local del comprador y
-// redondear distinto. Si el comprador pagó en una moneda que no sea USD, esto puede no
-// matchear - revisar el log si pasa.
+// Respaldo si no matcheó ningún código de oferta (p.ej. un link viejo que ya no está en el
+// .env) - compara el monto cobrado contra los precios de referencia en USD (server/db.js,
+// precio_usd_ref/precio_usd_ref_anual), con margen de tolerancia. Solo tiene sentido si
+// cobró en USD - si el comprador pagó en su moneda local, esto no va a matchear.
 function identificarPlanPorMonto(monto, planes) {
   const TOLERANCIA = 2; // USD
   for (const [id, plan] of Object.entries(planes)) {
@@ -85,4 +103,16 @@ function identificarPlanPorMonto(monto, planes) {
   return null;
 }
 
-module.exports = { linksDeCheckout, hottokValido, extraerDatosCompra, identificarPlanPorMonto, inferirIdioma, ORDEN_PLANES_HOTMART };
+// Primero intenta por código de oferta (confirmado contra un webhook real que Hotmart lo
+// manda en purchase.offer.code - no depende de la moneda en la que haya pagado el
+// comprador), y si no matchea nada (p.ej. volvió a usarse un link que ya no está
+// configurado), cae al respaldo por monto.
+function identificarPlan(datos, planes) {
+  if (datos.ofertaCodigo) {
+    const porOferta = mapaOfertas()[datos.ofertaCodigo];
+    if (porOferta) return porOferta;
+  }
+  return identificarPlanPorMonto(datos.monto, planes);
+}
+
+module.exports = { linksDeCheckout, mapaOfertas, hottokValido, extraerDatosCompra, identificarPlan, identificarPlanPorMonto, inferirIdioma, ORDEN_PLANES_HOTMART };
