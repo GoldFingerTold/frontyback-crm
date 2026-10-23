@@ -41,6 +41,8 @@
   "faq_titulo": "Frequently asked questions",
   "faq1_q": "Do I need a card for the free trial?",
   "faq1_a": "No. You get 7 full days free without entering any payment info. We only set up payment once you decide to continue.",
+  "faq1_q_intl": "Do I need a card for the free trial?",
+  "faq1_a_intl": "Yes: Hotmart asks for a card when you start the trial (that's how Hotmart manages it on their end), but you won't be charged until the trial ends.",
   "faq2_q": "What happens if I don't pay after the trial?",
   "faq2_a": "Nothing gets cut off overnight. First you enter a 7-day grace period: you keep receiving inquiries, but automatic replies stop. If you still don't pay after that, the service pauses completely - but your data and the inquiries you already received stay saved, and everything turns back on as soon as you pay.",
   "faq3_q": "Is there a minimum commitment or contract to sign?",

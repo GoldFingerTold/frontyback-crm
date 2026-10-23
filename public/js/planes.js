@@ -70,9 +70,15 @@ async function cargarDiccionario(idioma) {
   }
 }
 
+// Algunos textos (como el FAQ de tarjeta/prueba gratis) no aplican igual para
+// Argentina (Mercado Pago, sin tarjeta) que para el resto (Hotmart, que pide la tarjeta
+// al entrar a la prueba) - esos elementos llevan data-i18n-intl con la key alternativa,
+// que se usa en vez de la de data-i18n cuando PAIS no es "AR".
 function aplicarTraducciones() {
   document.querySelectorAll('[data-i18n]').forEach((el) => {
-    el.textContent = t(el.dataset.i18n);
+    const keyIntl = el.dataset.i18nIntl;
+    const key = PAIS !== 'AR' && keyIntl && DICT[keyIntl] ? keyIntl : el.dataset.i18n;
+    el.textContent = t(key);
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
     el.placeholder = t(el.dataset.i18nPlaceholder);
