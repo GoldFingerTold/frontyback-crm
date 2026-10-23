@@ -126,7 +126,7 @@
       // obtenerTokenDePaginaDeLargaDuracion. Acá en el navegador solo se usa para listar
       // las páginas y mostrarlas a elegir, no hace falta que dure mucho para eso.
       buscarPaginas(response.authResponse.accessToken);
-    }, { scope: 'pages_show_list,pages_manage_metadata,leads_retrieval' });
+    }, { scope: 'pages_show_list,pages_manage_metadata,pages_manage_ads,pages_read_engagement,leads_retrieval' });
   }
 
   async function buscarPaginas(userAccessToken) {
