@@ -226,11 +226,32 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   la contraseña). `server/services/metaLeads.js`,
   `obtenerTokenDePaginaDeLargaDuracion()`.
 
-  **Pendiente, requiere que Hugo lo haga**: el token viejo no se puede renovar
-  retroactivamente - hay que **reconectar** las páginas que ya estaban conectadas
-  (volver a entrar al link de "Conectar campaña de Meta Ads" para wye, las dos
-  páginas) para que queden con el token nuevo de larga duración. Recién ahí tiene
-  sentido probar de nuevo que un lead real llegue a crear una ficha.
+  **Reconectado y verificado (23/10)**: Hugo reconectó "www.webyeventos.com.ar" y
+  "Mujer Poderosa" (wye) - tokens nuevos confirmados sin vencimiento (`expires_at: 0`
+  vía `debug_token`). Al reconectar apareció un segundo bug: faltaban 2 de los 5
+  permisos ya aprobados en Meta (`pages_manage_ads`, `pages_read_engagement`) en el
+  `scope` del `FB.login()` de `public/conectar-meta-ads.html` - corregido, ahora pide
+  los 5.
+
+  Al probar con la Lead Ads Testing Tool de Meta apareció un TERCER bloqueo, nada que
+  ver con nuestro código: el porfolio empresarial nunca había activado "Acceso a la
+  información de clientes potenciales" (Meta Business Suite → Configuración →
+  porfolio → engranaje → Integraciones → Acceso a la información de clientes
+  potenciales → "Personalizar acceso" → "Confirmar"). Sin esto, los leads se guardan
+  bien del lado de Meta (visibles en su propio "Centro de clientes potenciales") pero
+  **ningún CRM externo recibe la actualización en tiempo real** - está documentado así
+  en la ayuda de Meta. Hugo lo activó y FrontyBack CRM quedó con acceso confirmado
+  (pestaña "CRM" de esa pantalla).
+
+  Con las 3 causas resueltas, la Lead Ads Testing Tool TODAVÍA no disparó el webhook
+  real (confirmado revisando directo el log de nginx del servidor, `/home/crm-fyb/
+  logs/nginx/access.log` - ni un solo intento de conexión de Meta, a pesar de que el
+  lead de prueba sí quedó creado en el Centro de clientes potenciales). Esto parece
+  ser una limitación conocida de esa herramienta puntual (no dispara el webhook en
+  tiempo real de forma confiable), no un problema de la integración - con el token,
+  los permisos y el acceso a leads ya correctos, un lead de una campaña REAL debería
+  funcionar. **Pendiente**: Hugo va a correr una campaña real de un par de días para
+  confirmar con un lead real (no de prueba).
 
 - Confirmar si el tope de "Billing Hub" (moneda + método de pago) hay que
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
