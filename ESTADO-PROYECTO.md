@@ -117,10 +117,16 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   de USD. `scripts/test-hotmart-webhook.js` incluye un caso que paga en BRL
   con el código de oferta real de un plan y confirma que identifica el plan
   correcto igual - corrido en local, todos los casos pasan.
-  Pendiente de pulido (no bloqueante): las preguntas frecuentes de la
-  landing siguen mencionando "7 días gratis, sin tarjeta" y "Mercado Pago"
-  en los dos idiomas de la página, sin diferenciar para visitantes
-  internacionales.
+  ✅ **Pulido del FAQ para visitantes internacionales** (23/10): la
+  pregunta "¿Necesito tarjeta para la prueba gratis?" ahora tiene una
+  variante para fuera de Argentina (`faq1_q_intl`/`faq1_a_intl` en los 3
+  diccionarios) - explica que Hotmart sí pide la tarjeta al entrar a la
+  prueba (a diferencia del flujo de Mercado Pago, que no la pide), aunque
+  no cobra hasta que termine. Mecanismo genérico y reutilizable:
+  `data-i18n-intl="key"` en el HTML, usado por `aplicarTraducciones()`
+  (`public/js/planes.js`) en vez de la key normal cuando `PAIS !== 'AR'` -
+  sirve para cualquier otro texto que a futuro necesite distinguir
+  Argentina/Mercado Pago de internacional/Hotmart.
 
   **Override `?pais=otro` (22/10)**: `GET /api/public/geo` acepta
   `?pais=otro` y fuerza la vista internacional (USD/Hotmart, sin
