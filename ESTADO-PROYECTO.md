@@ -253,6 +253,45 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   funcionar. **Pendiente**: Hugo va a correr una campaña real de un par de días para
   confirmar con un lead real (no de prueba).
 
+- ✅ **"FrontyBack Estudio" (23/10)**: herramienta nueva y separada de la CRM
+  (uso personal de Hugo, no para clientes, explícitamente pedido que no viva en
+  el panel admin) para generar imágenes y video con IA sin pagar suscripciones
+  tipo Higgsfield/Nano Banana - solo paga por uso. Vive en
+  `estudio.frontyback.com`, protegida con una sola contraseña (no es multi-
+  usuario). Repo separado: `D:\Claude\16-08-26\Creador de kit\frontyback-
+  estudio` (no está en GitHub, se sube directo al VPS por SFTP). Stack: Node +
+  Express + SDK oficial `@google/genai` (API de "Interactions" de Gemini,
+  versión 2.x - la 1.x usa un schema viejo que Google dejó de aceptar).
+  Modelos: `gemini-nano-banana-2.1` para imágenes (~$0.03-0.11 c/u según
+  resolución), `gemini-omni-1.1-flash` para video (~$0.10/segundo real, no un
+  monto fijo - se mide con `ffprobe`, instalado en el VPS). Presupuesto
+  mensual de $10 controlado por la propia herramienta (`server/gasto.js`, un
+  JSON local) porque el presupuesto de Google Cloud solo avisa por mail, no
+  corta el gasto. Cuenta de Google Cloud separada ("FrontyBack Estudio", modo
+  Prepay - sin crédito cargado, la API corta sola con 402).
+  Infra: subdominio nuevo armado con `clpctl site:add:nodejs` (CloudPanel
+  tiene CLI, no hace falta pasar por la UI), SSL con
+  `clpctl lets-encrypt:install:certificate`, PM2 proceso `estudio-fyb`,
+  usuario Linux `estudio-fyb` con su propio Node vía nvm.
+  **Aprendizajes para la próxima vez que se toque esto**:
+  - Los modelos de imagen/video de Gemini cambian y se dan de baja rápido
+    (Veo 3.1 se apagó el 22/10, un día antes de armar esto) - siempre
+    verificar contra la doc oficial en vivo, no de memoria.
+  - Al pasarle una imagen de referencia pidiendo "solo tomá el color", el
+    modelo de imagen igual puede copiar de más (replicó el sidebar del CRM y
+    hasta la ventana del navegador de la captura) - hay que recortar a mano
+    después (`ffmpeg -vf crop=...`) en vez de confiar en que el prompt alcance.
+  - El modelo de video (`gemini-omni-1.1-flash`) tiende a duplicar/mutar el
+    texto de una tarjeta en movimiento, sobre todo si hay varias tarjetas
+    parecidas cerca - mejora bastante si una sola tarjeta tiene un borde/glow
+    bien distintivo en la imagen base, marcándola como "la protagonista", pero
+    no lo resuelve del todo (es una limitación conocida de estos modelos con
+    texto, no del prompt).
+  - Se usó para reemplazar la demo animada CSS/JS del Kanban en la landing
+    (`public/video/kanban-demo.mp4`, sección "¿Qué es un CRM?") - se sacó
+    toda la lógica vieja de animación a mano (`landing-demo.js`) y las keys
+    de i18n que ya no se usaban.
+
 - Confirmar si el tope de "Billing Hub" (moneda + método de pago) hay que
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
   con la cuenta de wye (que es del propio Hugo), falta confirmarlo con un cliente
