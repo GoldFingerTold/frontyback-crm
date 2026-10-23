@@ -205,23 +205,32 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   momento se pide ampliar esto, confirmar bien el alcance antes de
   arrancar (cientos de strings por cada pantalla nueva que se sume).
 
-- **Integración de Meta Lead Ads: construida y conectada, falta la prueba end-to-end**
-  (19/10). Se programó todo (`server/services/metaLeads.js`, webhook extendido en
-  `server/routes/webhooks.js` para distinguir `object: "page"` vs
-  `"whatsapp_business_account"` en la misma URL, botón "Conectar campaña de Meta Ads"
-  en el tablero, página `public/conectar-meta-ads.html`). Del lado de Meta ya quedó
-  todo configurado: caso de uso "Atrae y administra clientes potenciales" agregado,
-  los 5 permisos (`leads_retrieval`, `pages_manage_ads`, `pages_manage_metadata`,
-  `pages_read_engagement`, `pages_show_list`) en "Listo para prueba", webhook
-  suscripto al campo `leadgen`. Se probó la conexión real con dos páginas de wye
-  ("www.webyeventos.com.ar" y "Mujer Poderosa") y quedaron guardadas correctamente en
-  `clientes.meta_pages` (verificado en la base). Lo único que falta: generar un lead
-  de prueba real para confirmar que el webhook dispara y crea la ficha - se intentó
-  con la Lead Ads Testing Tool de Meta (`developers.facebook.com/tools/lead-ads-testing`)
-  pero no reconocía el formulario de prueba recién creado (puede haber quedado en una
-  página distinta a la seleccionada - revisar a qué página pertenece el formulario
-  "Sin título 19/10/26" antes de seguir insistiendo, o directamente esperar un lead
-  real de una campaña de Hugo).
+- ✅ **Integración de Meta Lead Ads: causa raíz encontrada y arreglada (23/10)**.
+  Lo que parecía "falta probar que el webhook dispare" en realidad era un bug real:
+  el token de acceso de página que se guardó al conectar las dos páginas de wye el
+  19/10 (`www.webyeventos.com.ar` y "Mujer Poderosa") es de **corta duración** (vence
+  en horas) - `public/conectar-meta-ads.html` guardaba directo el `access_token` que
+  devuelve `/me/accounts` con el token de usuario del `FB.login()`, sin cambiarlo
+  primero por uno de larga duración. Confirmado corriendo una consulta directa a la
+  API de Meta con esos tokens guardados: devuelven "Session has expired on Monday,
+  19-Oct-26 21:00 PDT" - o sea, a las pocas horas de haberse conectado. Cualquier
+  lead real que haya llegado en estos días nunca pudo procesarse (el webhook dispara
+  bien, pero al pedirle los datos del lead a Meta con ese token, Meta lo rechaza -
+  `metaLeads.obtenerLead`, falla en silencio, solo queda logueado el error).
+
+  **Arreglado**: ahora el servidor cambia el token de usuario por uno de larga
+  duración (60 días, `GET /oauth/access_token?grant_type=fb_exchange_token`, necesita
+  el secreto de la app - por eso se hace server-side, no en el navegador) ANTES de
+  pedir `/me/accounts` - los tokens de página que salen de ahí heredan esa duración
+  larga (en la práctica no vencen mientras el usuario no revoque el acceso o cambie
+  la contraseña). `server/services/metaLeads.js`,
+  `obtenerTokenDePaginaDeLargaDuracion()`.
+
+  **Pendiente, requiere que Hugo lo haga**: el token viejo no se puede renovar
+  retroactivamente - hay que **reconectar** las páginas que ya estaban conectadas
+  (volver a entrar al link de "Conectar campaña de Meta Ads" para wye, las dos
+  páginas) para que queden con el token nuevo de larga duración. Recién ahí tiene
+  sentido probar de nuevo que un lead real llegue a crear una ficha.
 
 - Confirmar si el tope de "Billing Hub" (moneda + método de pago) hay que
   configurarlo una vez por cliente o si hay alguna otra sutileza — solo se probó
