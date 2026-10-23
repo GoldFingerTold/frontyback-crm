@@ -537,7 +537,7 @@ router.post(
   asyncHandler(async (req, res) => {
     res.sendStatus(200);
     try {
-      await procesarNotificacionHotmart(req.body || {}, req.query || {});
+      await procesarNotificacionHotmart(req.body || {}, req.query || {}, req.headers || {});
     } catch (err) {
       console.error('Error procesando notificación de Hotmart:', err);
     }
@@ -572,9 +572,16 @@ async function generarSlugUnico(nombre) {
   return slug;
 }
 
-async function procesarNotificacionHotmart(body, query) {
-  if (!hotmart.hottokValido(body, query)) {
-    console.warn('Webhook de Hotmart con Hottok inválido o ausente - ignorado.');
+async function procesarNotificacionHotmart(body, query, headers = {}) {
+  if (!hotmart.hottokValido(body, query, headers)) {
+    // Se loguea el payload completo Y el hottok recibido (comparado contra el configurado)
+    // para poder diagnosticar de un vistazo si es un typo en el .env o un problema real de
+    // formato - antes esto se descartaba en silencio, sin dejar ningún rastro útil.
+    const recibido = body?.hottok || query?.hottok || headers['x-hotmart-hottok'] || '';
+    console.warn(
+      `Webhook de Hotmart con Hottok inválido o ausente - ignorado. Recibido: "${recibido}" | Configurado (HOTMART_WEBHOOK_SECRET): "${process.env.HOTMART_WEBHOOK_SECRET || ''}" | Payload completo:`,
+      JSON.stringify(body)
+    );
     return;
   }
 

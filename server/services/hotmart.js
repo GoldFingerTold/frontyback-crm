@@ -29,13 +29,13 @@ function linksDeCheckout() {
 }
 
 // Hotmart no manda un header de firma HMAC como Meta/Mercado Pago - manda un "Hottok", un
-// token fijo por cuenta de Hotmart, en el body de cada notificación (algunas integraciones
-// también lo aceptan como query param). Comparamos contra el que Hugo carga en el panel de
-// Hotmart y en HOTMART_WEBHOOK_SECRET acá.
-function hottokValido(body, query) {
+// token fijo por cuenta de Hotmart. Según la versión/integración puede venir en el body,
+// como query param, o en el header X-HOTMART-HOTTOK - se chequean los tres por las dudas.
+// Comparamos contra el que Hugo carga en el panel de Hotmart y en HOTMART_WEBHOOK_SECRET acá.
+function hottokValido(body, query, headers = {}) {
   const secreto = process.env.HOTMART_WEBHOOK_SECRET;
   if (!secreto) return false;
-  const recibido = body?.hottok || query?.hottok;
+  const recibido = body?.hottok || query?.hottok || headers['x-hotmart-hottok'];
   return Boolean(recibido) && recibido === secreto;
 }
 
