@@ -119,7 +119,7 @@ const TEXTOS_PLANTILLAS = {
   },
   [PLANTILLA_RECORDATORIO]: {
     es_AR: { textoBody: 'Hola {{1}}! Te recordamos tu turno para {{2}} mañana a las {{3}}hs.', ejemplos: ['Juan', 'Consulta', '10:00'] },
-    en_US: { textoBody: 'Hi {{1}}! Just a reminder about your appointment for {{2}} tomorrow at {{3}}.', ejemplos: ['John', 'Consultation', '10:00'] },
+    en_US: { textoBody: 'Hi {{1}}! Just a reminder: your appointment for {{2}} is tomorrow at {{3}}. See you then!', ejemplos: ['John', 'Consultation', '10:00'] },
     pt_BR: { textoBody: 'Oi {{1}}! Lembrando do seu horário para {{2}} amanhã às {{3}}h.', ejemplos: ['João', 'Consulta', '10:00'] }
   }
 };

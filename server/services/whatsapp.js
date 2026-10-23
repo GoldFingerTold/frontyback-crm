@@ -140,7 +140,12 @@ async function crearPlantilla({ wabaId, nombre, idioma = 'es_AR', textoBody, eje
   });
   const data = await res.json();
   if (!res.ok) {
-    const yaExiste = /already exists|ya existe/i.test(data?.error?.message || '');
+    // El mensaje legible ("ya existe contenido en este idioma para esta plantilla") viene
+    // en error_user_title/error_user_msg, no en error.message (que suele ser genérico,
+    // "Invalid parameter") - error_subcode 2388024 es el código estable de Meta para este
+    // caso puntual, se chequea primero por las dudas de que cambien el texto.
+    const textoError = `${data?.error?.message || ''} ${data?.error?.error_user_title || ''} ${data?.error?.error_user_msg || ''}`;
+    const yaExiste = data?.error?.error_subcode === 2388024 || /already exists|ya existe/i.test(textoError);
     if (yaExiste) return { yaExistia: true };
     throw new Error(`Error creando la plantilla "${nombre}": ${JSON.stringify(data)}`);
   }
