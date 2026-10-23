@@ -122,6 +122,18 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   en los dos idiomas de la página, sin diferenciar para visitantes
   internacionales.
 
+  **Override `?pais=otro` (22/10)**: `GET /api/public/geo` acepta
+  `?pais=otro` y fuerza la vista internacional (USD/Hotmart, sin
+  formulario de Mercado Pago) sin importar la IP real - pensado para dos
+  casos: (1) que Hugo pueda previsualizar esa vista desde Argentina sin
+  VPN, y (2) la "página de ventas" que pide Hotmart en la configuración
+  del producto, que tiene que mostrar precios en USD de forma coherente
+  con el checkout sin importar desde dónde la abran (la raíz de la
+  landing sin el query param le muestra ARS/Mercado Pago a cualquiera que
+  la abra desde Argentina, incoherente con un checkout en USD). Hugo ya
+  cargó `https://crm.frontyback.com/?pais=otro` como página de ventas en
+  el panel de Hotmart (22/10).
+
 - **Landing en 3 idiomas (ES/EN/PT), construida y en producción** (21/10).
   Detección automática por país (`GET /api/public/geo` devuelve
   `idioma_sugerido`, países hispanohablantes → es, Brasil → pt, el resto →
