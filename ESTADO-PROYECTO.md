@@ -117,12 +117,20 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   de USD. `scripts/test-hotmart-webhook.js` incluye un caso que paga en BRL
   con el código de oferta real de un plan y confirma que identifica el plan
   correcto igual - corrido en local, todos los casos pasan.
-  ✅ **Pulido del FAQ para visitantes internacionales** (23/10): la
-  pregunta "¿Necesito tarjeta para la prueba gratis?" ahora tiene una
-  variante para fuera de Argentina (`faq1_q_intl`/`faq1_a_intl` en los 3
-  diccionarios) - explica que Hotmart sí pide la tarjeta al entrar a la
-  prueba (a diferencia del flujo de Mercado Pago, que no la pide), aunque
-  no cobra hasta que termine. Mecanismo genérico y reutilizable:
+  ✅ **Pulido del FAQ para visitantes internacionales** (23/10): dos
+  preguntas tenían variante `_intl` en los 3 diccionarios
+  (`faq1_q/a_intl`, `faq2_q/a_intl`) porque el flujo de Hotmart es
+  distinto al de Mercado Pago en dos puntos concretos: (1) Hotmart SÍ pide
+  la tarjeta al entrar a la prueba (Mercado Pago no), aunque no cobra
+  hasta que termine; (2) Hotmart NO tiene un paso de "no pagar y entrar en
+  gracia" - cobra automático la tarjeta al día 7 salvo que el cliente
+  cancele ANTES desde su panel de compras de Hotmart (recién si cancela
+  DESPUÉS de que ya le cobraron entra en la misma gracia de 7 días que
+  cualquier otro cliente). Esto último lo corrigió Hugo probando la
+  landing en vivo - el primer texto que puse decía que "no se corta todo
+  de un día para el otro" como si aplicara igual para Hotmart, cuando en
+  realidad ahí no hay forma de "no pagar" sin cancelar antes. Mecanismo
+  genérico y reutilizable:
   `data-i18n-intl="key"` en el HTML, usado por `aplicarTraducciones()`
   (`public/js/planes.js`) en vez de la key normal cuando `PAIS !== 'AR'` -
   sirve para cualquier otro texto que a futuro necesite distinguir
