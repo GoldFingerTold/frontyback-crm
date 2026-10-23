@@ -271,7 +271,19 @@ router.post(
   })
 );
 
-const MENSAJE_AUTORESPUESTA = 'Recibimos tu consulta, en breve te vamos a contactar. ¡Gracias por escribirnos!';
+// Mensaje de sesión (no es una plantilla de Meta, así que no necesita aprobación previa -
+// responde dentro de la ventana de 24hs que abre el cliente final al escribir primero) en
+// el idioma que el NEGOCIO eligió al darse de alta (cliente.idioma) - representa a ese
+// negocio frente a sus propios clientes, no tiene que ver con desde dónde escribe quien
+// pregunta. Default a español para clientes viejos sin idioma guardado.
+const MENSAJES_AUTORESPUESTA = {
+  es: 'Recibimos tu consulta, en breve te vamos a contactar. ¡Gracias por escribirnos!',
+  en: "We've received your message and will get back to you shortly. Thanks for reaching out!",
+  pt: 'Recebemos sua mensagem e logo entraremos em contato. Obrigado por nos escrever!'
+};
+function mensajeAutorespuesta(cliente) {
+  return MENSAJES_AUTORESPUESTA[cliente?.idioma] || MENSAJES_AUTORESPUESTA.es;
+}
 
 // Planes que incluyen WhatsApp con audio (transcripción + respuesta con voz) - Esencial no.
 const PLANES_CON_AUDIO = ['completo', 'premium', 'elite'];
@@ -333,8 +345,9 @@ async function procesarEventoWhatsapp(body) {
       await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_texto', mensaje: texto, departamento });
 
       if (puedeResponder) {
-        await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: MENSAJE_AUTORESPUESTA });
-        await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: MENSAJE_AUTORESPUESTA });
+        const textoRespuesta = mensajeAutorespuesta(cliente);
+        await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: textoRespuesta });
+        await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: textoRespuesta });
       }
     } else if (msg.type === 'audio') {
       // Transcribir (OpenAI) y responder con voz (ElevenLabs) es lo único de este CRM que sale
@@ -378,13 +391,14 @@ async function procesarEventoWhatsapp(body) {
       await avisarLeadNuevo(cliente, ficha, { nombreContacto, contacto: waId, origen: 'whatsapp_audio', mensaje, departamento });
 
       if (puedeResponder) {
+        const textoRespuesta = mensajeAutorespuesta(cliente);
         if (puedeUsarAudio) {
-          const audioRespuesta = await tts.generarAudio(MENSAJE_AUTORESPUESTA);
+          const audioRespuesta = await tts.generarAudio(textoRespuesta);
           await whatsapp.enviarAudio({ phoneNumberId, para: waId, buffer: audioRespuesta });
-          await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_audio', texto: MENSAJE_AUTORESPUESTA });
+          await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_audio', texto: textoRespuesta });
         } else {
-          await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: MENSAJE_AUTORESPUESTA });
-          await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: MENSAJE_AUTORESPUESTA });
+          await whatsapp.enviarTexto({ phoneNumberId, para: waId, texto: textoRespuesta });
+          await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto: textoRespuesta });
         }
       }
     }
