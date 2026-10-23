@@ -164,40 +164,8 @@
   .pl-explica-texto p { color: var(--text-secondary); font-size: 15.5px; line-height: 1.65; }
 
   .pl-kanban-demo {
-    position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-    background: linear-gradient(165deg, #121216, #0e0e11); border: 1px solid var(--border-subtle); border-radius: 18px;
-    padding: 22px 14px 96px; overflow: hidden;
-  }
-  .pl-kanban-col {
-    background: #121216; border: 1px dashed var(--border-subtle); border-radius: 12px;
-    padding: 12px 8px; min-height: 70px;
-  }
-  .pl-kanban-col-titulo {
-    display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
-    color: var(--text-muted); text-align: center;
-  }
-  .pl-kanban-col[data-col="2"] .pl-kanban-col-titulo { color: var(--accent-gold); }
-  @media (min-width: 540px) { .pl-kanban-col-titulo { font-size: 12px; } }
-
-  .pl-kanban-card {
-    position: absolute; top: 110px; width: 162px;
-    background: linear-gradient(150deg, #fdfbf5, #f1ece0); border: none;
-    border-radius: 11px; padding: 11px 13px; font-size: 12.5px; font-weight: 700; color: #16151a;
-    box-shadow: 0 16px 34px rgba(0,0,0,0.5), 0 2px 10px rgba(0,0,0,0.3);
-    transition: left 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s;
-  }
-  .pl-kanban-card.oculta { opacity: 0; }
-  @media (min-width: 540px) { .pl-kanban-card { top: 92px; width: 192px; font-size: 13.5px; } }
-
-  .pl-destello {
-    position: absolute; width: 5px; height: 5px; border-radius: 50%;
-    background: radial-gradient(circle, #fff6d9, var(--accent-gold) 70%);
-    box-shadow: 0 0 6px 1px rgba(229,169,59,0.55);
-    pointer-events: none; animation: pl-destello-vuelo .9s cubic-bezier(.22,.68,0,1) forwards;
-  }
-  @keyframes pl-destello-vuelo {
-    0% { transform: translate(0, 0) scale(1); opacity: 1; }
-    100% { transform: translate(var(--tx), var(--ty)) scale(0.15); opacity: 0; }
+    display: block; width: 100%; border: 1px solid var(--border-subtle); border-radius: 18px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
   }
 
   /* ---------- "Lo que ofrecemos" ---------- */
@@ -249,12 +217,7 @@
       <h2 data-i18n="explica_titulo">¿Qué es un CRM y cómo funciona?</h2>
       <p data-i18n="explica_texto">FrontyBack centraliza las consultas que te llegan por WhatsApp y por el formulario de tu sitio en un solo lugar, responde automáticamente apenas te escriben, y organiza cada conversación en un tablero para que no se te escape ningún cliente.</p>
     </div>
-    <div class="pl-kanban-demo">
-      <div class="pl-kanban-col" data-col="0"><span class="pl-kanban-col-titulo" data-i18n="kanban_col1">Nuevos Leads</span></div>
-      <div class="pl-kanban-col" data-col="1"><span class="pl-kanban-col-titulo" data-i18n="kanban_col2">En Seguimiento</span></div>
-      <div class="pl-kanban-col" data-col="2"><span class="pl-kanban-col-titulo" data-i18n="kanban_col3">¡Venta Cerrada!</span></div>
-      <div class="pl-kanban-card" id="kanban-card"><span data-i18n="kanban_card_nombre">Juan</span> - <span data-i18n="kanban_card_texto">Interesado en Plan Pro</span> 💬</div>
-    </div>
+    <video class="pl-kanban-demo" src="/video/kanban-demo.mp4" autoplay loop muted playsinline></video>
   </section>
 
   <section class="pl-features">

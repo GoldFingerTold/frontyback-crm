@@ -12,11 +12,6 @@
 
   "explica_titulo": "O que é um CRM e como funciona?",
   "explica_texto": "O FrontyBack centraliza as consultas que chegam pelo WhatsApp e pelo formulário do seu site em um só lugar, responde automaticamente assim que te escrevem, e organiza cada conversa em um painel para que nenhum cliente escape.",
-  "kanban_col1": "Novos Leads",
-  "kanban_col2": "Em Acompanhamento",
-  "kanban_col3": "Venda Fechada!",
-  "kanban_card_nombre": "João",
-  "kanban_card_texto": "Interessado no Plano Pro",
 
   "features_titulo": "O que oferecemos",
   "feature1_titulo": "Tudo centralizado",
