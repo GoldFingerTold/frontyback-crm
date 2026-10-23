@@ -121,6 +121,10 @@
         btn.disabled = false;
         return;
       }
+      // Este token de usuario (de corta duración, vence en horas) viaja server-side para
+      // cambiarlo por uno de larga duración antes de guardar nada - ver metaLeads.js,
+      // obtenerTokenDePaginaDeLargaDuracion. Acá en el navegador solo se usa para listar
+      // las páginas y mostrarlas a elegir, no hace falta que dure mucho para eso.
       buscarPaginas(response.authResponse.accessToken);
     }, { scope: 'pages_show_list,pages_manage_metadata,leads_retrieval' });
   }
@@ -140,9 +144,9 @@
         return;
       }
       if (paginas.length === 1) {
-        registrarConexion(paginas[0]);
+        registrarConexion(paginas[0], userAccessToken);
       } else {
-        mostrarSelectorPaginas(paginas);
+        mostrarSelectorPaginas(paginas, userAccessToken);
       }
     } catch (err) {
       estado.className = 'cm-estado error';
@@ -151,7 +155,7 @@
     }
   }
 
-  function mostrarSelectorPaginas(paginas) {
+  function mostrarSelectorPaginas(paginas, userAccessToken) {
     cont.innerHTML = `
       <i class="fa-brands fa-meta"></i>
       <h1>Elegí la Página</h1>
@@ -164,12 +168,12 @@
     cont.querySelectorAll('.cm-pagina-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const pagina = paginas.find((p) => p.id === btn.dataset.id);
-        registrarConexion(pagina);
+        registrarConexion(pagina, userAccessToken);
       });
     });
   }
 
-  async function registrarConexion(pagina) {
+  async function registrarConexion(pagina, userAccessToken) {
     mostrarPantallaInicial();
     const estado = document.getElementById('cm-estado');
     const btn = document.getElementById('cm-btn');
@@ -180,7 +184,7 @@
       const res = await fetch('/api/public/meta-leads/conectar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, page_id: pagina.id, page_name: pagina.name, page_access_token: pagina.access_token })
+        body: JSON.stringify({ slug, page_id: pagina.id, page_name: pagina.name, user_access_token: userAccessToken })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo registrar la conexión.');

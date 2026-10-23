@@ -397,11 +397,18 @@ router.post('/meta-leads/conectar', asyncHandler(async (req, res) => {
   const slug = String(req.body?.slug || '').trim();
   const pageId = String(req.body?.page_id || '').trim();
   const pageName = String(req.body?.page_name || '').trim();
-  const pageAccessToken = String(req.body?.page_access_token || '').trim();
+  const userAccessToken = String(req.body?.user_access_token || '').trim();
 
   const cliente = slug ? await db.getDb().collection('clientes').findOne({ slug }) : null;
   if (!cliente) return res.status(404).json({ error: 'No pudimos identificar a qué cuenta pertenece esta conexión.' });
-  if (!pageId || !pageAccessToken) return res.status(400).json({ error: 'Faltan datos de la página.' });
+  if (!pageId || !userAccessToken) return res.status(400).json({ error: 'Faltan datos de la página.' });
+
+  let pageAccessToken;
+  try {
+    pageAccessToken = await metaLeads.obtenerTokenDePaginaDeLargaDuracion({ userAccessToken, pageId });
+  } catch (err) {
+    return res.status(400).json({ error: `No se pudo obtener un token de acceso duradero para la página: ${err.message}` });
+  }
 
   try {
     await metaLeads.suscribirPagina({ pageId, pageAccessToken });
