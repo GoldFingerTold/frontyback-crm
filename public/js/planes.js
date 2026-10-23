@@ -102,9 +102,15 @@ document.getElementById('selector-idioma').addEventListener('change', (e) => {
 
 // ---------- Planes + alta ----------
 async function cargarPlanes() {
+  // Pisa la detección por IP si la URL trae ?pais=otro (ver server/routes/public.js,
+  // GET /geo) - solo para poder previsualizar la vista internacional (USD/Hotmart) desde
+  // Argentina sin necesitar una VPN.
+  const forzarPais = new URLSearchParams(window.location.search).get('pais');
+  const geoUrl = forzarPais === 'otro' ? '/api/public/geo?pais=otro' : '/api/public/geo';
+
   const [resPlanes, resGeo] = await Promise.all([
     fetch('/api/public/planes'),
-    fetch('/api/public/geo').catch(() => null)
+    fetch(geoUrl).catch(() => null)
   ]);
   const data = await resPlanes.json();
   PLANES = data.planes;

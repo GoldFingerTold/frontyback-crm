@@ -88,7 +88,14 @@ function idiomaSugeridoPorPais(pais) {
 // Mercado Pago a Argentina, y en USD vía Hotmart a cualquier otro país - public/js/
 // planes.js). "trust proxy" ya está configurado en server/index.js, así que req.ip es la
 // IP real del visitante y no la del proxy de nginx delante del servidor.
+//
+// ?pais=otro en la URL fuerza la vista internacional (USD/Hotmart) sin importar la IP real
+// - solo para que Hugo pueda probar esa vista desde Argentina sin VPN, nunca la usa un
+// visitante real (no hay ningún link público que lo agregue).
 router.get('/geo', (req, res) => {
+  if (req.query.pais === 'otro') {
+    return res.json({ pais: 'otro', idioma_sugerido: idiomaSugeridoPorPais(null) });
+  }
   const ip = String(req.ip || '').replace(/^::ffff:/, '');
   const geo = geoip.lookup(ip);
   res.json({
