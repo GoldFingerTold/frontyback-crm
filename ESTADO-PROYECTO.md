@@ -130,7 +130,42 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   landing en vivo - el primer texto que puse decía que "no se corta todo
   de un día para el otro" como si aplicara igual para Hotmart, cuando en
   realidad ahí no hay forma de "no pagar" sin cancelar antes. Mecanismo
-  genérico y reutilizable:
+  ✅ **Mensajes de WhatsApp a clientes finales, traducidos (23/10)**:
+  - La **autorespuesta automática** (primer mensaje instantáneo a quien le
+    escribe por primera vez a un negocio) ahora elige el texto según
+    `cliente.idioma` (es/en/pt) - es un mensaje de sesión, sin plantilla,
+    no necesita aprobación de Meta, efecto inmediato
+    (`server/routes/webhooks.js`, `mensajeAutorespuesta()`).
+  - Las **plantillas de turnos** (confirmación/recordatorio) y la de
+    **seguimiento** de una ficha fría ahora se registran en los 3 idiomas
+    (es_AR/en_US/pt_BR) en cada WABA al conectarse
+    (`turnos.asegurarPlantillas`, `whatsapp.asegurarPlantillaSeguimiento`),
+    y se manda la que corresponde según `cliente.idioma`
+    (`whatsapp.localeMeta`). A diferencia de la autorespuesta, estas SÍ
+    necesitan aprobación de Meta (asíncrona, no instantánea).
+  - `scripts/registrar-plantillas-multilenguaje.js` completa los idiomas
+    nuevos en los clientes que ya estaban conectados antes de este cambio
+    (corrido en producción el 23/10 contra la única WABA real que había -
+    las 3 plantillas es_AR ya estaban `APPROVED`, las 6 nuevas en/pt
+    quedaron `PENDING` de revisión de Meta).
+  - Dos bugs encontrados y corregidos al correr la migración por primera
+    vez: (1) la detección de "la plantilla ya existe" en
+    `whatsapp.crearPlantilla` chequeaba `error.message` (genérico,
+    "Invalid parameter"), pero el motivo real viene en
+    `error_user_msg`/`error_subcode` (2388024) - sin esto, re-correr el
+    script contra plantillas ya creadas tiraba error en vez de ignorarlas
+    en silencio; (2) el texto en inglés del recordatorio terminaba justo
+    en la variable (`at {{3}}.`, sin texto real después) - Meta lo
+    rechaza, hay que terminar con texto real después de la última
+    variable.
+  - **No tocado en esta vuelta** (no lo pidió Hugo, se entendió que el
+    reclamo era por los mensajes que le llegan a los CLIENTES FINALES del
+    negocio, no por las herramientas internas): el asistente "Fronty"
+    (ayuda a conectar WhatsApp/usar el CRM) sigue respondiendo siempre en
+    español, y también el dashboard interno (tablero, turnos, etc.). Si
+    hace falta confirmar el alcance, preguntarle a Hugo antes de tocarlo.
+
+  Mecanismo genérico y reutilizable:
   `data-i18n-intl="key"` en el HTML, usado por `aplicarTraducciones()`
   (`public/js/planes.js`) en vez de la key normal cuando `PAIS !== 'AR'` -
   sirve para cualquier otro texto que a futuro necesite distinguir
