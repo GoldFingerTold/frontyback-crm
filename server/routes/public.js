@@ -23,6 +23,11 @@ const router = express.Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
 
+// Se pisa la fecha acá (no se calcula sola) para que quede un registro explícito de qué
+// versión del texto legal aceptó cada cliente - si Términos/Privacidad cambian de fondo,
+// se actualiza este valor a mano.
+const VERSION_CONSENTIMIENTO = '2026-10-24';
+
 const signupLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
@@ -136,9 +141,13 @@ router.post(
     const frecuencia = body.frecuencia === 'anual' ? 'anual' : 'mensual';
     const codigoTexto = String(body.codigo || '').trim().toUpperCase();
     const idioma = ['es', 'en', 'pt'].includes(body.idioma) ? body.idioma : 'es';
+    const consintio = body.consent === true;
 
     if (!nombre || !slug || !email || !password) {
       return res.status(400).json({ error: 'Faltan datos.' });
+    }
+    if (!consintio) {
+      return res.status(400).json({ error: 'Tenés que aceptar los Términos y la Política de privacidad para continuar.' });
     }
     if (!EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'El email no es válido.' });
@@ -197,7 +206,13 @@ router.post(
       codigo_referido: codigoGuardado,
       descuento_pct_aplicado: descuentoPct,
       comision_pct_aplicada: comisionPct,
-      idioma
+      idioma,
+      consentimiento: {
+        aceptado: true,
+        fecha: new Date().toISOString(),
+        version: VERSION_CONSENTIMIENTO,
+        ip: String(req.ip || '').replace(/^::ffff:/, '')
+      }
     });
 
     req.session.clienteId = cliente._id.toString();

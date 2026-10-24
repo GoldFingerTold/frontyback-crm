@@ -5,6 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CRM FrontyBack — WhatsApp y formulario con respuesta automática</title>
 <meta name="description" content="Centralizá las consultas de tu negocio por WhatsApp y formulario, con respuesta automática y seguimiento comercial. Probalo gratis 7 días.">
+<link rel="canonical" href="https://crm.frontyback.com/">
+
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0b0b0c">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://crm.frontyback.com/">
+<meta property="og:title" content="FrontyBack CRM — WhatsApp y formulario con respuesta automática">
+<meta property="og:description" content="Centralizá tus consultas y respondé automáticamente. 7 días gratis, sin tarjeta.">
+<meta property="og:image" content="https://crm.frontyback.com/og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FrontyBack CRM — WhatsApp y formulario con respuesta automática">
+<meta name="twitter:description" content="Centralizá tus consultas y respondé automáticamente. 7 días gratis, sin tarjeta.">
+<meta name="twitter:image" content="https://crm.frontyback.com/og-1200x630.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -106,6 +128,13 @@
   .pl-precio-final { font-size: 13px; color: var(--text-secondary); }
   .pl-precio-final strong { color: var(--accent-gold); }
 
+  .pl-consent { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; margin-top: 6px; }
+  .pl-consent input { margin-top: 3px; flex-shrink: 0; accent-color: var(--accent-gold); }
+  .pl-consent span { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .pl-consent a { color: var(--accent-gold); text-decoration: none; }
+  .pl-consent a:hover { text-decoration: underline; }
+  .pl-consent-error { color: var(--danger); font-size: 12.5px; margin: -10px 0 0; min-height: 1.2em; }
+
   /* Campo trampa para bots: invisible para una persona */
   .pl-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
@@ -185,6 +214,29 @@
   .pl-feature i { font-size: 22px; color: var(--accent-gold); margin-bottom: 14px; }
   .pl-feature h3 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
   .pl-feature p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin: 0; }
+
+  /* ---------- Footer ---------- */
+  .site-footer {
+    border-top: 1px solid var(--border-subtle); padding: 56px 24px 28px;
+    color: var(--text-secondary); font-size: 14px; line-height: 1.6;
+  }
+  .footer-inner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 40px; }
+  .site-footer h2 { color: var(--text-primary); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; }
+  .site-footer nav, .footer-contact { display: flex; flex-direction: column; gap: 9px; align-items: flex-start; }
+  .site-footer a { color: var(--text-secondary); text-decoration: none; }
+  .site-footer a:hover, .site-footer a:focus-visible { color: var(--accent-gold); }
+  .site-footer a:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; border-radius: 4px; }
+  .footer-brand p { margin: 10px 0 0; max-width: 300px; }
+  .footer-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); text-decoration: none; }
+  .footer-logo strong { display: block; font-size: 17px; line-height: 1; }
+  .footer-logo small { display: block; color: var(--text-muted); font-size: 9px; letter-spacing: 0.22em; margin-top: 3px; }
+  .footer-intl { font-size: 12px; color: var(--text-muted); margin-top: 12px; max-width: 300px; }
+  .footer-bottom {
+    max-width: 1120px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid var(--border-subtle);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--text-muted); font-size: 12px;
+  }
+  @media (max-width: 900px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; gap: 26px; } .footer-bottom { flex-direction: column; } }
 </style>
 </head>
 <body>
@@ -220,7 +272,7 @@
     <video class="pl-kanban-demo" src="/video/kanban-demo.mp4" autoplay loop muted playsinline></video>
   </section>
 
-  <section class="pl-features">
+  <section class="pl-features" id="funciones">
     <h2 data-i18n="features_titulo">Lo que ofrecemos</h2>
     <div class="pl-features-grid">
       <div class="pl-feature">
@@ -248,7 +300,7 @@
 
   <section class="pl-planes" id="planes"></section>
 
-  <section class="pl-faq">
+  <section class="pl-faq" id="faq">
     <h2 data-i18n="faq_titulo">Preguntas frecuentes</h2>
 
     <details class="pl-faq-item">
@@ -336,6 +388,12 @@
 
       <p class="pl-precio-final" id="precio-final"></p>
 
+      <label class="pl-consent">
+        <input type="checkbox" id="f-consent" required>
+        <span data-i18n-html="form_consent">Acepto los <a href="/terminos.html" target="_blank" rel="noopener">Términos y condiciones</a> y la <a href="/privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>.</span>
+      </label>
+      <p class="pl-consent-error" id="consent-error" aria-live="polite"></p>
+
       <!-- honeypot -->
       <div class="pl-hp" aria-hidden="true">
         <label for="f-hp">No completar</label>
@@ -346,6 +404,50 @@
       <p class="form-status" id="signup-status"></p>
     </form>
   </section>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a class="footer-logo" href="/" aria-label="FrontyBack CRM — inicio">
+          <div class="brand-logo" style="width: 34px; height: 34px; font-size: 16px;">F</div>
+          <span><strong>FrontyBack</strong><small>CRM</small></span>
+        </a>
+        <p data-i18n="footer_slogan">Menos tareas, más ventas.</p>
+        <p class="footer-intl" id="footer-hotmart-nota" style="display: none;">
+          <span data-i18n="footer_hotmart_nota">Las compras internacionales se procesan a través de Hotmart.</span>
+          <a href="https://assets.hotmart.com/i/hotmart-marketplace/pdf/politicas-comerciales.pdf" target="_blank" rel="noopener" data-i18n="footer_hotmart_link">Ver política</a>
+        </p>
+      </div>
+
+      <nav aria-label="Producto">
+        <h2 data-i18n="footer_col_producto">Producto</h2>
+        <a href="/#funciones" data-i18n="footer_funciones">Funciones</a>
+        <a href="/#planes" data-i18n="footer_precios">Precios</a>
+        <a href="/#faq" data-i18n="footer_faq">Preguntas frecuentes</a>
+        <a href="/#pl-form-section" data-i18n="footer_empezar">Empezar prueba</a>
+      </nav>
+
+      <nav aria-label="Legal">
+        <h2 data-i18n="footer_col_legal">Legal</h2>
+        <a href="/terminos.html" data-i18n="footer_terminos">Términos y condiciones</a>
+        <a href="/privacidad.html" data-i18n="footer_privacidad">Política de privacidad</a>
+        <a href="/reembolsos.html" data-i18n="footer_reembolsos">Reembolsos y cancelaciones</a>
+        <a href="/cookies.html" data-i18n="footer_cookies">Política de cookies</a>
+      </nav>
+
+      <div class="footer-contact">
+        <h2 data-i18n="footer_col_contacto">Contacto</h2>
+        <a href="mailto:consulta@frontyback.com">consulta@frontyback.com</a>
+        <a href="https://wa.me/5491162195243" target="_blank" rel="noopener">WhatsApp</a>
+        <p style="margin: 0;" data-i18n="footer_horario">Lunes a viernes, 9 a 18hs</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span data-i18n="footer_copyright">© 2026 FrontyBack. Todos los derechos reservados.</span>
+      <a href="https://www.argentina.gob.ar/produccion/defensadelconsumidor/formulario" target="_blank" rel="noopener" data-i18n="footer_defensa_consumidor" id="footer-defensa-consumidor">Defensa del Consumidor</a>
+    </div>
+  </footer>
 
 </div>
 <script src="/js/planes.js"></script>

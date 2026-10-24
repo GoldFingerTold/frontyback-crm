@@ -69,6 +69,8 @@
   "form_frecuencia_anual": "Anual (2 meses grátis)",
   "form_label_codigo": "Código de desconto (opcional)",
   "form_codigo_placeholder": "Se você tiver um",
+  "form_consent": "Aceito os <a href=\"/terminos.html\" target=\"_blank\" rel=\"noopener\">Termos e condições</a> e a <a href=\"/privacidad.html\" target=\"_blank\" rel=\"noopener\">Política de privacidade</a>.",
+  "form_consent_error": "Você precisa aceitar os Termos e a Política de privacidade para continuar.",
   "form_submit": "Começar teste grátis",
   "form_creando": "Criando sua conta...",
   "form_error_generico": "Não foi possível criar sua conta.",
@@ -126,5 +128,23 @@
         "Pensado para gastronomia e organização de eventos"
       ]
     }
-  }
+  },
+
+  "footer_slogan": "Menos tarefas, mais vendas.",
+  "footer_hotmart_nota": "As compras internacionais são processadas pela Hotmart.",
+  "footer_hotmart_link": "Ver política",
+  "footer_col_producto": "Produto",
+  "footer_funciones": "Funcionalidades",
+  "footer_precios": "Preços",
+  "footer_faq": "Perguntas frequentes",
+  "footer_empezar": "Começar teste",
+  "footer_col_legal": "Legal",
+  "footer_terminos": "Termos e condições",
+  "footer_privacidad": "Política de privacidade",
+  "footer_reembolsos": "Reembolsos e cancelamentos",
+  "footer_cookies": "Política de cookies",
+  "footer_col_contacto": "Contato",
+  "footer_horario": "Segunda a sexta, 9h às 18h",
+  "footer_copyright": "© 2026 FrontyBack. Todos os direitos reservados.",
+  "footer_defensa_consumidor": "Defesa do Consumidor"
 }

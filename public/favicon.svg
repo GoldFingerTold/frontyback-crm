@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FrontyBack CRM">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7dc8a"/>
+      <stop offset="0.55" stop-color="#e5a93b"/>
+      <stop offset="1" stop-color="#b8860b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <g fill="#15130a">
+    <rect x="150" y="120" width="64" height="272" rx="8"/>
+    <rect x="150" y="120" width="212" height="62" rx="8"/>
+    <rect x="150" y="240" width="160" height="56" rx="8"/>
+  </g>
+</svg>

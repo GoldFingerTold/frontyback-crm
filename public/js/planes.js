@@ -83,8 +83,16 @@ function aplicarTraducciones() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
+  // A diferencia de data-i18n (textContent, siempre seguro), estas keys SÍ pueden traer
+  // HTML (links adentro del texto, como el del checkbox de consentimiento) - el contenido
+  // sale de nuestros propios diccionarios estáticos, no de nada que escriba un visitante,
+  // así que innerHTML acá no es un riesgo de XSS.
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
   document.title = t('meta_title');
   document.querySelector('meta[name="description"]')?.setAttribute('content', t('meta_description'));
+  document.documentElement.lang = IDIOMA;
   document.getElementById('selector-idioma').value = IDIOMA;
 }
 
@@ -134,6 +142,13 @@ async function cargarPlanes() {
   // los planes al final (PLANES ya está seteado acá arriba), no hace falta repetirlo.
   const idiomaGuardado = leerCookie(COOKIE_IDIOMA);
   await cambiarIdioma(idiomaGuardado || idiomaSugerido, { guardar: false });
+
+  // Footer: la nota de Hotmart solo aplica a compras internacionales, y el link de
+  // Defensa del Consumidor (organismo argentino) solo tiene sentido para Argentina.
+  const notaHotmart = document.getElementById('footer-hotmart-nota');
+  if (notaHotmart) notaHotmart.style.display = PAIS === 'AR' ? 'none' : 'block';
+  const defensaConsumidor = document.getElementById('footer-defensa-consumidor');
+  if (defensaConsumidor) defensaConsumidor.style.display = PAIS === 'AR' ? '' : 'none';
 }
 
 // nombre/descripción/features de cada plan viven en el diccionario de idioma (no en
@@ -279,6 +294,13 @@ document.getElementById('f-codigo').addEventListener('input', (e) => {
 
 document.getElementById('signup-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const consentError = document.getElementById('consent-error');
+  if (!document.getElementById('f-consent').checked) {
+    consentError.textContent = t('form_consent_error');
+    return;
+  }
+  consentError.textContent = '';
+
   const status = document.getElementById('signup-status');
   status.className = 'form-status';
   status.textContent = t('form_creando');
@@ -293,6 +315,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
         slug: document.getElementById('f-slug').value.trim(),
         email: document.getElementById('f-email').value.trim(),
         password: document.getElementById('f-password').value,
+        consent: true,
         plan: document.getElementById('f-plan').value,
         frecuencia: document.getElementById('f-frecuencia').value,
         codigo: document.getElementById('f-codigo').value.trim(),

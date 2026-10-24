@@ -69,6 +69,8 @@
   "form_frecuencia_anual": "Annual (2 months free)",
   "form_label_codigo": "Discount code (optional)",
   "form_codigo_placeholder": "If you have one",
+  "form_consent": "I accept the <a href=\"/terminos.html\" target=\"_blank\" rel=\"noopener\">Terms and conditions</a> and the <a href=\"/privacidad.html\" target=\"_blank\" rel=\"noopener\">Privacy policy</a>.",
+  "form_consent_error": "You need to accept the Terms and Privacy policy to continue.",
   "form_submit": "Start free trial",
   "form_creando": "Creating your account...",
   "form_error_generico": "We couldn't create your account.",
@@ -126,5 +128,23 @@
         "Built for restaurants and event planning"
       ]
     }
-  }
+  },
+
+  "footer_slogan": "Less busywork, more sales.",
+  "footer_hotmart_nota": "International purchases are processed through Hotmart.",
+  "footer_hotmart_link": "View policy",
+  "footer_col_producto": "Product",
+  "footer_funciones": "Features",
+  "footer_precios": "Pricing",
+  "footer_faq": "FAQ",
+  "footer_empezar": "Start trial",
+  "footer_col_legal": "Legal",
+  "footer_terminos": "Terms and conditions",
+  "footer_privacidad": "Privacy policy",
+  "footer_reembolsos": "Refunds and cancellations",
+  "footer_cookies": "Cookie policy",
+  "footer_col_contacto": "Contact",
+  "footer_horario": "Monday to Friday, 9am–6pm",
+  "footer_copyright": "© 2026 FrontyBack. All rights reserved.",
+  "footer_defensa_consumidor": "Consumer Protection"
 }
