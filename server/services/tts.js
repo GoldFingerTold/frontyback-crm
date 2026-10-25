@@ -27,7 +27,7 @@ async function generarAudioMp3(texto) {
     body: JSON.stringify({
       text: texto,
       model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: 0.8 }
+      voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: 0.9 }
     })
   });
 
