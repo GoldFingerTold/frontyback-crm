@@ -27,14 +27,14 @@
           </div>
         </div>
         <nav class="nav-menu">
-          <a href="/tablero.html" class="nav-item active"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
-          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
-          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> Plano de salón</a>
-          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
-          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> Catálogo</a>
-          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> Fidelidad</a>
+          <a href="/tablero.html" class="nav-item active"><i class="fa-solid fa-diagram-project"></i> <span data-i18n="nav.embudo">Embudo de Ventas</span></a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> <span data-i18n="nav.estadisticas">Estadísticas</span></a>
+          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> <span data-i18n="nav.salon">Plano de salón</span></a>
+          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> <span data-i18n="nav.turnos">Turnos</span></a>
+          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> <span data-i18n="nav.catalogo">Catálogo</span></a>
+          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> <span data-i18n="nav.fidelidad">Fidelidad</span></a>
           <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
-            <i class="fa-solid fa-users"></i> Empleados
+            <i class="fa-solid fa-users"></i> <span data-i18n="nav.empleados">Empleados</span>
           </button>
         </nav>
       </div>
@@ -48,45 +48,45 @@
             <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
           </div>
         </div>
-        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        <button id="logout-btn" class="btn-ghost" title="Salir" data-i18n-title="comun.salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
 
       <button type="button" id="btn-copiar-enlace" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;">
-        <i class="fa-solid fa-link"></i> Copiar mi página
+        <i class="fa-solid fa-link"></i> <span data-i18n="tablero.copiar_pagina">Copiar mi página</span>
       </button>
 
       <label id="aviso-lead-label" style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); cursor: pointer;" hidden>
         <input type="checkbox" id="aviso-lead-checkbox" style="margin: 0;">
-        Avisarme por email de leads nuevos
+        <span data-i18n="tablero.aviso_leads">Avisarme por email de leads nuevos</span>
       </label>
       <label id="resumen-semanal-label" style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11.5px; color: var(--text-muted); cursor: pointer;" hidden>
         <input type="checkbox" id="resumen-semanal-checkbox" style="margin: 0;">
-        Resumen semanal por email
+        <span data-i18n="tablero.resumen_semanal">Resumen semanal por email</span>
       </label>
       <button type="button" id="btn-config-general" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;" hidden>
-        <i class="fa-solid fa-gear"></i> Configuración
+        <i class="fa-solid fa-gear"></i> <span data-i18n="tablero.configuracion">Configuración</span>
       </button>
       <a id="btn-exportar-csv" class="btn-ghost" style="display: block; text-align: center; text-decoration: none; margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px; box-sizing: border-box;" hidden>
-        <i class="fa-solid fa-file-csv"></i> Exportar contactos
+        <i class="fa-solid fa-file-csv"></i> <span data-i18n="tablero.exportar">Exportar contactos</span>
       </a>
       <button type="button" id="btn-importar-csv" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;" hidden>
-        <i class="fa-solid fa-file-import"></i> Importar contactos
+        <i class="fa-solid fa-file-import"></i> <span data-i18n="tablero.importar">Importar contactos</span>
       </button>
       <button type="button" id="btn-mensajes-masivos" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;" hidden>
-        <i class="fa-solid fa-bullhorn"></i> Mensajes por etiqueta
+        <i class="fa-solid fa-bullhorn"></i> <span data-i18n="tablero.mensajes_etiqueta">Mensajes por etiqueta</span>
       </button>
       <input type="file" id="importar-csv-input" accept=".csv,text/csv" hidden>
       <a id="btn-conectar-whatsapp" class="btn-ghost" target="_blank" rel="noopener" style="display: block; text-align: center; text-decoration: none; margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px; box-sizing: border-box;" hidden>
-        <i class="fa-brands fa-whatsapp"></i> Conectar WhatsApp
+        <i class="fa-brands fa-whatsapp"></i> <span data-i18n="tablero.conectar_whatsapp">Conectar WhatsApp</span>
       </a>
       <a id="btn-conectar-meta-ads" class="btn-ghost" target="_blank" rel="noopener" style="display: block; text-align: center; text-decoration: none; margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px; box-sizing: border-box;" hidden>
-        <i class="fa-brands fa-meta"></i> Conectar campaña de Meta Ads
+        <i class="fa-brands fa-meta"></i> <span data-i18n="tablero.conectar_meta">Conectar campaña de Meta Ads</span>
       </a>
       <button type="button" id="push-btn" class="btn-ghost" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;">
-        <i class="fa-regular fa-bell"></i> <span id="push-btn-texto">Activar notificaciones</span>
+        <i class="fa-regular fa-bell"></i> <span id="push-btn-texto" data-i18n="tablero.push_activar">Activar notificaciones</span>
       </button>
       <button type="button" id="instalar-btn" class="btn btn-primary" style="margin-top: 10px; width: 100%; font-size: 11.5px; padding: 8px;" hidden>
-        <i class="fa-solid fa-download"></i> Instalar la app
+        <i class="fa-solid fa-download"></i> <span data-i18n="tablero.instalar">Instalar la app</span>
       </button>
     </aside>
 
@@ -94,7 +94,7 @@
       <header>
         <div class="search-bar">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="search-input" placeholder="Buscar por nombre o contacto">
+          <input type="text" id="search-input" placeholder="Buscar por nombre o contacto" data-i18n-placeholder="tablero.buscar">
         </div>
         <div class="header-actions">
           <div class="metrics-badge">
@@ -105,11 +105,11 @@
             <i class="fa-solid fa-snowflake"></i>
             <span id="metrics-frias-texto">0 sin avance</span>
           </div>
-          <button class="notif-btn" id="notif-btn" title="Notificaciones">
+          <button class="notif-btn" id="notif-btn" title="Notificaciones" data-i18n-title="tablero.notificaciones">
             <i class="fa-regular fa-bell"></i>
             <span class="notif-badge" id="notif-badge" hidden></span>
           </button>
-          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir" data-i18n-title="comun.salir">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -117,14 +117,14 @@
 
       <div id="estado-banner" class="estado-banner" hidden></div>
       <div id="pago-pendiente-detalle" class="pago-pendiente-detalle" hidden>
-        Para cargarla: entrá a <strong>business.facebook.com/settings</strong> → Cuentas → <strong>Cuentas de mensajes</strong> → elegí la que tiene tu número → <strong>Configuración de pagos</strong> → agregá una tarjeta. En cuanto la cargues, los recordatorios se reactivan solos. Si preferís no usar este canal, podés apagar el recordatorio por WhatsApp desde Turnos → Recordatorios y seguir usando solo el de email (sin costo).
-        <a id="pago-pendiente-wa" href="#" target="_blank" rel="noopener">¿Preferís que te ayudemos? Escribinos por WhatsApp</a>
+        <span data-i18n-html="tablero.pago_pendiente_detalle">Para cargarla: entrá a <strong>business.facebook.com/settings</strong> → Cuentas → <strong>Cuentas de mensajes</strong> → elegí la que tiene tu número → <strong>Configuración de pagos</strong> → agregá una tarjeta. En cuanto la cargues, los recordatorios se reactivan solos. Si preferís no usar este canal, podés apagar el recordatorio por WhatsApp desde Turnos → Recordatorios y seguir usando solo el de email (sin costo).</span>
+        <a id="pago-pendiente-wa" href="#" target="_blank" rel="noopener" data-i18n="tablero.pago_pendiente_ayuda">¿Preferís que te ayudemos? Escribinos por WhatsApp</a>
       </div>
 
       <div id="stage-tabs" class="stage-tabs"></div>
 
       <main id="board" class="board">
-        <p class="loading">Cargando...</p>
+        <p class="loading" data-i18n="comun.cargando">Cargando...</p>
       </main>
     </div>
   </div>
@@ -139,13 +139,19 @@
   <div id="config-general-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 440px;">
       <button id="config-general-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Configuración</h2>
+      <h2 data-i18n="tablero.configuracion">Configuración</h2>
       <div id="config-uso-whatsapp" style="margin: 14px 0; padding: 12px; background: var(--bg-surface); border-radius: 9px; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;" hidden></div>
       <div id="config-uso-audio" style="margin: 14px 0; padding: 12px; background: var(--bg-surface); border-radius: 9px; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;" hidden></div>
-      <label for="config-review-link" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 14px 0 6px;">Link para dejar reseña en Google</label>
-      <p class="ficha-contacto" style="margin: 0 0 8px;">Lo usamos para ofrecerte pedirle una reseña al cliente cuando marcás una venta como concretada.</p>
+      <label for="config-idioma" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 14px 0 6px;" data-i18n="tablero.idioma_label">Idioma del panel</label>
+      <select id="config-idioma" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem;">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+      </select>
+      <label for="config-review-link" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 14px 0 6px;" data-i18n="tablero.resena_label">Link para dejar reseña en Google</label>
+      <p class="ficha-contacto" style="margin: 0 0 8px;" data-i18n="tablero.resena_hint">Lo usamos para ofrecerte pedirle una reseña al cliente cuando marcás una venta como concretada.</p>
       <input type="text" id="config-review-link" placeholder="https://g.page/r/..." style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem;">
-      <button type="button" id="config-general-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Guardar</button>
+      <button type="button" id="config-general-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="config-general-status"></p>
     </div>
   </div>
@@ -153,27 +159,27 @@
   <div id="empleados-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 480px;">
       <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Empleados</h2>
-      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <h2 data-i18n="nav.empleados">Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;" data-i18n="tablero.emp_hint">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
       <div id="empleados-lista" class="sa-columnas-lista"></div>
       <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
         <div>
-          <label for="emp-nombre">Nombre</label>
+          <label for="emp-nombre" data-i18n="tablero.emp_nombre">Nombre</label>
           <input type="text" id="emp-nombre" required>
         </div>
         <div>
-          <label for="emp-usuario">Usuario (para el login)</label>
+          <label for="emp-usuario" data-i18n="tablero.emp_usuario">Usuario (para el login)</label>
           <input type="text" id="emp-usuario" required>
         </div>
         <div>
-          <label for="emp-password">Contraseña</label>
-          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+          <label for="emp-password" data-i18n="tablero.emp_password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" data-i18n-placeholder="tablero.emp_password_ph" required>
         </div>
         <div>
-          <label for="emp-departamento">Departamento</label>
+          <label for="emp-departamento" data-i18n="tablero.emp_departamento">Departamento</label>
           <select id="emp-departamento" required></select>
         </div>
-        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+        <button type="submit" class="btn btn-primary" data-i18n="tablero.emp_agregar">Agregar empleado</button>
       </form>
       <p class="form-status" id="empleado-status"></p>
     </div>
@@ -182,17 +188,17 @@
   <div id="mensajes-masivos-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 480px;">
       <button id="mensajes-masivos-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Mensajes por etiqueta</h2>
-      <p class="ficha-contacto" style="margin-bottom: 16px;">Mandá un mensaje de WhatsApp a todos los contactos que tengan una etiqueta puntual (ej. "VIP"). Si ya pasaron 24hs desde que esa persona te escribió, Meta lo manda igual pero como plantilla con costo real (≈ $37,68 ARS, a cargo de la tarjeta cargada en tu cuenta de Meta Business) - si todavía está dentro de las 24hs, es gratis.</p>
+      <h2 data-i18n="tablero.mensajes_etiqueta">Mensajes por etiqueta</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;" data-i18n="tablero.mm_hint">Mandá un mensaje de WhatsApp a todos los contactos que tengan una etiqueta puntual (ej. "VIP"). Si ya pasaron 24hs desde que esa persona te escribió, Meta lo manda igual pero como plantilla con costo real (≈ $37,68 ARS, a cargo de la tarjeta cargada en tu cuenta de Meta Business) - si todavía está dentro de las 24hs, es gratis.</p>
 
-      <label for="mm-etiqueta" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 6px;">Etiqueta</label>
+      <label for="mm-etiqueta" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 6px;" data-i18n="tablero.mm_etiqueta">Etiqueta</label>
       <select id="mm-etiqueta" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; box-sizing: border-box;"></select>
       <p id="mm-conteo" class="ficha-contacto" style="margin: 8px 0 0;"></p>
 
-      <label for="mm-texto" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 16px 0 6px;">Mensaje</label>
-      <textarea id="mm-texto" rows="4" maxlength="4096" placeholder="Escribí el mensaje que se le va a mandar a cada contacto..." style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; box-sizing: border-box; resize: vertical;"></textarea>
+      <label for="mm-texto" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 16px 0 6px;" data-i18n="tablero.mm_mensaje">Mensaje</label>
+      <textarea id="mm-texto" rows="4" maxlength="4096" placeholder="Escribí el mensaje que se le va a mandar a cada contacto..." data-i18n-placeholder="tablero.mm_placeholder" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; box-sizing: border-box; resize: vertical;"></textarea>
 
-      <button type="button" id="mm-enviar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Mandar mensajes</button>
+      <button type="button" id="mm-enviar" class="btn btn-primary" style="width: 100%; margin-top: 16px;" data-i18n="tablero.mm_enviar">Mandar mensajes</button>
       <p class="form-status" id="mm-status"></p>
     </div>
   </div>
@@ -200,16 +206,17 @@
   <div id="importar-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 480px;">
       <button id="importar-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Importar contactos</h2>
+      <h2 data-i18n="tablero.importar">Importar contactos</h2>
       <p class="ficha-contacto" style="margin-bottom: 16px;" id="importar-resumen"></p>
 
       <div id="importar-mapeo"></div>
 
-      <button type="button" id="importar-confirmar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Importar</button>
+      <button type="button" id="importar-confirmar" class="btn btn-primary" style="width: 100%; margin-top: 16px;" data-i18n="tablero.importar_confirmar">Importar</button>
       <p class="form-status" id="importar-status"></p>
     </div>
   </div>
 
+  <script src="/js/panel-i18n.js" data-paginas="comun,tablero"></script>
   <script src="/js/tablero.js"></script>
   <script src="/js/fronty.js"></script>
 </body>

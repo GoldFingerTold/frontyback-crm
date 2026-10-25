@@ -12,6 +12,14 @@ const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
+// El idioma del panel lo define el negocio (clientes.idioma) y viaja en la misma cookie que
+// ya usa la landing (public/js/panel-i18n.js la lee) - sin httpOnly a propósito, la tiene
+// que poder leer el JavaScript del navegador.
+function ponerCookieIdioma(res, idioma) {
+  const valor = ['es', 'en', 'pt'].includes(idioma) ? idioma : 'es';
+  res.cookie('frontyback_idioma', valor, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
+}
+
 // Como mucho 10 intentos cada 15 min por IP - deja de sobra para que alguien se equivoque
 // de contraseña un par de veces, pero corta un ataque de fuerza bruta contra el login.
 const loginLimiter = rateLimit({
@@ -41,6 +49,7 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   req.session.usuarioNombre = usuario.nombre;
   req.session.rol = usuario.rol;
   req.session.departamento = usuario.departamento || null;
+  ponerCookieIdioma(res, cliente.idioma);
   res.json({ ok: true, nombre: cliente.nombre });
 }));
 
@@ -76,4 +85,5 @@ function requireGerencia(req, res, next) {
 
 module.exports = router;
 module.exports.requireAuth = requireAuth;
+module.exports.ponerCookieIdioma = ponerCookieIdioma;
 module.exports.requireGerencia = requireGerencia;

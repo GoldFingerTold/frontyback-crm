@@ -1,0 +1,15 @@
+{
+  "pagina.titulo": "FrontyBack CRM — Log in",
+  "login.hint": "Log in with your business account.",
+  "login.usuario": "Username",
+  "login.password": "Password",
+  "login.entrar": "Log in",
+  "login.sin_cuenta": "Don't have an account yet?",
+  "login.ver_planes": "See the plans",
+  "login.instalar": "Install the app",
+  "login.instalar_ios": "Install: tap Share and \"Add to Home Screen\"",
+  "login.ingresando": "Logging in...",
+  "login.error_credenciales": "Incorrect username or password.",
+  "login.error_demasiados": "Too many attempts. Please try again in a while.",
+  "login.error_generico": "Could not log in."
+}

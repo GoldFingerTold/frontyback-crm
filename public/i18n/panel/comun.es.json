@@ -1,0 +1,19 @@
+{
+  "comun.salir": "Salir",
+  "comun.cargando": "Cargando...",
+  "comun.guardar": "Guardar",
+  "comun.guardando": "Guardando...",
+  "comun.guardado": "Guardado.",
+  "comun.cancelar": "Cancelar",
+  "comun.error_red": "Error de red",
+  "comun.error_guardar": "No se pudo guardar: {mensaje}",
+  "comun.error_con_mensaje": "Error: {mensaje}",
+
+  "nav.embudo": "Embudo de Ventas",
+  "nav.estadisticas": "Estadísticas",
+  "nav.salon": "Plano de salón",
+  "nav.turnos": "Turnos",
+  "nav.catalogo": "Catálogo",
+  "nav.fidelidad": "Fidelidad",
+  "nav.empleados": "Empleados"
+}

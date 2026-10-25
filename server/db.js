@@ -339,13 +339,21 @@ async function cortarPorFaltaDePago(clienteId) {
 
 // Columnas por defecto del tablero de un cliente nuevo - se pueden editar después desde
 // el panel (agregar, renombrar o borrar columnas), esto es solo el punto de partida.
-const COLUMNAS_DEFAULT = [
-  { id: 'nuevo', nombre: 'Nuevos', posicion: 0 },
-  { id: 'contactado', nombre: 'Contactados', posicion: 1 },
-  { id: 'negociacion', nombre: 'En negociación', posicion: 2 },
-  { id: 'ganado', nombre: 'Venta concretada', posicion: 3 },
-  { id: 'perdido', nombre: 'No avanzó', posicion: 4 }
-];
+const IDS_COLUMNAS_DEFAULT = ['nuevo', 'contactado', 'negociacion', 'ganado', 'perdido'];
+const NOMBRES_COLUMNAS_DEFAULT = {
+  es: ['Nuevos', 'Contactados', 'En negociación', 'Venta concretada', 'No avanzó'],
+  en: ['New', 'Contacted', 'In negotiation', 'Sale closed', 'Did not advance'],
+  pt: ['Novos', 'Contatados', 'Em negociação', 'Venda concluída', 'Não avançou']
+};
+
+// Los ids (nuevo, ganado, perdido...) son los mismos en todos los idiomas - solo cambia el
+// nombre que ve el dueño del negocio, según el idioma que eligió al darse de alta.
+function columnasDefault(idioma = 'es') {
+  const nombres = NOMBRES_COLUMNAS_DEFAULT[idioma] || NOMBRES_COLUMNAS_DEFAULT.es;
+  return IDS_COLUMNAS_DEFAULT.map((id, i) => ({ id, nombre: nombres[i], posicion: i }));
+}
+
+const COLUMNAS_DEFAULT = columnasDefault('es');
 
 // Una cuenta dada de alta con un código 100% gratis no deja ninguna facturación que
 // compense lo que cuesta transcribir y responder con voz por WhatsApp (son las dos únicas
@@ -387,7 +395,7 @@ async function crearCliente({
     nombre,
     email_notificacion: email_notificacion || '',
     whatsapp_numeros: [],
-    columnas: COLUMNAS_DEFAULT,
+    columnas: columnasDefault(idioma),
     plan,
     precio_pactado,
     frecuencia_pago,
@@ -1251,6 +1259,7 @@ module.exports = {
   ObjectId,
   crearCliente,
   COLUMNAS_DEFAULT,
+  columnasDefault,
   getPlanes,
   DIAS_PRUEBA_GRATIS,
   DIAS_GRACIA,

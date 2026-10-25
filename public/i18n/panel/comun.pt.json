@@ -1,0 +1,19 @@
+{
+  "comun.salir": "Sair",
+  "comun.cargando": "Carregando...",
+  "comun.guardar": "Salvar",
+  "comun.guardando": "Salvando...",
+  "comun.guardado": "Salvo.",
+  "comun.cancelar": "Cancelar",
+  "comun.error_red": "Erro de rede",
+  "comun.error_guardar": "Não foi possível salvar: {mensaje}",
+  "comun.error_con_mensaje": "Erro: {mensaje}",
+
+  "nav.embudo": "Funil de vendas",
+  "nav.estadisticas": "Estatísticas",
+  "nav.salon": "Planta do salão",
+  "nav.turnos": "Agendamentos",
+  "nav.catalogo": "Catálogo",
+  "nav.fidelidad": "Fidelidade",
+  "nav.empleados": "Funcionários"
+}

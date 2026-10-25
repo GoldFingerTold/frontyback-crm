@@ -6,7 +6,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
-const { requireAuth, requireGerencia } = require('./auth');
+const { requireAuth, requireGerencia, ponerCookieIdioma } = require('./auth');
 const pagos = require('../services/pagos');
 const push = require('../services/push');
 const googleCalendar = require('../services/googleCalendar');
@@ -123,6 +123,7 @@ router.get('/tablero', asyncHandler(async (req, res) => {
       avisos_lead_email: cliente.avisos_lead_email !== false,
       resumen_semanal_email: cliente.resumen_semanal_email !== false,
       google_review_link: cliente.google_review_link || '',
+      idioma: ['es', 'en', 'pt'].includes(cliente.idioma) ? cliente.idioma : 'es',
       whatsapp_pago_pendiente: cliente.whatsapp_pago_pendiente === true,
       turnos_mensajes_limite_mes: turnosMensajesLimiteMes,
       turnos_mensajes_usados_mes: turnosMensajesUsadosMes,
@@ -158,10 +159,15 @@ router.put('/preferencias', requireGerencia, asyncHandler(async (req, res) => {
   if (req.body?.avisos_lead_email !== undefined) set.avisos_lead_email = Boolean(req.body.avisos_lead_email);
   if (req.body?.resumen_semanal_email !== undefined) set.resumen_semanal_email = Boolean(req.body.resumen_semanal_email);
   if (req.body?.google_review_link !== undefined) set.google_review_link = String(req.body.google_review_link).trim().slice(0, 300);
+  if (req.body?.idioma !== undefined) {
+    if (!['es', 'en', 'pt'].includes(req.body.idioma)) return res.status(400).json({ error: 'Idioma no válido.' });
+    set.idioma = req.body.idioma;
+  }
   await db.getDb().collection('clientes').updateOne(
     { _id: new db.ObjectId(req.session.clienteId) },
     { $set: set }
   );
+  if (set.idioma) ponerCookieIdioma(res, set.idioma);
   res.json({ ok: true });
 }));
 

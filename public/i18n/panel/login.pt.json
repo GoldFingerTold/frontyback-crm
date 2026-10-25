@@ -1,0 +1,15 @@
+{
+  "pagina.titulo": "CRM FrontyBack — Entrar",
+  "login.hint": "Entre com a conta do seu negócio.",
+  "login.usuario": "Usuário",
+  "login.password": "Senha",
+  "login.entrar": "Entrar",
+  "login.sin_cuenta": "Ainda não tem conta?",
+  "login.ver_planes": "Veja os planos",
+  "login.instalar": "Instalar o app",
+  "login.instalar_ios": "Instalar: toque em Compartilhar e \"Adicionar à Tela de Início\"",
+  "login.ingresando": "Entrando...",
+  "login.error_credenciales": "Usuário ou senha incorretos.",
+  "login.error_demasiados": "Muitas tentativas. Tente novamente daqui a pouco.",
+  "login.error_generico": "Não foi possível entrar."
+}

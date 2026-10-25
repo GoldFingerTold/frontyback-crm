@@ -1,0 +1,19 @@
+{
+  "comun.salir": "Log out",
+  "comun.cargando": "Loading...",
+  "comun.guardar": "Save",
+  "comun.guardando": "Saving...",
+  "comun.guardado": "Saved.",
+  "comun.cancelar": "Cancel",
+  "comun.error_red": "Network error",
+  "comun.error_guardar": "Could not save: {mensaje}",
+  "comun.error_con_mensaje": "Error: {mensaje}",
+
+  "nav.embudo": "Sales funnel",
+  "nav.estadisticas": "Statistics",
+  "nav.salon": "Floor plan",
+  "nav.turnos": "Appointments",
+  "nav.catalogo": "Catalog",
+  "nav.fidelidad": "Loyalty",
+  "nav.empleados": "Employees"
+}

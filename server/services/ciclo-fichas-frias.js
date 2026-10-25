@@ -10,11 +10,15 @@ const email = require('./email');
 const DIAS_FRIO = 5;
 const MS_FRIO = DIAS_FRIO * 24 * 60 * 60 * 1000;
 
-function esColumnaGanada(nombre) {
-  return /concretad|ganad|vend/i.test(nombre || '');
+// Los nombres de las columnas los puede cambiar el dueño (y vienen en el idioma del negocio:
+// español/inglés/portugués), así que además de los ids fijos de las columnas por defecto se
+// reconocen las palabras más comunes en los 3 idiomas. Mismo criterio que
+// public/js/tablero.js.
+function esColumnaGanada(columna) {
+  return columna?.id === 'ganado' || /concretad|ganad|vend|closed|won\b|sold|conclu[ií]d|fechad|ganh/i.test(columna?.nombre || '');
 }
-function esColumnaPerdida(nombre) {
-  return /perdid|no avanz|descart|cancel/i.test(nombre || '');
+function esColumnaPerdida(columna) {
+  return columna?.id === 'perdido' || /perdid|no avanz|descart|cancel|lost|did not advance|not advance|n[aã]o avan/i.test(columna?.nombre || '');
 }
 
 async function avisarFichasFrias() {
@@ -30,7 +34,7 @@ async function avisarFichasFrias() {
   for (const cliente of clientes) {
     try {
       const columnasActivas = (cliente.columnas || [])
-        .filter((c) => !esColumnaGanada(c.nombre) && !esColumnaPerdida(c.nombre))
+        .filter((c) => !esColumnaGanada(c) && !esColumnaPerdida(c))
         .map((c) => c.id);
       if (!columnasActivas.length) continue;
 
