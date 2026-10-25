@@ -72,6 +72,29 @@ de cada cambio - clonarlo alcanza para tener el proyecto completo en cualquier P
   Verificación de acceso (Tech Provider) y Acciones requeridas, los tres en estado
   aprobado/completado. No queda ningún trámite pendiente de Meta.
 
+- **Panel del dueño traducido a ES/EN/PT** (24/10/2026, deploy reinicio 51). El idioma
+  pertenece al NEGOCIO (`clientes.idioma`), no al navegador: el server lo manda en la
+  cookie `frontyback_idioma` (al login en `auth.js` y al cambiarlo en
+  `PUT /api/admin/preferencias`). `public/js/panel-i18n.js` carga por XHR síncrono los
+  diccionarios `public/i18n/panel/<pagina>.<es|en|pt>.json`, declarados con
+  `<script src="/js/panel-i18n.js" data-paginas="comun,<pagina>">` (fallback idioma →
+  es → clave). API: `tp(clave, vars)`, `tpn(clave, n)` (plural con `_uno`/`_otros`),
+  atributos `data-i18n`, `data-i18n-html`, `data-i18n-placeholder`, `data-i18n-title`,
+  y `PanelI18n.fecha/fechaCorta/numero/locale`. `fronty.js` carga su propio
+  `fronty.<idioma>.json` y manda `idioma` a `/api/public/asistente`.
+  Se usa `tp` y no `t` porque choca con un `const t` local de `salon.js`.
+  Verificador: `node scripts/test-i18n-panel.js` (paridad de claves es/en/pt,
+  variables, y que toda clave usada exista en los diccionarios de la pantalla).
+  Columnas por defecto: ids fijos (`nuevo, contactado, negociacion, ganado, perdido`),
+  nombres según idioma (`db.columnasDefault(idioma)`); ganado/perdido se detecta por id
+  y regex multilingüe. El español tiene que quedar idéntico al original.
+  **Alcance decidido por Hugo**: solo el panel del dueño. Quedan en español (huecos
+  conocidos): mensajes de error del servidor, emails y push al dueño (aviso de lead,
+  resumen semanal, fichas frías), nombres de columnas de clientes ya existentes,
+  pantallas y emails de cara al cliente final (reservar, mi-turno, pedir, fidelización,
+  enlace) y superadmin. La tabla de tarifas de Meta en ARS (Turnos) solo se ve en es.
+  Pendiente de revisión visual en navegador real: Turnos (Disponibilidad), Empleados.
+
 ## Pendiente / abierto
 
 - ✅ **Google Calendar: resuelto** (21/10). Causa real: el cliente OAuth
