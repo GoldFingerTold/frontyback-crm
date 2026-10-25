@@ -13,7 +13,7 @@ async function api(path, options = {}) {
     throw new Error('No autenticado');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Error de red');
+  if (!res.ok) throw new Error(data.error || tp('comun.error_red'));
   return data;
 }
 
@@ -21,17 +21,20 @@ function esc(valor) {
   return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function formatearARS(n) {
-  return '$' + Math.round(n || 0).toLocaleString('es-AR');
-}
 function formatearNumero(n) {
-  return Math.round(n || 0).toLocaleString('es-AR');
+  return PanelI18n.numero(Math.round(n || 0));
+}
+function formatearARS(n) {
+  return '$' + formatearNumero(n);
 }
 function formatearHoras(h) {
-  if (h < 1) return `${Math.round(h * 60)}min`;
-  if (h < 24) return `${h.toFixed(1)}hs`;
-  return `${(h / 24).toFixed(1)}d`;
+  if (h < 1) return `${Math.round(h * 60)}${tp('estadisticas.unidad_min')}`;
+  if (h < 24) return `${h.toFixed(1)}${tp('estadisticas.unidad_h')}`;
+  return `${(h / 24).toFixed(1)}${tp('estadisticas.unidad_d')}`;
 }
+const fichasTexto = (n) => tpn('estadisticas.fichas', n);
+// El servidor manda los baldes de tiempo de respuesta con el nombre en español: se traducen por id.
+const BALDE_CLAVE = { '<1h': 'estadisticas.balde_lt1h', '1-6h': 'estadisticas.balde_1_6h', '6-24h': 'estadisticas.balde_6_24h', '>24h': 'estadisticas.balde_gt24h' };
 
 // ---------- Paleta (validada con scripts/validate_palette.js contra el fondo oscuro del CRM) ----------
 // Rampa dorada (una sola tonalidad, clara->oscura) para el embudo por etapa - cada etapa es
@@ -53,9 +56,9 @@ const CATEGORICO = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008
 const GRIS_SIN_DATO = '#6b7280';
 
 const ORIGEN_INFO = {
-  whatsapp_texto: { label: 'WhatsApp (texto)', color: CATEGORICO[0] },
-  whatsapp_audio: { label: 'WhatsApp (audio)', color: CATEGORICO[2] },
-  formulario: { label: 'Formulario', color: CATEGORICO[1] }
+  whatsapp_texto: { clave: 'estadisticas.origen_whatsapp_texto', color: CATEGORICO[0] },
+  whatsapp_audio: { clave: 'estadisticas.origen_whatsapp_audio', color: CATEGORICO[2] },
+  formulario: { clave: 'estadisticas.origen_formulario', color: CATEGORICO[1] }
 };
 const ORIGEN_ORDEN = ['whatsapp_texto', 'whatsapp_audio', 'formulario'];
 
@@ -152,60 +155,60 @@ async function cargarEstadisticas() {
   cont.innerHTML = `
     <div class="kpi-row">
       <div class="kpi-tile">
-        <div class="kpi-label">Leads totales</div>
+        <div class="kpi-label">${tp('estadisticas.kpi_leads')}</div>
         <div class="kpi-valor">${formatearNumero(data.kpis.total_leads)}</div>
       </div>
       <div class="kpi-tile">
-        <div class="kpi-label">Valor en el embudo</div>
+        <div class="kpi-label">${tp('estadisticas.kpi_valor')}</div>
         <div class="kpi-valor"><span class="accent">${formatearARS(data.kpis.valor_total)}</span></div>
       </div>
       <div class="kpi-tile">
-        <div class="kpi-label">Conversión a "${esc(data.kpis.nombre_ultima_columna)}"</div>
+        <div class="kpi-label">${tp('estadisticas.kpi_conversion', { columna: esc(data.kpis.nombre_ultima_columna) })}</div>
         <div class="kpi-valor">${data.kpis.tasa_conversion.toFixed(1)}%</div>
       </div>
     </div>
 
     <div class="chart-card">
-      <h2>Embudo por etapa</h2>
-      <p class="chart-sub">Cuántas fichas hay hoy en cada columna del tablero.</p>
+      <h2>${tp('estadisticas.embudo_titulo')}</h2>
+      <p class="chart-sub">${tp('estadisticas.embudo_sub')}</p>
       <div id="chart-embudo"></div>
     </div>
 
     <div class="chart-card">
-      <h2>Valor del embudo por mes</h2>
-      <p class="chart-sub">Suma del monto cargado en las fichas, por mes en que llegó el lead (últimos 12 meses).</p>
+      <h2>${tp('estadisticas.mes_titulo')}</h2>
+      <p class="chart-sub">${tp('estadisticas.mes_sub')}</p>
       <div id="chart-mes"></div>
     </div>
 
     <div class="chart-card">
-      <h2>Origen de los leads</h2>
-      <p class="chart-sub">Por dónde llegan las consultas.</p>
+      <h2>${tp('estadisticas.origen_titulo')}</h2>
+      <p class="chart-sub">${tp('estadisticas.origen_sub')}</p>
       <div id="chart-origen"></div>
     </div>
 
     <div class="chart-card" id="card-departamento">
-      <h2>Por departamento</h2>
-      <p class="chart-sub">Requiere tener departamentos configurados (etiquetá tus cuentas de WhatsApp desde el super-admin, y creá empleados en "Empleados").</p>
+      <h2>${tp('estadisticas.depto_titulo')}</h2>
+      <p class="chart-sub">${tp('estadisticas.depto_sub')}</p>
       <div id="chart-departamento"></div>
     </div>
 
     <div class="chart-card">
-      <h2>Tiempo de respuesta</h2>
-      <p class="chart-sub">Cuánto pasa entre que llega un lead nuevo por WhatsApp y que alguien del equipo le responde a mano desde la ficha (no cuenta la respuesta automática, que es instantánea).</p>
+      <h2>${tp('estadisticas.resp_titulo')}</h2>
+      <p class="chart-sub">${tp('estadisticas.resp_sub')}</p>
       <div id="chart-respuesta"></div>
     </div>
   `;
 
   // Embudo por etapa
   if (data.embudo.length === 0) {
-    document.getElementById('chart-embudo').innerHTML = '<p class="chart-vacio">Todavía no hay consultas.</p>';
+    document.getElementById('chart-embudo').innerHTML = `<p class="chart-vacio">${tp('estadisticas.embudo_vacio')}</p>`;
   } else {
     const colores = rampaDorada(data.embudo.length);
     renderColumnas('chart-embudo', data.embudo, {
       getLabel: (c) => c.nombre,
       getValor: (c) => c.cantidad,
       getColor: (c) => colores[data.embudo.indexOf(c)],
-      formatearValor: (v) => `${formatearNumero(v)} fichas`
+      formatearValor: (v) => fichasTexto(v)
     });
   }
 
@@ -213,7 +216,7 @@ async function cargarEstadisticas() {
   const colorMes = rampaDorada(3)[1]; // el tono del medio de la rampa, como color único
   const hayValorEnAlgunMes = data.valor_por_mes.some((m) => m.monto_total > 0);
   if (!hayValorEnAlgunMes) {
-    document.getElementById('chart-mes').innerHTML = '<p class="chart-vacio">Todavía no hay montos cargados en ninguna ficha.</p>';
+    document.getElementById('chart-mes').innerHTML = `<p class="chart-vacio">${tp('estadisticas.mes_vacio')}</p>`;
   } else {
     renderColumnas('chart-mes', data.valor_por_mes, {
       getLabel: (m) => m.mes.slice(2).replace('-', '/'),
@@ -228,23 +231,23 @@ async function cargarEstadisticas() {
     .map((key) => ({ key, cantidad: data.origen.find((o) => o.origen === key)?.cantidad || 0 }))
     .filter((o) => o.cantidad > 0);
   if (origenItems.length === 0) {
-    document.getElementById('chart-origen').innerHTML = '<p class="chart-vacio">Todavía no hay consultas.</p>';
+    document.getElementById('chart-origen').innerHTML = `<p class="chart-vacio">${tp('estadisticas.origen_vacio')}</p>`;
   } else {
     renderBarras('chart-origen', origenItems, {
-      getLabel: (o) => ORIGEN_INFO[o.key].label,
+      getLabel: (o) => tp(ORIGEN_INFO[o.key].clave),
       getValor: (o) => o.cantidad,
       getColor: (o) => ORIGEN_INFO[o.key].color,
-      formatearValor: (v) => `${formatearNumero(v)} fichas`
+      formatearValor: (v) => fichasTexto(v)
     });
   }
 
   // Por departamento - "General" (sin departamento) siempre gris, el resto en orden de aparición
   const deptItems = data.departamento
-    .map((d) => ({ nombre: d.departamento || 'General (sin depto.)', cantidad: d.cantidad, esGeneral: !d.departamento }))
+    .map((d) => ({ nombre: d.departamento || tp('estadisticas.depto_general'), cantidad: d.cantidad, esGeneral: !d.departamento }))
     .sort((a, b) => b.cantidad - a.cantidad);
   const hayDeptosReales = deptItems.some((d) => !d.esGeneral);
   if (!hayDeptosReales) {
-    document.getElementById('chart-departamento').innerHTML = '<p class="chart-vacio">No hay departamentos configurados todavía.</p>';
+    document.getElementById('chart-departamento').innerHTML = `<p class="chart-vacio">${tp('estadisticas.depto_vacio')}</p>`;
   } else {
     let siguienteColor = 0;
     const colorPorNombre = {};
@@ -257,7 +260,7 @@ async function cargarEstadisticas() {
       getLabel: (d) => d.nombre,
       getValor: (d) => d.cantidad,
       getColor: (d) => colorPorNombre[d.nombre],
-      formatearValor: (v) => `${formatearNumero(v)} fichas`
+      formatearValor: (v) => fichasTexto(v)
     });
   }
 
@@ -265,22 +268,22 @@ async function cargarEstadisticas() {
   const { muestras, promedio_horas: promedioHoras, distribucion } = data.tiempo_respuesta;
   const contRespuesta = document.getElementById('chart-respuesta');
   if (muestras === 0) {
-    contRespuesta.innerHTML = '<p class="chart-vacio">Todavía no se respondió ninguna ficha a mano desde el CRM.</p>';
+    contRespuesta.innerHTML = `<p class="chart-vacio">${tp('estadisticas.resp_vacio')}</p>`;
   } else {
     const colorRespuesta = rampaDorada(3)[1];
     const resumen = document.createElement('p');
     resumen.className = 'chart-sub';
     resumen.style.marginTop = '-10px';
-    resumen.innerHTML = `Promedio: <strong style="color: var(--text-primary);">${formatearHoras(promedioHoras)}</strong> (sobre ${formatearNumero(muestras)} respuesta${muestras === 1 ? '' : 's'}).`;
+    resumen.innerHTML = tpn('estadisticas.resp_promedio', muestras, { promedio: formatearHoras(promedioHoras), n: formatearNumero(muestras) });
     contRespuesta.appendChild(resumen);
     const chartDiv = document.createElement('div');
     contRespuesta.appendChild(chartDiv);
     chartDiv.id = 'chart-respuesta-barras';
     renderBarras('chart-respuesta-barras', distribucion, {
-      getLabel: (b) => b.nombre,
+      getLabel: (b) => (BALDE_CLAVE[b.id] ? tp(BALDE_CLAVE[b.id]) : b.nombre),
       getValor: (b) => b.cantidad,
       getColor: () => colorRespuesta,
-      formatearValor: (v) => `${formatearNumero(v)} ficha${v === 1 ? '' : 's'}`
+      formatearValor: (v) => fichasTexto(v)
     });
   }
 
@@ -302,7 +305,7 @@ async function cargarCabecera() {
   if (data.usuario) {
     const esGerencia = data.usuario.rol === 'gerencia';
     document.getElementById('user-rol').textContent = esGerencia
-      ? 'Gerencia · ve todo'
+      ? tp('estadisticas.rol_gerencia')
       : `${data.usuario.nombre} · ${data.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !esGerencia;
   }
@@ -335,9 +338,9 @@ async function abrirEmpleados() {
     const select = document.getElementById('emp-departamento');
     select.innerHTML = departamentos.length
       ? departamentos.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join('')
-      : '<option value="" disabled selected>No hay departamentos todavía</option>';
+      : `<option value="" disabled selected>${tp('estadisticas.emp_sin_departamentos')}</option>`;
   } catch (err) {
-    document.getElementById('empleados-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    document.getElementById('empleados-lista').innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -345,7 +348,7 @@ function renderEmpleados(usuarios) {
   const cont = document.getElementById('empleados-lista');
   const empleados = usuarios.filter((u) => u.rol === 'departamento');
   if (empleados.length === 0) {
-    cont.innerHTML = '<p class="loading" style="padding: 0;">Todavía no agregaste ningún empleado.</p>';
+    cont.innerHTML = `<p class="loading" style="padding: 0;">${tp('estadisticas.emp_ninguno')}</p>`;
     return;
   }
   cont.innerHTML = empleados.map((u) => `
@@ -359,7 +362,7 @@ function renderEmpleados(usuarios) {
   `).join('');
   cont.querySelectorAll('[data-borrar-empleado]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!confirm('¿Borrar a este empleado? Deja de poder entrar al CRM.')) return;
+      if (!confirm(tp('estadisticas.emp_confirmar_borrar'))) return;
       try {
         await api(`/api/admin/usuarios/${btn.dataset.borrarEmpleado}`, { method: 'DELETE' });
         abrirEmpleados();
@@ -377,7 +380,7 @@ document.getElementById('empleados-close').addEventListener('click', () => {
 document.getElementById('empleado-nuevo-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const status = document.getElementById('empleado-status');
-  status.textContent = 'Agregando...';
+  status.textContent = tp('estadisticas.emp_agregando');
   status.className = 'form-status';
   try {
     await api('/api/admin/usuarios', {
@@ -389,7 +392,7 @@ document.getElementById('empleado-nuevo-form').addEventListener('submit', async 
         departamento: document.getElementById('emp-departamento').value
       })
     });
-    status.textContent = 'Empleado agregado.';
+    status.textContent = tp('estadisticas.emp_agregado');
     document.getElementById('empleado-nuevo-form').reset();
     const { usuarios } = await api('/api/admin/usuarios');
     renderEmpleados(usuarios);

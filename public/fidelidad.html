@@ -62,14 +62,14 @@
           </div>
         </div>
         <nav class="nav-menu">
-          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
-          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
-          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> Plano de salón</a>
-          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
-          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> Catálogo</a>
-          <a href="/fidelidad.html" class="nav-item active"><i class="fa-solid fa-stamp"></i> Fidelidad</a>
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> <span data-i18n="nav.embudo">Embudo de Ventas</span></a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> <span data-i18n="nav.estadisticas">Estadísticas</span></a>
+          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> <span data-i18n="nav.salon">Plano de salón</span></a>
+          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> <span data-i18n="nav.turnos">Turnos</span></a>
+          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> <span data-i18n="nav.catalogo">Catálogo</span></a>
+          <a href="/fidelidad.html" class="nav-item active"><i class="fa-solid fa-stamp"></i> <span data-i18n="nav.fidelidad">Fidelidad</span></a>
           <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
-            <i class="fa-solid fa-users"></i> Empleados
+            <i class="fa-solid fa-users"></i> <span data-i18n="nav.empleados">Empleados</span>
           </button>
         </nav>
       </div>
@@ -83,7 +83,7 @@
             <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
           </div>
         </div>
-        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        <button id="logout-btn" class="btn-ghost" title="Salir" data-i18n-title="comun.salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
     </aside>
 
@@ -91,7 +91,7 @@
       <header>
         <div class="search-bar" style="visibility: hidden;"></div>
         <div class="header-actions">
-          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir" data-i18n-title="comun.salir">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -99,15 +99,15 @@
 
       <main class="fd-main">
         <div class="fd-titulo-row">
-          <h1 class="fd-titulo">Fidelidad</h1>
+          <h1 class="fd-titulo" data-i18n="fidelidad.titulo">Fidelidad</h1>
           <div class="fd-acciones">
-            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> Copiar link de registro</button>
-            <button type="button" id="btn-config" class="btn-ghost" hidden><i class="fa-solid fa-gear"></i> Configuración</button>
-            <button type="button" id="btn-escanear" class="btn btn-primary"><i class="fa-solid fa-qrcode"></i> Escanear cliente</button>
+            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> <span data-i18n="fidelidad.copiar_link">Copiar link de registro</span></button>
+            <button type="button" id="btn-config" class="btn-ghost" hidden><i class="fa-solid fa-gear"></i> <span data-i18n="fidelidad.configuracion">Configuración</span></button>
+            <button type="button" id="btn-escanear" class="btn btn-primary"><i class="fa-solid fa-qrcode"></i> <span data-i18n="fidelidad.escanear">Escanear cliente</span></button>
           </div>
         </div>
 
-        <div id="fd-lista"><p class="loading">Cargando...</p></div>
+        <div id="fd-lista"><p class="loading" data-i18n="comun.cargando">Cargando...</p></div>
       </main>
     </div>
   </div>
@@ -116,10 +116,10 @@
   <div id="scanner-overlay" class="overlay" hidden>
     <div class="ficha-detail">
       <button id="scanner-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Escanear QR del cliente</h2>
+      <h2 data-i18n="fidelidad.scanner_titulo">Escanear QR del cliente</h2>
       <video id="scanner-video" muted playsinline></video>
       <canvas id="scanner-canvas" hidden></canvas>
-      <div id="scanner-resultado"><p class="loading">Apuntá la cámara al QR del cliente...</p></div>
+      <div id="scanner-resultado"><p class="loading" data-i18n="fidelidad.scanner_apunta">Apuntá la cámara al QR del cliente...</p></div>
     </div>
   </div>
 
@@ -127,22 +127,22 @@
   <div id="config-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 460px;">
       <button id="config-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Configuración</h2>
+      <h2 data-i18n="fidelidad.configuracion">Configuración</h2>
       <div class="fd-form">
-        <label for="config-modo">¿Cómo se suman los puntos?</label>
+        <label for="config-modo" data-i18n="fidelidad.modo_label">¿Cómo se suman los puntos?</label>
         <select id="config-modo" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; font-family: inherit;">
-          <option value="visita">1 punto por visita (rápido)</option>
-          <option value="monto">Según cuánto gastó el cliente</option>
+          <option value="visita" data-i18n="fidelidad.modo_visita">1 punto por visita (rápido)</option>
+          <option value="monto" data-i18n="fidelidad.modo_monto">Según cuánto gastó el cliente</option>
         </select>
         <div id="config-monto-wrap" hidden>
-          <label for="config-monto">Pesos gastados por cada punto</label>
-          <input type="number" id="config-monto" min="1" placeholder="Ej: 1000">
+          <label for="config-monto" data-i18n="fidelidad.monto_label">Pesos gastados por cada punto</label>
+          <input type="number" id="config-monto" min="1" placeholder="Ej: 1000" data-i18n-placeholder="fidelidad.monto_ph">
         </div>
       </div>
-      <label style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 18px 0 8px;">Premios</label>
+      <label style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 18px 0 8px;" data-i18n="fidelidad.premios">Premios</label>
       <div id="config-premios-lista"></div>
-      <button type="button" id="config-premio-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar premio</button>
-      <button type="button" id="config-guardar" class="btn btn-primary" style="width: 100%; margin-top: 18px;">Guardar</button>
+      <button type="button" id="config-premio-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> <span data-i18n="fidelidad.agregar_premio">Agregar premio</span></button>
+      <button type="button" id="config-guardar" class="btn btn-primary" style="width: 100%; margin-top: 18px;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="config-status"></p>
     </div>
   </div>
@@ -151,33 +151,34 @@
   <div id="empleados-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 480px;">
       <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Empleados</h2>
-      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <h2 data-i18n="nav.empleados">Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;" data-i18n="fidelidad.emp_hint">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
       <div id="empleados-lista" class="sa-columnas-lista"></div>
       <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
         <div>
-          <label for="emp-nombre">Nombre</label>
+          <label for="emp-nombre" data-i18n="fidelidad.emp_nombre">Nombre</label>
           <input type="text" id="emp-nombre" required>
         </div>
         <div>
-          <label for="emp-usuario">Usuario (para el login)</label>
+          <label for="emp-usuario" data-i18n="fidelidad.emp_usuario">Usuario (para el login)</label>
           <input type="text" id="emp-usuario" required>
         </div>
         <div>
-          <label for="emp-password">Contraseña</label>
-          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+          <label for="emp-password" data-i18n="fidelidad.emp_password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" data-i18n-placeholder="fidelidad.emp_password_ph" required>
         </div>
         <div>
-          <label for="emp-departamento">Departamento</label>
+          <label for="emp-departamento" data-i18n="fidelidad.emp_departamento">Departamento</label>
           <select id="emp-departamento" required></select>
         </div>
-        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+        <button type="submit" class="btn btn-primary" data-i18n="fidelidad.emp_agregar">Agregar empleado</button>
       </form>
       <p class="form-status" id="empleado-status"></p>
     </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+  <script src="/js/panel-i18n.js" data-paginas="comun,fidelidad"></script>
   <script src="/js/fidelidad.js"></script>
 </body>
 </html>

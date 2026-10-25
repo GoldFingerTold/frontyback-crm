@@ -13,7 +13,7 @@ async function api(path, options = {}) {
     throw new Error('No autenticado');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Error de red');
+  if (!res.ok) throw new Error(data.error || tp('comun.error_red'));
   return data;
 }
 
@@ -21,8 +21,8 @@ function esc(valor) {
   return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function formatearARS(n) {
-  return '$' + Math.round(n || 0).toLocaleString('es-AR');
+function formatearPrecio(n) {
+  return '$' + PanelI18n.numero(Math.round(n || 0));
 }
 
 const ESTADO = { esGerencia: false, slug: '', editandoId: null };
@@ -44,7 +44,7 @@ async function cargarCabecera() {
   if (data.usuario) {
     ESTADO.esGerencia = data.usuario.rol === 'gerencia';
     document.getElementById('user-rol').textContent = ESTADO.esGerencia
-      ? 'Gerencia · ve todo'
+      ? tp('catalogo.rol_gerencia')
       : `${data.usuario.nombre} · ${data.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-telefono').hidden = !ESTADO.esGerencia;
@@ -58,7 +58,7 @@ async function cargarCatalogo() {
   try {
     const { items } = await api('/api/catalogo');
     if (items.length === 0) {
-      cont.innerHTML = '<p id="ct-vacio">Todavía no cargaste ningún producto.</p>';
+      cont.innerHTML = `<p id="ct-vacio">${esc(tp('catalogo.vacio'))}</p>`;
       return;
     }
     const porCategoria = {};
@@ -69,14 +69,14 @@ async function cargarCatalogo() {
       ${lista.map((i) => `
         <div class="ct-fila ${i.disponible ? '' : 'no-disponible'}" data-item-id="${i._id}">
           <div class="ct-info">
-            <div class="ct-nombre">${esc(i.nombre)}${i.disponible ? '' : ' · <span style="color: var(--text-muted);">No disponible</span>'}</div>
+            <div class="ct-nombre">${esc(i.nombre)}${i.disponible ? '' : ` · <span style="color: var(--text-muted);">${esc(tp('catalogo.no_disponible'))}</span>`}</div>
             ${i.descripcion ? `<div class="ct-desc">${esc(i.descripcion)}</div>` : ''}
           </div>
-          <div class="ct-precio">${formatearARS(i.precio)}</div>
+          <div class="ct-precio">${formatearPrecio(i.precio)}</div>
           ${ESTADO.esGerencia ? `
             <div class="ct-botones">
-              <button type="button" data-editar="${i._id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
-              <button type="button" data-borrar="${i._id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+              <button type="button" data-editar="${i._id}" title="${esc(tp('catalogo.editar_title'))}"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" data-borrar="${i._id}" title="${esc(tp('catalogo.borrar_title'))}"><i class="fa-solid fa-trash"></i></button>
             </div>
           ` : ''}
         </div>
@@ -90,17 +90,17 @@ async function cargarCatalogo() {
     });
     cont.querySelectorAll('[data-borrar]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('¿Borrar este producto?')) return;
+        if (!confirm(tp('catalogo.confirmar_borrar'))) return;
         try {
           await api(`/api/catalogo/${btn.dataset.borrar}`, { method: 'DELETE' });
           cargarCatalogo();
         } catch (err) {
-          alert('No se pudo borrar: ' + err.message);
+          alert(tp('catalogo.error_borrar', { mensaje: err.message }));
         }
       });
     });
   } catch (err) {
-    cont.innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    cont.innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -111,17 +111,17 @@ document.getElementById('btn-copiar-link').addEventListener('click', async () =>
   try {
     await navigator.clipboard.writeText(link);
     const original = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!';
+    btn.innerHTML = `<i class="fa-solid fa-check"></i> ${esc(tp('catalogo.copiado'))}`;
     setTimeout(() => { btn.innerHTML = original; }, 2000);
   } catch {
-    prompt('Copiá este link:', link);
+    prompt(tp('catalogo.copia_este_link'), link);
   }
 });
 
 // ---------- Producto: agregar / editar ----------
 function abrirItem(item) {
   ESTADO.editandoId = item ? item._id : null;
-  document.getElementById('item-titulo').textContent = item ? 'Editar producto' : 'Agregar producto';
+  document.getElementById('item-titulo').textContent = item ? tp('catalogo.editar_producto') : tp('catalogo.agregar_producto');
   document.getElementById('item-status').textContent = '';
   document.getElementById('item-nombre').value = item?.nombre || '';
   document.getElementById('item-descripcion').value = item?.descripcion || '';
@@ -138,7 +138,7 @@ document.getElementById('item-close').addEventListener('click', () => {
 document.getElementById('item-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const status = document.getElementById('item-status');
-  status.textContent = 'Guardando...';
+  status.textContent = tp('comun.guardando');
   status.className = 'form-status';
   const datos = {
     nombre: document.getElementById('item-nombre').value.trim(),
@@ -177,14 +177,14 @@ document.getElementById('telefono-close').addEventListener('click', () => {
 });
 document.getElementById('telefono-guardar').addEventListener('click', async () => {
   const status = document.getElementById('telefono-status');
-  status.textContent = 'Guardando...';
+  status.textContent = tp('comun.guardando');
   status.className = 'form-status';
   try {
     await api('/api/catalogo/config', {
       method: 'PUT',
       body: JSON.stringify({ telefono_pedidos: document.getElementById('telefono-input').value.trim() })
     });
-    status.textContent = 'Guardado.';
+    status.textContent = tp('comun.guardado');
     setTimeout(() => { document.getElementById('telefono-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
@@ -213,9 +213,9 @@ async function abrirEmpleados() {
     const select = document.getElementById('emp-departamento');
     select.innerHTML = departamentos.length
       ? departamentos.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join('')
-      : '<option value="" disabled selected>No hay departamentos todavía</option>';
+      : `<option value="" disabled selected>${esc(tp('catalogo.emp_sin_departamentos'))}</option>`;
   } catch (err) {
-    document.getElementById('empleados-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    document.getElementById('empleados-lista').innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -223,7 +223,7 @@ function renderEmpleados(usuarios) {
   const cont = document.getElementById('empleados-lista');
   const empleados = usuarios.filter((u) => u.rol === 'departamento');
   if (empleados.length === 0) {
-    cont.innerHTML = '<p class="loading" style="padding: 0;">Todavía no agregaste ningún empleado.</p>';
+    cont.innerHTML = `<p class="loading" style="padding: 0;">${esc(tp('catalogo.emp_ninguno'))}</p>`;
     return;
   }
   cont.innerHTML = empleados.map((u) => `
@@ -237,7 +237,7 @@ function renderEmpleados(usuarios) {
   `).join('');
   cont.querySelectorAll('[data-borrar-empleado]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!confirm('¿Borrar a este empleado? Deja de poder entrar al CRM.')) return;
+      if (!confirm(tp('catalogo.emp_confirmar_borrar'))) return;
       try {
         await api(`/api/admin/usuarios/${btn.dataset.borrarEmpleado}`, { method: 'DELETE' });
         abrirEmpleados();
@@ -255,7 +255,7 @@ document.getElementById('empleados-close').addEventListener('click', () => {
 document.getElementById('empleado-nuevo-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const status = document.getElementById('empleado-status');
-  status.textContent = 'Agregando...';
+  status.textContent = tp('catalogo.emp_agregando');
   status.className = 'form-status';
   try {
     await api('/api/admin/usuarios', {
@@ -267,7 +267,7 @@ document.getElementById('empleado-nuevo-form').addEventListener('submit', async 
         departamento: document.getElementById('emp-departamento').value
       })
     });
-    status.textContent = 'Empleado agregado.';
+    status.textContent = tp('catalogo.emp_agregado');
     document.getElementById('empleado-nuevo-form').reset();
     const { usuarios } = await api('/api/admin/usuarios');
     renderEmpleados(usuarios);

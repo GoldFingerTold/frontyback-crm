@@ -1,0 +1,40 @@
+{
+  "pagina.titulo": "FrontyBack CRM — Catalog",
+
+  "catalogo.copiar_link": "Copy order link",
+  "catalogo.agregar_producto": "Add product",
+  "catalogo.editar_producto": "Edit product",
+  "catalogo.vacio": "You haven't added any products yet.",
+  "catalogo.no_disponible": "Unavailable",
+  "catalogo.editar_title": "Edit",
+  "catalogo.borrar_title": "Delete",
+  "catalogo.confirmar_borrar": "Delete this product?",
+  "catalogo.error_borrar": "Could not delete: {mensaje}",
+  "catalogo.copiado": "Copied!",
+  "catalogo.copia_este_link": "Copy this link:",
+  "catalogo.rol_gerencia": "Management · sees everything",
+
+  "catalogo.item_nombre": "Name",
+  "catalogo.item_descripcion": "Description (optional)",
+  "catalogo.item_precio": "Price",
+  "catalogo.item_categoria": "Category",
+  "catalogo.item_categoria_ph": "E.g. Drinks, Main dishes",
+  "catalogo.item_disponible": "Available",
+
+  "catalogo.tel_titulo": "Orders phone number",
+  "catalogo.tel_hint": "This number will receive the WhatsApp message when someone puts an order together. It can be different from the WhatsApp connected to the CRM.",
+  "catalogo.tel_label": "WhatsApp (with country code, e.g. +5491122334455)",
+
+  "catalogo.emp_hint": "Each employee only sees the leads of the department you assign. You (Management) still see everything.",
+  "catalogo.emp_nombre": "Name",
+  "catalogo.emp_usuario": "Username (for login)",
+  "catalogo.emp_password": "Password",
+  "catalogo.emp_password_ph": "at least 8 characters",
+  "catalogo.emp_departamento": "Department",
+  "catalogo.emp_agregar": "Add employee",
+  "catalogo.emp_sin_departamentos": "No departments yet",
+  "catalogo.emp_ninguno": "You haven't added any employees yet.",
+  "catalogo.emp_confirmar_borrar": "Delete this employee? They will no longer be able to log in to the CRM.",
+  "catalogo.emp_agregando": "Adding...",
+  "catalogo.emp_agregado": "Employee added."
+}

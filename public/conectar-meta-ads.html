@@ -62,13 +62,15 @@
 
   <div class="cm-card">
     <div class="cm-card-inner" id="cm-contenido">
-      <p class="loading">Cargando...</p>
+      <p class="loading" data-i18n="comun.cargando">Cargando...</p>
     </div>
   </div>
 
 </div>
 
+<script src="/js/panel-i18n.js" data-paginas="comun,conectar"></script>
 <script>
+  document.title = tp('conectar.titulo_ma');
   const params = new URLSearchParams(window.location.search);
   const slug = (params.get('slug') || '').trim();
   const cont = document.getElementById('cm-contenido');
@@ -78,7 +80,7 @@
   }
 
   if (!slug) {
-    cont.innerHTML = '<h1>Falta un dato</h1><p>Este link no es válido. Pedile a FrontyBack que te mande el link de conexión de nuevo.</p>';
+    cont.innerHTML = `<h1>${tp('conectar.falta_dato_titulo')}</h1><p>${tp('conectar.link_invalido')}</p>`;
   } else {
     mostrarPantallaInicial();
   }
@@ -86,11 +88,11 @@
   function mostrarPantallaInicial() {
     cont.innerHTML = `
       <i class="fa-brands fa-meta"></i>
-      <h1>Conectá tu campaña de Meta Ads</h1>
-      <p>Vas a conectar la Página de Facebook de <span class="cm-nombre">${esc(slug)}</span> para que los leads de tus formularios instantáneos (Facebook o Instagram) entren solos al CRM, sin tener que descargar ningún Excel.</p>
-      <button type="button" id="cm-btn">Conectar con Facebook</button>
+      <h1>${tp('conectar.ma_titulo')}</h1>
+      <p>${tp('conectar.ma_intro', { slug: esc(slug) })}</p>
+      <button type="button" id="cm-btn">${tp('conectar.ma_boton')}</button>
       <p class="cm-estado" id="cm-estado"></p>
-      <p class="cm-ayuda">Necesitás ser administrador de la Página de Facebook que usás para tus campañas.</p>
+      <p class="cm-ayuda">${tp('conectar.ma_ayuda')}</p>
     `;
     document.getElementById('cm-btn').addEventListener('click', iniciarConexion);
   }
@@ -105,11 +107,11 @@
     const estado = document.getElementById('cm-estado');
     btn.disabled = true;
     estado.className = 'cm-estado cargando';
-    estado.textContent = 'Abriendo la ventana de Facebook...';
+    estado.textContent = tp('conectar.ma_abriendo');
 
     if (typeof FB === 'undefined') {
       estado.className = 'cm-estado error';
-      estado.textContent = 'No se pudo cargar el inicio de sesión de Meta. Recargá la página e intentá de nuevo.';
+      estado.textContent = tp('conectar.sdk_no_cargo');
       btn.disabled = false;
       return;
     }
@@ -117,7 +119,7 @@
     FB.login((response) => {
       if (!response.authResponse) {
         estado.className = 'cm-estado error';
-        estado.textContent = 'No se completó la conexión. Podés volver a intentarlo.';
+        estado.textContent = tp('conectar.no_completo');
         btn.disabled = false;
         return;
       }
@@ -131,15 +133,15 @@
 
   async function buscarPaginas(userAccessToken) {
     const estado = document.getElementById('cm-estado');
-    estado.textContent = 'Buscando tus páginas...';
+    estado.textContent = tp('conectar.ma_buscando');
     try {
       const res = await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${encodeURIComponent(userAccessToken)}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || 'Error consultando tus páginas.');
+      if (!res.ok) throw new Error(data.error?.message || tp('conectar.ma_error_paginas'));
       const paginas = data.data || [];
       if (!paginas.length) {
         estado.className = 'cm-estado error';
-        estado.textContent = 'No encontramos ninguna Página de Facebook donde seas administrador.';
+        estado.textContent = tp('conectar.ma_sin_paginas');
         document.getElementById('cm-btn').disabled = false;
         return;
       }
@@ -158,8 +160,8 @@
   function mostrarSelectorPaginas(paginas, userAccessToken) {
     cont.innerHTML = `
       <i class="fa-brands fa-meta"></i>
-      <h1>Elegí la Página</h1>
-      <p>Tenés acceso a varias páginas - elegí la que usás para tus campañas de <span class="cm-nombre">${esc(slug)}</span>.</p>
+      <h1>${tp('conectar.ma_elegi_titulo')}</h1>
+      <p>${tp('conectar.ma_elegi_texto', { slug: esc(slug) })}</p>
       <div class="cm-paginas">
         ${paginas.map((p) => `<button type="button" class="cm-pagina-btn" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join('')}
       </div>
@@ -179,7 +181,7 @@
     const btn = document.getElementById('cm-btn');
     btn.disabled = true;
     estado.className = 'cm-estado cargando';
-    estado.textContent = 'Terminando de conectar del lado del CRM...';
+    estado.textContent = tp('conectar.terminando');
     try {
       const res = await fetch('/api/public/meta-leads/conectar', {
         method: 'POST',
@@ -187,13 +189,13 @@
         body: JSON.stringify({ slug, page_id: pagina.id, page_name: pagina.name, user_access_token: userAccessToken })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'No se pudo registrar la conexión.');
+      if (!res.ok) throw new Error(data.error || tp('conectar.ma_error_registro'));
       estado.className = 'cm-estado ok';
-      estado.textContent = `¡Listo! "${pagina.name}" quedó conectada. Los leads de tus formularios instantáneos van a entrar solos al CRM.`;
-      btn.textContent = 'Conectado ✓';
+      estado.textContent = tp('conectar.ma_listo', { pagina: pagina.name });
+      btn.textContent = tp('conectar.conectado');
     } catch (err) {
       estado.className = 'cm-estado error';
-      estado.textContent = `Error: ${err.message}`;
+      estado.textContent = tp('comun.error_con_mensaje', { mensaje: err.message });
       btn.disabled = false;
     }
   }

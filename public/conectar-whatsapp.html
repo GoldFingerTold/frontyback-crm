@@ -65,13 +65,15 @@
 
   <div class="cw-card">
     <div class="cw-card-inner" id="cw-contenido">
-      <p class="loading">Cargando...</p>
+      <p class="loading" data-i18n="comun.cargando">Cargando...</p>
     </div>
   </div>
 
 </div>
 
+<script src="/js/panel-i18n.js" data-paginas="comun,conectar"></script>
 <script>
+  document.title = tp('conectar.titulo_wa');
   const params = new URLSearchParams(window.location.search);
   const slug = (params.get('slug') || '').trim();
   const cont = document.getElementById('cw-contenido');
@@ -81,15 +83,15 @@
   }
 
   if (!slug) {
-    cont.innerHTML = '<h1>Falta un dato</h1><p>Este link no es válido. Pedile a FrontyBack que te mande el link de conexión de nuevo.</p>';
+    cont.innerHTML = `<h1>${tp('conectar.falta_dato_titulo')}</h1><p>${tp('conectar.link_invalido')}</p>`;
   } else {
     cont.innerHTML = `
       <i class="fa-brands fa-whatsapp"></i>
-      <h1>Conectá tu WhatsApp</h1>
-      <p>Vas a conectar tu número de WhatsApp Business al CRM de <span class="cw-nombre">${esc(slug)}</span>. Te va a pedir que inicies sesión con Facebook y elijas (o crees) tu cuenta de WhatsApp Business.</p>
-      <button type="button" id="cw-btn">Conectar WhatsApp</button>
+      <h1>${tp('conectar.wa_titulo')}</h1>
+      <p>${tp('conectar.wa_intro', { slug: esc(slug) })}</p>
+      <button type="button" id="cw-btn">${tp('conectar.wa_boton')}</button>
       <p class="cw-estado" id="cw-estado"></p>
-      <p class="cw-ayuda">Importante: una vez conectado, ese número deja de poder usarse con la app normal de WhatsApp en el celular. Usá un número dedicado, no el que usás a diario.</p>
+      <p class="cw-ayuda">${tp('conectar.wa_ayuda')}</p>
     `;
     document.getElementById('cw-btn').addEventListener('click', iniciarConexion);
   }
@@ -104,11 +106,11 @@
     const estado = document.getElementById('cw-estado');
     btn.disabled = true;
     estado.className = 'cw-estado cargando';
-    estado.textContent = 'Abriendo la ventana de Meta...';
+    estado.textContent = tp('conectar.wa_abriendo');
 
     if (typeof FB === 'undefined') {
       estado.className = 'cw-estado error';
-      estado.textContent = 'No se pudo cargar el inicio de sesión de Meta. Recargá la página e intentá de nuevo.';
+      estado.textContent = tp('conectar.sdk_no_cargo');
       btn.disabled = false;
       return;
     }
@@ -123,7 +125,7 @@
           btn.disabled = false;
           if (!response.authResponse) {
             estado.className = 'cw-estado error';
-            estado.textContent = 'No se completó la conexión. Podés volver a intentarlo.';
+            estado.textContent = tp('conectar.no_completo');
           }
         }
       }, 1500);
@@ -150,18 +152,18 @@
       conexionCompletada = true;
       const { waba_id, phone_number_id } = data.data || {};
       estado.className = 'cw-estado cargando';
-      estado.textContent = 'Terminando de conectar del lado del CRM...';
+      estado.textContent = tp('conectar.terminando');
       registrarConexion(waba_id, phone_number_id);
     } else if (data.event === 'CANCEL') {
       conexionCompletada = true;
       btn.disabled = false;
       estado.className = 'cw-estado error';
-      estado.textContent = 'Cancelaste la conexión antes de terminar. Podés volver a intentarlo cuando quieras.';
+      estado.textContent = tp('conectar.wa_cancelado');
     } else if (data.event === 'ERROR') {
       conexionCompletada = true;
       btn.disabled = false;
       estado.className = 'cw-estado error';
-      estado.textContent = 'Meta devolvió un error conectando tu WhatsApp. Probá de nuevo o avisale a FrontyBack.';
+      estado.textContent = tp('conectar.wa_error_meta');
     }
   });
 
@@ -173,17 +175,7 @@
   function mostrarAvisoPago() {
     const aviso = document.createElement('div');
     aviso.className = 'cw-pago-aviso';
-    aviso.innerHTML = `
-      <strong>Un paso más (opcional):</strong> si más adelante activás los recordatorios de turno por WhatsApp (vienen apagados por defecto, en Turnos → Recordatorios), tené en cuenta que Meta cobra por los mensajes que un negocio envía fuera de las 24hs posteriores al último mensaje de un cliente — la confirmación y el recordatorio de turno entran en esa regla, a razón de <strong>≈ $37,68 ARS (USD 0,026) por mensaje</strong> (tarifa oficial de Meta para Argentina, categoría Utilidad). Lo cobra la tarjeta que cargues acá:
-      <ol>
-        <li>Entrá a <strong>business.facebook.com/settings</strong></li>
-        <li>Cuentas → <strong>Cuentas de mensajes</strong></li>
-        <li>Elegí la que tiene tu número → <strong>Configuración de pagos</strong></li>
-        <li>Agregá una tarjeta</li>
-      </ol>
-      <strong style="display: block; margin-top: 10px;">¿Y si no la cargo?</strong>
-      Si activás el recordatorio por WhatsApp sin una tarjeta cargada, el envío simplemente no se concreta — el turno se sigue reservando igual, no se pierde nada. El recordatorio por email, sin costo y siempre disponible, no depende de este paso.
-    `;
+    aviso.innerHTML = tp('conectar.wa_pago_aviso');
     document.getElementById('cw-contenido').appendChild(aviso);
   }
 
@@ -197,14 +189,14 @@
         body: JSON.stringify({ slug, waba_id: wabaId, phone_number_id: phoneNumberId })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'No se pudo registrar la conexión.');
+      if (!res.ok) throw new Error(data.error || tp('conectar.wa_error_registro'));
       estado.className = 'cw-estado ok';
-      estado.textContent = '¡Listo! Tu WhatsApp quedó conectado al CRM.';
-      btn.textContent = 'Conectado ✓';
+      estado.textContent = tp('conectar.wa_listo');
+      btn.textContent = tp('conectar.conectado');
       mostrarAvisoPago();
     } catch (err) {
       estado.className = 'cw-estado error';
-      estado.textContent = `Tu WhatsApp se conectó en Meta, pero hubo un problema terminándolo acá: ${err.message}. Avisale a FrontyBack, ya les llegó un aviso para completarlo a mano.`;
+      estado.textContent = tp('conectar.wa_error_final', { mensaje: err.message });
       btn.disabled = false;
     }
   }

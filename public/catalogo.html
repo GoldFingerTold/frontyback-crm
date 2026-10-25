@@ -53,14 +53,14 @@
           </div>
         </div>
         <nav class="nav-menu">
-          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
-          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
-          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> Plano de salón</a>
-          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
-          <a href="/catalogo.html" class="nav-item active"><i class="fa-solid fa-book-open"></i> Catálogo</a>
-          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> Fidelidad</a>
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> <span data-i18n="nav.embudo">Embudo de Ventas</span></a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> <span data-i18n="nav.estadisticas">Estadísticas</span></a>
+          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> <span data-i18n="nav.salon">Plano de salón</span></a>
+          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> <span data-i18n="nav.turnos">Turnos</span></a>
+          <a href="/catalogo.html" class="nav-item active"><i class="fa-solid fa-book-open"></i> <span data-i18n="nav.catalogo">Catálogo</span></a>
+          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> <span data-i18n="nav.fidelidad">Fidelidad</span></a>
           <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
-            <i class="fa-solid fa-users"></i> Empleados
+            <i class="fa-solid fa-users"></i> <span data-i18n="nav.empleados">Empleados</span>
           </button>
         </nav>
       </div>
@@ -74,7 +74,7 @@
             <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
           </div>
         </div>
-        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        <button id="logout-btn" class="btn-ghost" title="Salir" data-i18n-title="comun.salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
     </aside>
 
@@ -82,7 +82,7 @@
       <header>
         <div class="search-bar" style="visibility: hidden;"></div>
         <div class="header-actions">
-          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir" data-i18n-title="comun.salir">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -90,15 +90,15 @@
 
       <main class="ct-main">
         <div class="ct-titulo-row">
-          <h1 class="ct-titulo">Catálogo</h1>
+          <h1 class="ct-titulo" data-i18n="nav.catalogo">Catálogo</h1>
           <div class="ct-acciones">
-            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> Copiar link de pedidos</button>
-            <button type="button" id="btn-telefono" class="btn-ghost" hidden><i class="fa-solid fa-phone"></i> Teléfono de pedidos</button>
-            <button type="button" id="btn-agregar-item" class="btn btn-primary" hidden><i class="fa-solid fa-plus"></i> Agregar producto</button>
+            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> <span data-i18n="catalogo.copiar_link">Copiar link de pedidos</span></button>
+            <button type="button" id="btn-telefono" class="btn-ghost" hidden><i class="fa-solid fa-phone"></i> <span data-i18n="catalogo.tel_titulo">Teléfono de pedidos</span></button>
+            <button type="button" id="btn-agregar-item" class="btn btn-primary" hidden><i class="fa-solid fa-plus"></i> <span data-i18n="catalogo.agregar_producto">Agregar producto</span></button>
           </div>
         </div>
 
-        <div id="ct-lista"><p class="loading">Cargando...</p></div>
+        <div id="ct-lista"><p class="loading" data-i18n="comun.cargando">Cargando...</p></div>
       </main>
     </div>
   </div>
@@ -107,21 +107,21 @@
   <div id="item-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 440px;">
       <button id="item-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2 id="item-titulo">Agregar producto</h2>
+      <h2 id="item-titulo" data-i18n="catalogo.agregar_producto">Agregar producto</h2>
       <form class="ct-form" id="item-form">
-        <label for="item-nombre">Nombre</label>
+        <label for="item-nombre" data-i18n="catalogo.item_nombre">Nombre</label>
         <input type="text" id="item-nombre" required maxlength="100">
-        <label for="item-descripcion">Descripción (opcional)</label>
+        <label for="item-descripcion" data-i18n="catalogo.item_descripcion">Descripción (opcional)</label>
         <textarea id="item-descripcion" maxlength="300"></textarea>
-        <label for="item-precio">Precio (ARS)</label>
+        <label for="item-precio" data-i18n="catalogo.item_precio">Precio (ARS)</label>
         <input type="number" id="item-precio" min="0" step="1" required>
-        <label for="item-categoria">Categoría</label>
-        <input type="text" id="item-categoria" placeholder="Ej: Bebidas, Platos principales" maxlength="40">
+        <label for="item-categoria" data-i18n="catalogo.item_categoria">Categoría</label>
+        <input type="text" id="item-categoria" placeholder="Ej: Bebidas, Platos principales" data-i18n-placeholder="catalogo.item_categoria_ph" maxlength="40">
         <div class="ct-check-row">
           <input type="checkbox" id="item-disponible" checked>
-          <label for="item-disponible" style="margin: 0; text-transform: none; font-size: 13px; color: var(--text-primary); letter-spacing: normal;">Disponible</label>
+          <label for="item-disponible" style="margin: 0; text-transform: none; font-size: 13px; color: var(--text-primary); letter-spacing: normal;" data-i18n="catalogo.item_disponible">Disponible</label>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 18px;">Guardar</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 18px;" data-i18n="comun.guardar">Guardar</button>
       </form>
       <p class="form-status" id="item-status"></p>
     </div>
@@ -131,11 +131,11 @@
   <div id="telefono-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 420px;">
       <button id="telefono-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Teléfono de pedidos</h2>
-      <p class="ficha-contacto" style="margin-bottom: 16px;">A este número le va a llegar el mensaje de WhatsApp cuando alguien arme un pedido. Puede ser distinto del WhatsApp conectado al CRM.</p>
-      <label for="telefono-input" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">WhatsApp (con código de país, ej: +5491122334455)</label>
+      <h2 data-i18n="catalogo.tel_titulo">Teléfono de pedidos</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;" data-i18n="catalogo.tel_hint">A este número le va a llegar el mensaje de WhatsApp cuando alguien arme un pedido. Puede ser distinto del WhatsApp conectado al CRM.</p>
+      <label for="telefono-input" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;" data-i18n="catalogo.tel_label">WhatsApp (con código de país, ej: +5491122334455)</label>
       <input type="text" id="telefono-input" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.9rem;">
-      <button type="button" id="telefono-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Guardar</button>
+      <button type="button" id="telefono-guardar" class="btn btn-primary" style="width: 100%; margin-top: 16px;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="telefono-status"></p>
     </div>
   </div>
@@ -144,32 +144,33 @@
   <div id="empleados-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 480px;">
       <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Empleados</h2>
-      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <h2 data-i18n="nav.empleados">Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;" data-i18n="catalogo.emp_hint">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
       <div id="empleados-lista" class="sa-columnas-lista"></div>
       <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
         <div>
-          <label for="emp-nombre">Nombre</label>
+          <label for="emp-nombre" data-i18n="catalogo.emp_nombre">Nombre</label>
           <input type="text" id="emp-nombre" required>
         </div>
         <div>
-          <label for="emp-usuario">Usuario (para el login)</label>
+          <label for="emp-usuario" data-i18n="catalogo.emp_usuario">Usuario (para el login)</label>
           <input type="text" id="emp-usuario" required>
         </div>
         <div>
-          <label for="emp-password">Contraseña</label>
-          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+          <label for="emp-password" data-i18n="catalogo.emp_password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" data-i18n-placeholder="catalogo.emp_password_ph" required>
         </div>
         <div>
-          <label for="emp-departamento">Departamento</label>
+          <label for="emp-departamento" data-i18n="catalogo.emp_departamento">Departamento</label>
           <select id="emp-departamento" required></select>
         </div>
-        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+        <button type="submit" class="btn btn-primary" data-i18n="catalogo.emp_agregar">Agregar empleado</button>
       </form>
       <p class="form-status" id="empleado-status"></p>
     </div>
   </div>
 
+  <script src="/js/panel-i18n.js" data-paginas="comun,catalogo"></script>
   <script src="/js/catalogo.js"></script>
 </body>
 </html>

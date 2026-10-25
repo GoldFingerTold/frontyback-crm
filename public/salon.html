@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CRM FrontyBack — Plano de salón</title>
+<title data-i18n="pagina.titulo">CRM FrontyBack — Plano de salón</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -88,14 +88,14 @@
           </div>
         </div>
         <nav class="nav-menu">
-          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
-          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
-          <a href="/salon.html" class="nav-item active" id="nav-salon"><i class="fa-solid fa-chair"></i> Plano de salón</a>
-          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
-          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> Catálogo</a>
-          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> Fidelidad</a>
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> <span data-i18n="nav.embudo">Embudo de Ventas</span></a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> <span data-i18n="nav.estadisticas">Estadísticas</span></a>
+          <a href="/salon.html" class="nav-item active" id="nav-salon"><i class="fa-solid fa-chair"></i> <span data-i18n="nav.salon">Plano de salón</span></a>
+          <a href="/turnos.html" class="nav-item"><i class="fa-solid fa-calendar-check"></i> <span data-i18n="nav.turnos">Turnos</span></a>
+          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> <span data-i18n="nav.catalogo">Catálogo</span></a>
+          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> <span data-i18n="nav.fidelidad">Fidelidad</span></a>
           <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
-            <i class="fa-solid fa-users"></i> Empleados
+            <i class="fa-solid fa-users"></i> <span data-i18n="nav.empleados">Empleados</span>
           </button>
         </nav>
       </div>
@@ -109,7 +109,7 @@
             <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
           </div>
         </div>
-        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        <button id="logout-btn" class="btn-ghost" title="Salir" data-i18n-title="comun.salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
     </aside>
 
@@ -117,7 +117,7 @@
       <header>
         <div class="search-bar" style="visibility: hidden;"></div>
         <div class="header-actions">
-          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir" data-i18n-title="comun.salir">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -125,26 +125,26 @@
 
       <main class="salon-main">
         <div class="salon-titulo-row">
-          <h1 class="salon-titulo">Plano de salón</h1>
+          <h1 class="salon-titulo" data-i18n="salon.titulo">Plano de salón</h1>
           <div class="salon-acciones">
-            <button type="button" id="btn-agregar-mesa" class="btn btn-primary" hidden><i class="fa-solid fa-plus"></i> Agregar mesa</button>
-            <button type="button" id="btn-agregar-punto" class="btn-ghost" hidden><i class="fa-solid fa-map-pin"></i> Agregar marcador</button>
-            <button type="button" id="btn-reiniciar-salon" class="btn-ghost" style="color:#e05454;" hidden><i class="fa-solid fa-trash-can"></i> Reiniciar salón</button>
-            <button type="button" id="btn-modo-edicion" class="btn-ghost" hidden><i class="fa-solid fa-pen"></i> Editar salón</button>
+            <button type="button" id="btn-agregar-mesa" class="btn btn-primary" hidden><i class="fa-solid fa-plus"></i> <span data-i18n="salon.agregar_mesa">Agregar mesa</span></button>
+            <button type="button" id="btn-agregar-punto" class="btn-ghost" hidden><i class="fa-solid fa-map-pin"></i> <span data-i18n="salon.agregar_marcador">Agregar marcador</span></button>
+            <button type="button" id="btn-reiniciar-salon" class="btn-ghost" style="color:#e05454;" hidden><i class="fa-solid fa-trash-can"></i> <span data-i18n="salon.reiniciar">Reiniciar salón</span></button>
+            <button type="button" id="btn-modo-edicion" class="btn-ghost" hidden><i class="fa-solid fa-pen"></i> <span data-i18n="salon.editar_salon">Editar salón</span></button>
           </div>
         </div>
 
         <div class="salon-leyenda">
-          <span><i style="background:#1f8f52"></i> Libre</span>
-          <span><i style="background:#c23b3b"></i> Ocupada</span>
-          <span><i style="background:#c98500"></i> Reservada</span>
+          <span><i style="background:#1f8f52"></i> <span data-i18n="salon.leyenda_libre">Libre</span></span>
+          <span><i style="background:#c23b3b"></i> <span data-i18n="salon.leyenda_ocupada">Ocupada</span></span>
+          <span><i style="background:#c98500"></i> <span data-i18n="salon.leyenda_reservada">Reservada</span></span>
         </div>
 
         <div class="salon-canvas-wrap" id="salon-canvas-wrap">
           <svg id="salon-svg" viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg"></svg>
-          <p id="salon-sin-mesas" hidden>Todavía no hay mesas. Entrá en "Editar salón" para agregar la primera.</p>
+          <p id="salon-sin-mesas" data-i18n="salon.sin_mesas" hidden>Todavía no hay mesas. Entrá en "Editar salón" para agregar la primera.</p>
         </div>
-        <p class="salon-ayuda" id="salon-ayuda" hidden>
+        <p class="salon-ayuda" id="salon-ayuda" data-i18n="salon.ayuda" hidden>
           Modo edición: arrastrá los puntos dorados para cambiar la forma del salón. Tocá el punto gris del medio de
           un borde para agregarle un punto o convertirlo en una curva (para rincones redondeados, barras circulares,
           etc. - después se puede seguir ajustando arrastrando los puntos de la curva). Doble clic en un punto
@@ -158,32 +158,33 @@
   <div id="empleados-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 480px;">
       <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Empleados</h2>
-      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <h2 data-i18n="nav.empleados">Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;" data-i18n="salon.emp_hint">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
       <div id="empleados-lista" class="sa-columnas-lista"></div>
       <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
         <div>
-          <label for="emp-nombre">Nombre</label>
+          <label for="emp-nombre" data-i18n="salon.emp_nombre">Nombre</label>
           <input type="text" id="emp-nombre" required>
         </div>
         <div>
-          <label for="emp-usuario">Usuario (para el login)</label>
+          <label for="emp-usuario" data-i18n="salon.emp_usuario">Usuario (para el login)</label>
           <input type="text" id="emp-usuario" required>
         </div>
         <div>
-          <label for="emp-password">Contraseña</label>
-          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+          <label for="emp-password" data-i18n="salon.emp_password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" data-i18n-placeholder="salon.emp_password_ph" required>
         </div>
         <div>
-          <label for="emp-departamento">Departamento</label>
+          <label for="emp-departamento" data-i18n="salon.emp_departamento">Departamento</label>
           <select id="emp-departamento" required></select>
         </div>
-        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+        <button type="submit" class="btn btn-primary" data-i18n="salon.emp_agregar">Agregar empleado</button>
       </form>
       <p class="form-status" id="empleado-status"></p>
     </div>
   </div>
 
+  <script src="/js/panel-i18n.js" data-paginas="comun,salon"></script>
   <script src="/js/salon.js"></script>
 </body>
 </html>

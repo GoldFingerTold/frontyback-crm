@@ -1,0 +1,40 @@
+{
+  "pagina.titulo": "CRM FrontyBack — Catálogo",
+
+  "catalogo.copiar_link": "Copiar link de pedidos",
+  "catalogo.agregar_producto": "Agregar producto",
+  "catalogo.editar_producto": "Editar producto",
+  "catalogo.vacio": "Todavía no cargaste ningún producto.",
+  "catalogo.no_disponible": "No disponible",
+  "catalogo.editar_title": "Editar",
+  "catalogo.borrar_title": "Borrar",
+  "catalogo.confirmar_borrar": "¿Borrar este producto?",
+  "catalogo.error_borrar": "No se pudo borrar: {mensaje}",
+  "catalogo.copiado": "¡Copiado!",
+  "catalogo.copia_este_link": "Copiá este link:",
+  "catalogo.rol_gerencia": "Gerencia · ve todo",
+
+  "catalogo.item_nombre": "Nombre",
+  "catalogo.item_descripcion": "Descripción (opcional)",
+  "catalogo.item_precio": "Precio (ARS)",
+  "catalogo.item_categoria": "Categoría",
+  "catalogo.item_categoria_ph": "Ej: Bebidas, Platos principales",
+  "catalogo.item_disponible": "Disponible",
+
+  "catalogo.tel_titulo": "Teléfono de pedidos",
+  "catalogo.tel_hint": "A este número le va a llegar el mensaje de WhatsApp cuando alguien arme un pedido. Puede ser distinto del WhatsApp conectado al CRM.",
+  "catalogo.tel_label": "WhatsApp (con código de país, ej: +5491122334455)",
+
+  "catalogo.emp_hint": "Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.",
+  "catalogo.emp_nombre": "Nombre",
+  "catalogo.emp_usuario": "Usuario (para el login)",
+  "catalogo.emp_password": "Contraseña",
+  "catalogo.emp_password_ph": "mínimo 8 caracteres",
+  "catalogo.emp_departamento": "Departamento",
+  "catalogo.emp_agregar": "Agregar empleado",
+  "catalogo.emp_sin_departamentos": "No hay departamentos todavía",
+  "catalogo.emp_ninguno": "Todavía no agregaste ningún empleado.",
+  "catalogo.emp_confirmar_borrar": "¿Borrar a este empleado? Deja de poder entrar al CRM.",
+  "catalogo.emp_agregando": "Agregando...",
+  "catalogo.emp_agregado": "Empleado agregado."
+}

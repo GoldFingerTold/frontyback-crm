@@ -61,7 +61,8 @@ router.post('/asistente', asistenteLimiter, asyncHandler(async (req, res) => {
     .slice(-6);
 
   try {
-    const respuesta = await asistente.responder(pregunta, historial);
+    const idioma = ['es', 'en', 'pt'].includes(req.body?.idioma) ? req.body.idioma : 'es';
+    const respuesta = await asistente.responder(pregunta, historial, idioma);
     res.json({ respuesta });
   } catch (err) {
     console.error('Error en el asistente Fronty:', err.message);

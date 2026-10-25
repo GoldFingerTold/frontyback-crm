@@ -86,7 +86,7 @@ for (const html of paginasHtml) {
   // Los textos del propio HTML + los scripts propios de la pantalla (js/*.js que enlaza).
   const fuentes = [{ nombre: html, texto: contenido }];
   for (const [, src] of contenido.matchAll(/<script src="\/js\/([\w.-]+\.js)"/g)) {
-    if (src === 'panel-i18n.js') continue;
+    if (src === 'panel-i18n.js' || src === 'fronty.js') continue; // fronty.js trae su propio diccionario (se revisa abajo)
     const ruta = path.join(PUBLIC, 'js', src);
     if (fs.existsSync(ruta)) fuentes.push({ nombre: `js/${src}`, texto: fs.readFileSync(ruta, 'utf8') });
   }
@@ -102,6 +102,18 @@ for (const html of paginasHtml) {
     }
   }
   console.log(`OK: ${html} - ${usadas} usos de claves revisados`);
+}
+
+// fronty.js carga solo fronty.<idioma>.json: sus claves tienen que estar en ese diccionario.
+{
+  const texto = fs.readFileSync(path.join(PUBLIC, 'js', 'fronty.js'), 'utf8');
+  const disponibles = new Set(Object.keys(diccionarios.fronty?.es || {}));
+  let usadas = 0;
+  for (const [, clave] of texto.matchAll(/['"`](fronty\.[a-z0-9_]+)['"`]/g)) {
+    usadas++;
+    if (!disponibles.has(clave)) fallo(`js/fronty.js usa la clave "${clave}" que no está en fronty.es.json`);
+  }
+  console.log(`OK: js/fronty.js - ${usadas} usos de claves revisados`);
 }
 
 if (errores) {

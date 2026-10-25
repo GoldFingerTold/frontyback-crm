@@ -13,7 +13,7 @@ async function api(path, options = {}) {
     throw new Error('No autenticado');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Error de red');
+  if (!res.ok) throw new Error(data.error || tp('comun.error_red'));
   return data;
 }
 
@@ -21,9 +21,17 @@ function esc(valor) {
   return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-const DIA_NOMBRE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DIA_CLAVES = ['turnos.dia_0', 'turnos.dia_1', 'turnos.dia_2', 'turnos.dia_3', 'turnos.dia_4', 'turnos.dia_5', 'turnos.dia_6'];
+const nombreDia = (n) => tp(DIA_CLAVES[n]);
 
 const ESTADO = { esGerencia: false, slug: '' };
+
+// Las tarifas en ARS/USD de Meta son de Argentina: solo se muestran en español. En otros
+// idiomas va una explicación genérica (la tarifa depende del país).
+if (PanelI18n.idioma !== 'es') {
+  document.getElementById('rec-tarifas-ar').hidden = true;
+  document.getElementById('rec-tarifa-generica').hidden = false;
+}
 
 // ---------- Cabecera ----------
 async function cargarCabecera() {
@@ -42,7 +50,7 @@ async function cargarCabecera() {
   if (data.usuario) {
     ESTADO.esGerencia = data.usuario.rol === 'gerencia';
     document.getElementById('user-rol').textContent = ESTADO.esGerencia
-      ? 'Gerencia · ve todo'
+      ? tp('turnos.rol_gerencia')
       : `${data.usuario.nombre} · ${data.usuario.departamento}`;
     document.getElementById('nav-empleados').hidden = !ESTADO.esGerencia;
     document.getElementById('btn-servicios').hidden = !ESTADO.esGerencia;
@@ -61,7 +69,7 @@ async function cargarTurnos() {
   try {
     const { turnos } = await api('/api/turnos');
     if (turnos.length === 0) {
-      cont.innerHTML = '<p id="tn-vacio">No hay turnos reservados todavía. Compartí tu link de reservas para que empiecen a llegar.</p>';
+      cont.innerHTML = `<p id="tn-vacio">${esc(tp('turnos.vacio'))}</p>`;
       return;
     }
     const porFecha = {};
@@ -69,7 +77,7 @@ async function cargarTurnos() {
 
     cont.innerHTML = Object.entries(porFecha).map(([fecha, lista]) => {
       const d = new Date(fecha + 'T12:00:00');
-      const tituloFecha = `${DIA_NOMBRE[d.getDay()]} ${fecha.split('-').reverse().slice(0, 2).join('/')}`;
+      const tituloFecha = `${nombreDia(d.getDay())} ${PanelI18n.fecha(fecha + 'T12:00:00', { day: '2-digit', month: '2-digit' })}`;
       return `
         <div class="tn-fecha-grupo">
           <h3 class="tn-fecha-titulo">${esc(tituloFecha)}</h3>
@@ -77,11 +85,11 @@ async function cargarTurnos() {
             <div class="tn-fila" data-turno-id="${t._id}">
               <div class="tn-hora">${esc(t.hora_inicio)}</div>
               <div class="tn-detalle">
-                <div class="tn-servicio">${esc(t.servicio_nombre)}${t.profesional_nombre ? ` · ${esc(t.profesional_nombre)}` : ''}${t.estado === 'cancelado' ? ' · <span style="color: var(--danger);">Cancelado</span>' : ''}${t.estado === 'pendiente_pago' ? ' · <span style="color: var(--accent-gold);">Esperando pago de seña</span>' : ''}</div>
+                <div class="tn-servicio">${esc(t.servicio_nombre)}${t.profesional_nombre ? ` · ${esc(t.profesional_nombre)}` : ''}${t.estado === 'cancelado' ? ' · <span style="color: var(--danger);">' + esc(tp('turnos.cancelado')) + '</span>' : ''}${t.estado === 'pendiente_pago' ? ' · <span style="color: var(--accent-gold);">' + esc(tp('turnos.esperando_pago')) + '</span>' : ''}</div>
                 <div class="tn-contacto">${esc(t.nombre_contacto)} · ${esc(t.telefono_contacto)}</div>
               </div>
-              ${t.token_gestion ? `<button type="button" class="tn-copiar-link" data-copiar-link="${t.token_gestion}" title="Copiar el link para que el cliente cambie o cancele su turno"><i class="fa-solid fa-link"></i></button>` : ''}
-              ${ESTADO.esGerencia && t.estado !== 'cancelado' ? `<button type="button" class="tn-cancelar" data-cancelar="${t._id}">Cancelar</button>` : ''}
+              ${t.token_gestion ? `<button type="button" class="tn-copiar-link" data-copiar-link="${t.token_gestion}" title="${esc(tp('turnos.copiar_link_cliente'))}"><i class="fa-solid fa-link"></i></button>` : ''}
+              ${ESTADO.esGerencia && t.estado !== 'cancelado' ? `<button type="button" class="tn-cancelar" data-cancelar="${t._id}">${esc(tp('turnos.cancelar'))}</button>` : ''}
             </div>
           `).join('')}
         </div>
@@ -100,24 +108,24 @@ async function cargarTurnos() {
           btn.innerHTML = '<i class="fa-solid fa-check"></i>';
           setTimeout(() => { btn.innerHTML = original; }, 1500);
         } catch {
-          prompt('Copiá este link:', link);
+          prompt(tp('turnos.copia_este_link'), link);
         }
       });
     });
 
     cont.querySelectorAll('[data-cancelar]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('¿Cancelar este turno?')) return;
+        if (!confirm(tp('turnos.cancelar_confirmar'))) return;
         try {
           await api(`/api/turnos/${btn.dataset.cancelar}`, { method: 'DELETE' });
           cargarTurnos();
         } catch (err) {
-          alert('No se pudo cancelar: ' + err.message);
+          alert(tp('turnos.error_cancelar', { mensaje: err.message }));
         }
       });
     });
   } catch (err) {
-    cont.innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    cont.innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -128,10 +136,10 @@ document.getElementById('btn-copiar-link').addEventListener('click', async () =>
   try {
     await navigator.clipboard.writeText(link);
     const original = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!';
+    btn.innerHTML = `<i class="fa-solid fa-check"></i> ${esc(tp('turnos.copiado'))}`;
     setTimeout(() => { btn.innerHTML = original; }, 2000);
   } catch {
-    prompt('Copiá este link:', link);
+    prompt(tp('turnos.copia_este_link'), link);
   }
 });
 
@@ -140,9 +148,9 @@ function filaServicio(servicio) {
   const div = document.createElement('div');
   div.className = 'tn-servicio-fila';
   div.innerHTML = `
-    <input type="text" class="serv-nombre" placeholder="Nombre" value="${esc(servicio.nombre || '')}" maxlength="60">
-    <input type="number" class="serv-duracion" placeholder="min" value="${servicio.duracion_min || 30}" min="10" max="480">
-    <button type="button" class="btn-ghost serv-borrar" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+    <input type="text" class="serv-nombre" placeholder="${esc(tp('turnos.serv_nombre_ph'))}" value="${esc(servicio.nombre || '')}" maxlength="60">
+    <input type="number" class="serv-duracion" placeholder="${esc(tp('turnos.serv_min_ph'))}" value="${servicio.duracion_min || 30}" min="10" max="480">
+    <button type="button" class="btn-ghost serv-borrar" title="${esc(tp('turnos.borrar'))}"><i class="fa-solid fa-trash"></i></button>
   `;
   div.querySelector('.serv-borrar').addEventListener('click', () => div.remove());
   return div;
@@ -152,7 +160,7 @@ async function abrirServicios() {
   document.getElementById('servicios-overlay').hidden = false;
   document.getElementById('servicios-status').textContent = '';
   const lista = document.getElementById('servicios-lista');
-  lista.innerHTML = '<p class="loading">Cargando...</p>';
+  lista.innerHTML = `<p class="loading">${esc(tp('comun.cargando'))}</p>`;
   try {
     const config = await api('/api/turnos/config');
     lista.innerHTML = '';
@@ -160,7 +168,7 @@ async function abrirServicios() {
       lista.appendChild(filaServicio(s));
     });
   } catch (err) {
-    lista.innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    lista.innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -180,11 +188,11 @@ document.getElementById('servicios-guardar').addEventListener('click', async () 
     }))
     .filter((s) => s.nombre);
 
-  status.textContent = 'Guardando...';
+  status.textContent = tp('comun.guardando');
   status.className = 'form-status';
   try {
     await api('/api/turnos/servicios', { method: 'PUT', body: JSON.stringify({ servicios }) });
-    status.textContent = 'Guardado.';
+    status.textContent = tp('comun.guardado');
     setTimeout(() => { document.getElementById('servicios-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
@@ -199,7 +207,7 @@ async function actualizarEstadoCalendar() {
     const btn = document.getElementById('btn-google-calendar');
     const texto = document.getElementById('google-calendar-texto');
     btn.classList.toggle('btn-primary', conectado);
-    texto.textContent = conectado ? 'Google Calendar conectado ✓' : 'Conectar Google Calendar';
+    texto.textContent = conectado ? tp('turnos.google_conectado') : tp('turnos.google_conectar');
   } catch {
     // si falla, dejamos el botón como estaba - no es crítico
   }
@@ -208,7 +216,7 @@ async function actualizarEstadoCalendar() {
 document.getElementById('btn-google-calendar').addEventListener('click', async () => {
   const { conectado } = await api('/api/turnos/calendar/estado');
   if (conectado) {
-    if (!confirm('¿Desconectar Google Calendar? Los turnos van a dejar de crearse ahí.')) return;
+    if (!confirm(tp('turnos.google_desconectar_confirmar'))) return;
     await api('/api/turnos/calendar/desconectar', { method: 'POST' });
     actualizarEstadoCalendar();
     return;
@@ -253,7 +261,7 @@ document.getElementById('recordatorios-close').addEventListener('click', () => {
 });
 document.getElementById('recordatorios-guardar').addEventListener('click', async () => {
   const status = document.getElementById('recordatorios-status');
-  status.textContent = 'Guardando...';
+  status.textContent = tp('comun.guardando');
   status.className = 'form-status';
   try {
     await api('/api/turnos/recordatorios', {
@@ -263,7 +271,7 @@ document.getElementById('recordatorios-guardar').addEventListener('click', async
         email: document.getElementById('rec-email').checked
       })
     });
-    status.textContent = 'Guardado.';
+    status.textContent = tp('comun.guardado');
     setTimeout(() => { document.getElementById('recordatorios-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
@@ -276,20 +284,20 @@ async function abrirDisponibilidad() {
   document.getElementById('disponibilidad-overlay').hidden = false;
   document.getElementById('disponibilidad-status').textContent = '';
   const lista = document.getElementById('disponibilidad-lista');
-  lista.innerHTML = '<p class="loading">Cargando...</p>';
+  lista.innerHTML = `<p class="loading">${esc(tp('comun.cargando'))}</p>`;
   try {
     const config = await api('/api/turnos/config');
     lista.innerHTML = config.disponibilidad.map((d) => `
       <div class="tn-disp-fila" data-dia="${d.dia}">
         <input type="checkbox" class="disp-activo" ${d.activo ? 'checked' : ''}>
-        <label class="dia">${esc(DIA_NOMBRE[d.dia])}</label>
+        <label class="dia">${esc(nombreDia(d.dia))}</label>
         <input type="time" class="disp-desde" value="${esc(d.desde)}">
-        <span>a</span>
+        <span>${esc(tp('turnos.disp_a'))}</span>
         <input type="time" class="disp-hasta" value="${esc(d.hasta)}">
       </div>
     `).join('');
   } catch (err) {
-    lista.innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    lista.innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -306,11 +314,11 @@ document.getElementById('disponibilidad-guardar').addEventListener('click', asyn
     hasta: fila.querySelector('.disp-hasta').value || '18:00'
   }));
 
-  status.textContent = 'Guardando...';
+  status.textContent = tp('comun.guardando');
   status.className = 'form-status';
   try {
     await api('/api/turnos/disponibilidad', { method: 'PUT', body: JSON.stringify({ disponibilidad }) });
-    status.textContent = 'Guardado.';
+    status.textContent = tp('comun.guardado');
     setTimeout(() => { document.getElementById('disponibilidad-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
@@ -329,16 +337,16 @@ function filaProfesional(profesional) {
   if (profesional.id) div.dataset.id = profesional.id;
   div.innerHTML = `
     <div class="tn-prof-cabecera">
-      <input type="text" class="prof-nombre" placeholder="Nombre del profesional" value="${esc(profesional.nombre || '')}" maxlength="60">
-      <button type="button" class="btn-ghost prof-borrar" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+      <input type="text" class="prof-nombre" placeholder="${esc(tp('turnos.prof_nombre_ph'))}" value="${esc(profesional.nombre || '')}" maxlength="60">
+      <button type="button" class="btn-ghost prof-borrar" title="${esc(tp('turnos.borrar'))}"><i class="fa-solid fa-trash"></i></button>
     </div>
     <div class="prof-horarios">
       ${profesional.disponibilidad.map((d) => `
         <div class="tn-prof-horario" data-dia="${d.dia}">
           <input type="checkbox" class="disp-activo" ${d.activo ? 'checked' : ''}>
-          <label class="dia">${esc(DIA_NOMBRE[d.dia])}</label>
+          <label class="dia">${esc(nombreDia(d.dia))}</label>
           <input type="time" class="disp-desde" value="${esc(d.desde)}">
-          <span>a</span>
+          <span>${esc(tp('turnos.disp_a'))}</span>
           <input type="time" class="disp-hasta" value="${esc(d.hasta)}">
         </div>
       `).join('')}
@@ -352,13 +360,13 @@ async function abrirProfesionales() {
   document.getElementById('profesionales-overlay').hidden = false;
   document.getElementById('profesionales-status').textContent = '';
   const lista = document.getElementById('profesionales-lista');
-  lista.innerHTML = '<p class="loading">Cargando...</p>';
+  lista.innerHTML = `<p class="loading">${esc(tp('comun.cargando'))}</p>`;
   try {
     const config = await api('/api/turnos/config');
     lista.innerHTML = '';
     (config.profesionales || []).forEach((p) => lista.appendChild(filaProfesional(p)));
   } catch (err) {
-    lista.innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    lista.innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -386,11 +394,11 @@ document.getElementById('profesionales-guardar').addEventListener('click', async
     }))
     .filter((p) => p.nombre);
 
-  status.textContent = 'Guardando...';
+  status.textContent = tp('comun.guardando');
   status.className = 'form-status';
   try {
     await api('/api/turnos/profesionales', { method: 'PUT', body: JSON.stringify({ profesionales }) });
-    status.textContent = 'Guardado.';
+    status.textContent = tp('comun.guardado');
     setTimeout(() => { document.getElementById('profesionales-overlay').hidden = true; }, 700);
   } catch (err) {
     status.textContent = err.message;
@@ -405,7 +413,7 @@ async function actualizarEstadoMercadoPago() {
     const btn = document.getElementById('btn-conectar-mp');
     const texto = document.getElementById('mp-conectar-texto');
     btn.classList.toggle('btn-primary', conectado);
-    texto.textContent = conectado ? 'Mercado Pago conectado ✓' : 'Conectar Mercado Pago';
+    texto.textContent = conectado ? tp('turnos.mp_conectado') : tp('turnos.mp_conectar');
     return conectado;
   } catch {
     return false;
@@ -415,7 +423,7 @@ async function actualizarEstadoMercadoPago() {
 document.getElementById('btn-conectar-mp').addEventListener('click', async () => {
   const conectado = await actualizarEstadoMercadoPago();
   if (conectado) {
-    if (!confirm('¿Desconectar Mercado Pago? Si tenías la seña activada, se apaga sola.')) return;
+    if (!confirm(tp('turnos.mp_desconectar_confirmar'))) return;
     await api('/api/turnos/mercadopago/desconectar', { method: 'POST' });
     document.getElementById('sena-activa').checked = false;
     actualizarEstadoMercadoPago();
@@ -445,7 +453,7 @@ async function abrirSena() {
   try {
     const [config] = await Promise.all([api('/api/turnos/config'), actualizarEstadoMercadoPago()]);
     document.getElementById('sena-activa').checked = config.sena_activa === true;
-    document.getElementById('sena-monto').value = config.sena_monto ? config.sena_monto.toLocaleString('es-AR') : '';
+    document.getElementById('sena-monto').value = config.sena_monto ? config.sena_monto.toLocaleString(PanelI18n.locale) : '';
   } catch (err) {
     document.getElementById('sena-status').textContent = err.message;
   }
@@ -457,7 +465,7 @@ document.getElementById('sena-close').addEventListener('click', () => {
 });
 document.getElementById('sena-guardar').addEventListener('click', async () => {
   const status = document.getElementById('sena-status');
-  status.textContent = 'Guardando...';
+  status.textContent = tp('comun.guardando');
   status.className = 'form-status';
   try {
     await api('/api/turnos/sena', {
@@ -470,7 +478,7 @@ document.getElementById('sena-guardar').addEventListener('click', async () => {
         monto: parseInt(document.getElementById('sena-monto').value.replace(/[.,\s]/g, ''), 10) || 0
       })
     });
-    status.textContent = 'Guardado.';
+    status.textContent = tp('comun.guardado');
     status.className = 'form-status ok';
     setTimeout(() => { document.getElementById('sena-overlay').hidden = true; }, 700);
   } catch (err) {
@@ -500,9 +508,9 @@ async function abrirEmpleados() {
     const select = document.getElementById('emp-departamento');
     select.innerHTML = departamentos.length
       ? departamentos.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join('')
-      : '<option value="" disabled selected>No hay departamentos todavía</option>';
+      : `<option value="" disabled selected>${esc(tp('turnos.emp_sin_departamentos'))}</option>`;
   } catch (err) {
-    document.getElementById('empleados-lista').innerHTML = `<p class="loading">Error: ${esc(err.message)}</p>`;
+    document.getElementById('empleados-lista').innerHTML = `<p class="loading">${esc(tp('comun.error_con_mensaje', { mensaje: err.message }))}</p>`;
   }
 }
 
@@ -510,7 +518,7 @@ function renderEmpleados(usuarios) {
   const cont = document.getElementById('empleados-lista');
   const empleados = usuarios.filter((u) => u.rol === 'departamento');
   if (empleados.length === 0) {
-    cont.innerHTML = '<p class="loading" style="padding: 0;">Todavía no agregaste ningún empleado.</p>';
+    cont.innerHTML = `<p class="loading" style="padding: 0;">${esc(tp('turnos.emp_ninguno'))}</p>`;
     return;
   }
   cont.innerHTML = empleados.map((u) => `
@@ -524,7 +532,7 @@ function renderEmpleados(usuarios) {
   `).join('');
   cont.querySelectorAll('[data-borrar-empleado]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!confirm('¿Borrar a este empleado? Deja de poder entrar al CRM.')) return;
+      if (!confirm(tp('turnos.emp_confirmar_borrar'))) return;
       try {
         await api(`/api/admin/usuarios/${btn.dataset.borrarEmpleado}`, { method: 'DELETE' });
         abrirEmpleados();
@@ -542,7 +550,7 @@ document.getElementById('empleados-close').addEventListener('click', () => {
 document.getElementById('empleado-nuevo-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const status = document.getElementById('empleado-status');
-  status.textContent = 'Agregando...';
+  status.textContent = tp('turnos.emp_agregando');
   status.className = 'form-status';
   try {
     await api('/api/admin/usuarios', {
@@ -554,7 +562,7 @@ document.getElementById('empleado-nuevo-form').addEventListener('submit', async 
         departamento: document.getElementById('emp-departamento').value
       })
     });
-    status.textContent = 'Empleado agregado.';
+    status.textContent = tp('turnos.emp_agregado');
     document.getElementById('empleado-nuevo-form').reset();
     const { usuarios } = await api('/api/admin/usuarios');
     renderEmpleados(usuarios);

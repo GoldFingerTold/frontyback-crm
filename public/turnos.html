@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CRM FrontyBack — Turnos</title>
+<title data-i18n="pagina.titulo">CRM FrontyBack — Turnos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -60,14 +60,14 @@
           </div>
         </div>
         <nav class="nav-menu">
-          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> Embudo de Ventas</a>
-          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> Estadísticas</a>
-          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> Plano de salón</a>
-          <a href="/turnos.html" class="nav-item active"><i class="fa-solid fa-calendar-check"></i> Turnos</a>
-          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> Catálogo</a>
-          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> Fidelidad</a>
+          <a href="/tablero.html" class="nav-item"><i class="fa-solid fa-diagram-project"></i> <span data-i18n="nav.embudo">Embudo de Ventas</span></a>
+          <a href="/estadisticas.html" class="nav-item" id="nav-estadisticas" hidden><i class="fa-solid fa-chart-column"></i> <span data-i18n="nav.estadisticas">Estadísticas</span></a>
+          <a href="/salon.html" class="nav-item" id="nav-salon" hidden><i class="fa-solid fa-chair"></i> <span data-i18n="nav.salon">Plano de salón</span></a>
+          <a href="/turnos.html" class="nav-item active"><i class="fa-solid fa-calendar-check"></i> <span data-i18n="nav.turnos">Turnos</span></a>
+          <a href="/catalogo.html" class="nav-item"><i class="fa-solid fa-book-open"></i> <span data-i18n="nav.catalogo">Catálogo</span></a>
+          <a href="/fidelidad.html" class="nav-item"><i class="fa-solid fa-stamp"></i> <span data-i18n="nav.fidelidad">Fidelidad</span></a>
           <button type="button" id="nav-empleados" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font-family: inherit;" hidden>
-            <i class="fa-solid fa-users"></i> Empleados
+            <i class="fa-solid fa-users"></i> <span data-i18n="nav.empleados">Empleados</span>
           </button>
         </nav>
       </div>
@@ -81,7 +81,7 @@
             <span id="user-rol" style="display: block; font-size: 11px; color: var(--text-muted);"></span>
           </div>
         </div>
-        <button id="logout-btn" class="btn-ghost" title="Salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        <button id="logout-btn" class="btn-ghost" title="Salir" data-i18n-title="comun.salir"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
     </aside>
 
@@ -89,7 +89,7 @@
       <header>
         <div class="search-bar" style="visibility: hidden;"></div>
         <div class="header-actions">
-          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir">
+          <button class="notif-btn mobile-only" id="logout-btn-mobile" title="Salir" data-i18n-title="comun.salir">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -97,19 +97,19 @@
 
       <main class="tn-main">
         <div class="tn-titulo-row">
-          <h1 class="tn-titulo">Turnos</h1>
+          <h1 class="tn-titulo" data-i18n="turnos.titulo">Turnos</h1>
           <div class="tn-acciones">
-            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> Copiar link de reservas</button>
-            <button type="button" id="btn-servicios" class="btn-ghost" hidden><i class="fa-solid fa-list"></i> Servicios</button>
-            <button type="button" id="btn-recordatorios" class="btn-ghost" hidden><i class="fa-solid fa-bell"></i> Recordatorios</button>
-            <button type="button" id="btn-google-calendar" class="btn-ghost" hidden><i class="fa-brands fa-google"></i> <span id="google-calendar-texto">Conectar Google Calendar</span></button>
-            <button type="button" id="btn-disponibilidad" class="btn-ghost" hidden><i class="fa-solid fa-clock"></i> Disponibilidad</button>
-            <button type="button" id="btn-profesionales" class="btn-ghost" hidden><i class="fa-solid fa-user-tie"></i> Profesionales</button>
-            <button type="button" id="btn-sena" class="btn btn-primary" hidden><i class="fa-solid fa-dollar-sign"></i> Seña</button>
+            <button type="button" id="btn-copiar-link" class="btn-ghost"><i class="fa-solid fa-link"></i> <span data-i18n="turnos.copiar_link">Copiar link de reservas</span></button>
+            <button type="button" id="btn-servicios" class="btn-ghost" hidden><i class="fa-solid fa-list"></i> <span data-i18n="turnos.servicios">Servicios</span></button>
+            <button type="button" id="btn-recordatorios" class="btn-ghost" hidden><i class="fa-solid fa-bell"></i> <span data-i18n="turnos.recordatorios">Recordatorios</span></button>
+            <button type="button" id="btn-google-calendar" class="btn-ghost" hidden><i class="fa-brands fa-google"></i> <span id="google-calendar-texto" data-i18n="turnos.google_conectar">Conectar Google Calendar</span></button>
+            <button type="button" id="btn-disponibilidad" class="btn-ghost" hidden><i class="fa-solid fa-clock"></i> <span data-i18n="turnos.disponibilidad">Disponibilidad</span></button>
+            <button type="button" id="btn-profesionales" class="btn-ghost" hidden><i class="fa-solid fa-user-tie"></i> <span data-i18n="turnos.profesionales">Profesionales</span></button>
+            <button type="button" id="btn-sena" class="btn btn-primary" hidden><i class="fa-solid fa-dollar-sign"></i> <span data-i18n="turnos.sena">Seña</span></button>
           </div>
         </div>
 
-        <div id="tn-lista"><p class="loading">Cargando...</p></div>
+        <div id="tn-lista"><p class="loading" data-i18n="comun.cargando">Cargando...</p></div>
       </main>
     </div>
   </div>
@@ -118,11 +118,11 @@
   <div id="servicios-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 460px;">
       <button id="servicios-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Servicios</h2>
-      <p class="ficha-contacto" style="margin-bottom: 16px;">Lo que tus clientes pueden reservar, con la duración de cada uno.</p>
+      <h2 data-i18n="turnos.servicios">Servicios</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;" data-i18n="turnos.serv_hint">Lo que tus clientes pueden reservar, con la duración de cada uno.</p>
       <div id="servicios-lista"></div>
-      <button type="button" id="servicio-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar servicio</button>
-      <button type="button" id="servicios-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
+      <button type="button" id="servicio-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> <span data-i18n="turnos.serv_agregar">Agregar servicio</span></button>
+      <button type="button" id="servicios-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="servicios-status"></p>
     </div>
   </div>
@@ -131,26 +131,26 @@
   <div id="recordatorios-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 460px;">
       <button id="recordatorios-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Recordatorios</h2>
-      <p class="ficha-contacto" style="margin-bottom: 18px;">Por qué canal avisarle al cliente que su turno quedó confirmado y recordárselo el día antes.</p>
+      <h2 data-i18n="turnos.recordatorios">Recordatorios</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;" data-i18n="turnos.rec_hint">Por qué canal avisarle al cliente que su turno quedó confirmado y recordárselo el día antes.</p>
 
       <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; margin-bottom: 10px; cursor: pointer;">
         <input type="checkbox" id="rec-email" style="margin: 0;">
         <span style="flex: 1;">
-          <strong style="display: block; font-size: 13.5px;">Por email</strong>
-          <span style="font-size: 12px; color: var(--text-muted);">Sin costo. Solo llega si el cliente carga su email al reservar (es opcional para él).</span>
+          <strong style="display: block; font-size: 13.5px;" data-i18n="turnos.rec_email">Por email</strong>
+          <span style="font-size: 12px; color: var(--text-muted);" data-i18n="turnos.rec_email_det">Sin costo. Solo llega si el cliente carga su email al reservar (es opcional para él).</span>
         </span>
       </label>
 
       <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; margin-bottom: 6px; cursor: pointer;">
         <input type="checkbox" id="rec-whatsapp" style="margin: 0;">
         <span style="flex: 1;">
-          <strong style="display: block; font-size: 13.5px;">Por WhatsApp</strong>
-          <span style="font-size: 12px; color: var(--text-muted);">Tiene un costo por mensaje, a cargo del negocio (ver detalle abajo).</span>
+          <strong style="display: block; font-size: 13.5px;" data-i18n="turnos.rec_wa">Por WhatsApp</strong>
+          <span style="font-size: 12px; color: var(--text-muted);" data-i18n="turnos.rec_wa_det">Tiene un costo por mensaje, a cargo del negocio (ver detalle abajo).</span>
         </span>
       </label>
 
-      <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 10px 0 18px; padding: 0 2px;">
+      <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 10px 0 18px; padding: 0 2px;" data-i18n="turnos.rec_meta">
         Meta cobra por los mensajes de WhatsApp que un negocio envía por fuera de las 24
         horas posteriores al último mensaje de un cliente. La confirmación y el recordatorio
         de turno son avisos que el negocio inicia por su cuenta — no una respuesta a algo que
@@ -159,6 +159,10 @@
         este canal viene apagado por defecto: lo activás cuando decidas asumir ese costo.
       </p>
 
+      <!-- Tarifas en ARS/USD de Argentina: solo se muestran en español (ver turnos.js); en
+           otros idiomas va una explicación genérica, porque la tarifa depende del país. -->
+      <p id="rec-tarifa-generica" hidden style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0 0 18px; padding: 0 2px;" data-i18n="turnos.rec_tarifa_generica"></p>
+      <div id="rec-tarifas-ar">
       <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 8px;">Precio de Meta por mensaje en Argentina (categoría Utilidad)</p>
       <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 8px;">
         <thead>
@@ -186,8 +190,9 @@
         trimestre). El tramo resaltado es el que corresponde en la práctica a cualquier
         negocio: el siguiente recién empieza a los 120.000 mensajes mensuales.
       </p>
+      </div>
 
-      <button type="button" id="recordatorios-guardar" class="btn btn-primary" style="width: 100%;">Guardar</button>
+      <button type="button" id="recordatorios-guardar" class="btn btn-primary" style="width: 100%;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="recordatorios-status"></p>
     </div>
   </div>
@@ -196,10 +201,10 @@
   <div id="disponibilidad-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 460px;">
       <button id="disponibilidad-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Disponibilidad semanal</h2>
-      <p class="ficha-contacto" style="margin-bottom: 16px;">Un solo horario para todo el negocio - los turnos se reparten dentro de esta ventana.</p>
+      <h2 data-i18n="turnos.disp_titulo">Disponibilidad semanal</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;" data-i18n="turnos.disp_hint">Un solo horario para todo el negocio - los turnos se reparten dentro de esta ventana.</p>
       <div id="disponibilidad-lista"></div>
-      <button type="button" id="disponibilidad-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
+      <button type="button" id="disponibilidad-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="disponibilidad-status"></p>
     </div>
   </div>
@@ -208,11 +213,11 @@
   <div id="profesionales-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 520px;">
       <button id="profesionales-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Profesionales</h2>
-      <p class="ficha-contacto" style="margin-bottom: 16px;">Si tu negocio tiene varias personas atendiendo (ej. una peluquería con varias peluqueras), agregalas acá con su propio horario - tus clientes van a tener que elegir con quién quieren el turno al reservar, y cada profesional puede tener un turno a la misma hora que otro. Si dejás la lista vacía, se usa un solo horario para todo el negocio (el de "Disponibilidad").</p>
+      <h2 data-i18n="turnos.profesionales">Profesionales</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;" data-i18n="turnos.prof_hint">Si tu negocio tiene varias personas atendiendo (ej. una peluquería con varias peluqueras), agregalas acá con su propio horario - tus clientes van a tener que elegir con quién quieren el turno al reservar, y cada profesional puede tener un turno a la misma hora que otro. Si dejás la lista vacía, se usa un solo horario para todo el negocio (el de "Disponibilidad").</p>
       <div id="profesionales-lista"></div>
-      <button type="button" id="profesional-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> Agregar profesional</button>
-      <button type="button" id="profesionales-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;">Guardar</button>
+      <button type="button" id="profesional-agregar" class="btn-ghost" style="margin-top: 6px;"><i class="fa-solid fa-plus"></i> <span data-i18n="turnos.prof_agregar">Agregar profesional</span></button>
+      <button type="button" id="profesionales-guardar" class="btn btn-primary" style="margin-top: 16px; width: 100%;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="profesionales-status"></p>
     </div>
   </div>
@@ -221,23 +226,23 @@
   <div id="sena-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 460px;">
       <button id="sena-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Seña para confirmar un turno</h2>
-      <p class="ficha-contacto" style="margin-bottom: 16px;">Si la activás, tus clientes van a tener que pagar una seña con Mercado Pago apenas reservan - el turno queda "pendiente" hasta que pagan (tienen 15 minutos) y recién ahí se confirma y te llega el aviso. El dinero entra directo a TU cuenta de Mercado Pago, no a la de FrontyBack.</p>
+      <h2 data-i18n="turnos.sena_titulo">Seña para confirmar un turno</h2>
+      <p class="ficha-contacto" style="margin-bottom: 16px;" data-i18n="turnos.sena_hint">Si la activás, tus clientes van a tener que pagar una seña con Mercado Pago apenas reservan - el turno queda "pendiente" hasta que pagan (tienen 15 minutos) y recién ahí se confirma y te llega el aviso. El dinero entra directo a TU cuenta de Mercado Pago, no a la de FrontyBack.</p>
 
-      <button type="button" id="btn-conectar-mp" class="btn-ghost" style="width: 100%; margin-bottom: 14px;"><i class="fa-solid fa-wallet"></i> <span id="mp-conectar-texto">Conectar Mercado Pago</span></button>
+      <button type="button" id="btn-conectar-mp" class="btn-ghost" style="width: 100%; margin-bottom: 14px;"><i class="fa-solid fa-wallet"></i> <span id="mp-conectar-texto" data-i18n="turnos.mp_conectar">Conectar Mercado Pago</span></button>
 
       <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; margin-bottom: 14px; cursor: pointer;">
         <input type="checkbox" id="sena-activa" style="margin: 0;">
         <span style="flex: 1;">
-          <strong style="display: block; font-size: 13.5px;">Pedir seña al reservar</strong>
-          <span style="font-size: 12px; color: var(--text-muted);">Requiere tener Mercado Pago conectado (arriba).</span>
+          <strong style="display: block; font-size: 13.5px;" data-i18n="turnos.sena_pedir">Pedir seña al reservar</strong>
+          <span style="font-size: 12px; color: var(--text-muted);" data-i18n="turnos.sena_pedir_det">Requiere tener Mercado Pago conectado (arriba).</span>
         </span>
       </label>
 
-      <label for="sena-monto" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 6px;">Monto de la seña (ARS)</label>
-      <input type="text" inputmode="numeric" id="sena-monto" placeholder="ej: 5000" style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; box-sizing: border-box; margin-bottom: 16px;">
+      <label for="sena-monto" style="display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: 0 0 6px;" data-i18n="turnos.sena_monto">Monto de la seña (ARS)</label>
+      <input type="text" inputmode="numeric" id="sena-monto" placeholder="ej: 5000" data-i18n-placeholder="turnos.sena_monto_ph"style="width: 100%; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-primary); font-size: 0.88rem; box-sizing: border-box; margin-bottom: 16px;">
 
-      <button type="button" id="sena-guardar" class="btn btn-primary" style="width: 100%;">Guardar</button>
+      <button type="button" id="sena-guardar" class="btn btn-primary" style="width: 100%;" data-i18n="comun.guardar">Guardar</button>
       <p class="form-status" id="sena-status"></p>
     </div>
   </div>
@@ -246,32 +251,33 @@
   <div id="empleados-overlay" class="overlay" hidden>
     <div class="ficha-detail" style="max-width: 480px;">
       <button id="empleados-close" class="ficha-close"><i class="fa-solid fa-xmark"></i></button>
-      <h2>Empleados</h2>
-      <p class="ficha-contacto" style="margin-bottom: 18px;">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
+      <h2 data-i18n="nav.empleados">Empleados</h2>
+      <p class="ficha-contacto" style="margin-bottom: 18px;" data-i18n="turnos.emp_hint">Cada empleado ve solo las fichas del departamento que le asignes. Vos (Gerencia) seguís viendo todo.</p>
       <div id="empleados-lista" class="sa-columnas-lista"></div>
       <form id="empleado-nuevo-form" class="sa-form" style="max-width: none; margin-top: 16px;">
         <div>
-          <label for="emp-nombre">Nombre</label>
+          <label for="emp-nombre" data-i18n="turnos.emp_nombre">Nombre</label>
           <input type="text" id="emp-nombre" required>
         </div>
         <div>
-          <label for="emp-usuario">Usuario (para el login)</label>
+          <label for="emp-usuario" data-i18n="turnos.emp_usuario">Usuario (para el login)</label>
           <input type="text" id="emp-usuario" required>
         </div>
         <div>
-          <label for="emp-password">Contraseña</label>
-          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" required>
+          <label for="emp-password" data-i18n="turnos.emp_password">Contraseña</label>
+          <input type="text" id="emp-password" placeholder="mínimo 8 caracteres" data-i18n-placeholder="turnos.emp_password_ph" required>
         </div>
         <div>
-          <label for="emp-departamento">Departamento</label>
+          <label for="emp-departamento" data-i18n="turnos.emp_departamento">Departamento</label>
           <select id="emp-departamento" required></select>
         </div>
-        <button type="submit" class="btn btn-primary">Agregar empleado</button>
+        <button type="submit" class="btn btn-primary" data-i18n="turnos.emp_agregar">Agregar empleado</button>
       </form>
       <p class="form-status" id="empleado-status"></p>
     </div>
   </div>
 
+  <script src="/js/panel-i18n.js" data-paginas="comun,turnos"></script>
   <script src="/js/turnos.js"></script>
 </body>
 </html>

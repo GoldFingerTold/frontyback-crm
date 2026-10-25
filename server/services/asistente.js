@@ -49,12 +49,21 @@ PLANES: Esencial, Profesional, Premium y Elite, de menor a mayor precio e incluy
 todo lo del anterior más algo extra (más cuentas de WhatsApp, audio, estadísticas, plano de
 salón). Si preguntan el precio exacto de algo, derivalos a FrontyBack por WhatsApp.`;
 
-async function responder(pregunta, historial = []) {
+// El prompt base está escrito en español y dice "respondé en español" - para los otros
+// idiomas del panel se agrega una línea al final que pisa esa regla (el conocimiento del
+// CRM no cambia, solo el idioma de la respuesta).
+const INSTRUCCION_IDIOMA = {
+  en: 'IMPORTANT: ignore the earlier rule about answering in Spanish. Reply ALWAYS in English, with the same friendly, direct tone. Keep the FrontyBack WhatsApp link (wa.me/5491162195243) as is when you refer people to support.',
+  pt: 'IMPORTANTE: ignore a regra anterior de responder em espanhol. Responda SEMPRE em português do Brasil, com o mesmo tom próximo e direto. Mantenha o link do WhatsApp da FrontyBack (wa.me/5491162195243) como está quando indicar o suporte.'
+};
+
+async function responder(pregunta, historial = [], idioma = 'es') {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('Falta OPENAI_API_KEY en el .env.');
 
+  const instruccionIdioma = INSTRUCCION_IDIOMA[idioma];
   const mensajes = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: instruccionIdioma ? `${SYSTEM_PROMPT}\n\n${instruccionIdioma}` : SYSTEM_PROMPT },
     ...historial.slice(-6), // últimos turnos, para no mandar un prompt enorme en charlas largas
     { role: 'user', content: pregunta }
   ];

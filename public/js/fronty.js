@@ -66,6 +66,24 @@
 
   const historial = [];
 
+  // Textos propios del widget: carga su diccionario (fronty.<idioma>.json) sin depender de
+  // data-paginas, así funciona igual en cualquier pantalla que lo incluya. Si el idioma no
+  // tiene el texto, cae al español y después a la clave. Sincrónico, igual que panel-i18n.js.
+  const idioma = (window.PanelI18n && window.PanelI18n.idioma) || 'es';
+  function cargarDiccionario(lang) {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', `/i18n/panel/fronty.${lang}.json`, false);
+      xhr.send();
+      return xhr.status === 200 ? JSON.parse(xhr.responseText) : {};
+    } catch {
+      return {};
+    }
+  }
+  const dicEs = cargarDiccionario('es');
+  const dic = idioma === 'es' ? dicEs : cargarDiccionario(idioma);
+  const tf = (clave) => dic[clave] ?? dicEs[clave] ?? clave;
+
   function init() {
     const style = document.createElement('style');
     style.textContent = ESTILOS;
@@ -74,7 +92,7 @@
     const btn = document.createElement('button');
     btn.id = 'fronty-btn';
     btn.type = 'button';
-    btn.title = 'Preguntale a Fronty';
+    btn.title = tf('fronty.boton_title');
     btn.innerHTML = AVATAR_HTML;
     document.body.appendChild(btn);
 
@@ -85,13 +103,13 @@
         <div class="fh-avatar">${AVATAR_HTML}</div>
         <div class="fh-texto">
           <div class="fh-nombre">Fronty</div>
-          <div class="fh-sub">Te ayuda a conectarte y resolver dudas</div>
+          <div class="fh-sub">${tf('fronty.sub')}</div>
         </div>
         <button type="button" id="fronty-close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div id="fronty-msgs"></div>
       <form id="fronty-form">
-        <input type="text" id="fronty-input" placeholder="Escribí tu duda..." maxlength="500" autocomplete="off">
+        <input type="text" id="fronty-input" placeholder="${tf('fronty.placeholder')}" maxlength="500" autocomplete="off">
         <button type="submit" id="fronty-send"><i class="fa-solid fa-paper-plane"></i></button>
       </form>
     `;
@@ -112,7 +130,7 @@
     btn.addEventListener('click', () => {
       panel.classList.toggle('abierto');
       if (panel.classList.contains('abierto') && !saludoMostrado) {
-        agregarMensaje('¡Hola! Soy Fronty. Preguntame cómo conectar tu WhatsApp o cualquier duda del CRM.', 'bot');
+        agregarMensaje(tf('fronty.saludo'), 'bot');
         saludoMostrado = true;
       }
     });
@@ -128,17 +146,17 @@
       input.value = '';
       const sendBtn = document.getElementById('fronty-send');
       sendBtn.disabled = true;
-      const cargando = agregarMensaje('Pensando...', 'bot cargando');
+      const cargando = agregarMensaje(tf('fronty.pensando'), 'bot cargando');
 
       try {
         const res = await fetch('/api/public/asistente', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pregunta, historial })
+          body: JSON.stringify({ pregunta, historial, idioma })
         });
         const data = await res.json();
         cargando.remove();
-        if (!res.ok) throw new Error(data.error || 'No se pudo responder.');
+        if (!res.ok) throw new Error(data.error || tf('fronty.error_respuesta'));
         agregarMensaje(data.respuesta, 'bot');
         historial.push({ role: 'user', content: pregunta }, { role: 'assistant', content: data.respuesta });
       } catch (err) {
