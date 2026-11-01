@@ -122,7 +122,18 @@ const parseFormBody = express.json({ limit: '15kb' });
 // Como máximo 5 consultas cada 15 min por IP+cliente (una persona real jamás manda más
 // que eso), y un tope más laxo por IP sola para que no se pueda rotar de cliente en
 // cliente con la misma IP para esquivar el límite anterior.
+// Los servicios propios de FrontyBack (p.ej. el Auditor) pegan acá con una clave interna: no
+// se les aplica el límite anti-spam (llegan todos desde la IP del servidor) ni se manda la
+// autorespuesta (ellos ya le escriben al contacto por su cuenta).
+function esLlamadaInterna(req) {
+  const clave = process.env.FORM_INTERNO_KEY;
+  const recibida = String(req.get('x-interno') || '');
+  if (!clave || clave.length < 20 || recibida.length !== clave.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(recibida), Buffer.from(clave));
+}
+
 const formLimiterPorCliente = rateLimit({
+  skip: esLlamadaInterna,
   windowMs: 15 * 60 * 1000,
   max: 5,
   standardHeaders: true,
@@ -131,6 +142,7 @@ const formLimiterPorCliente = rateLimit({
   message: { error: 'Demasiadas consultas seguidas. Probá de nuevo en un rato.' }
 });
 const formLimiterGlobal = rateLimit({
+  skip: esLlamadaInterna,
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
@@ -185,7 +197,7 @@ router.post(
     // En período de gracia (vencido, pero todavía dentro de los 7 días) seguimos
     // guardando la ficha para no perder el lead, pero no mandamos la respuesta automática -
     // esa es la parte del servicio que se corta primero.
-    if (db.estadoPermiteRespuesta(cliente.estado_pago)) {
+    if (!esLlamadaInterna(req) && db.estadoPermiteRespuesta(cliente.estado_pago)) {
       try {
         const enviado = await email.enviarAutorespuesta({
           nombreCliente: cliente.nombre,
