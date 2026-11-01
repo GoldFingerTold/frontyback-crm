@@ -8,12 +8,22 @@
   "comun.error_red": "Error de red",
   "comun.error_guardar": "No se pudo guardar: {mensaje}",
   "comun.error_con_mensaje": "Error: {mensaje}",
-
   "nav.embudo": "Embudo de Ventas",
   "nav.estadisticas": "Estadísticas",
   "nav.salon": "Plano de salón",
   "nav.turnos": "Turnos",
   "nav.catalogo": "Catálogo",
   "nav.fidelidad": "Fidelidad",
-  "nav.empleados": "Empleados"
+  "nav.empleados": "Empleados",
+  "negocio.titulo": "Negocio",
+  "negocio.agregar": "+ Agregar negocio",
+  "negocio.nuevo_titulo": "Nuevo negocio o emprendimiento",
+  "negocio.nombre": "Nombre del negocio",
+  "negocio.nombre_ej": "Ej: Wye Eventos",
+  "negocio.slug": "Dirección (sin espacios)",
+  "negocio.slug_ej": "ej: wye-eventos",
+  "negocio.slug_ayuda": "Es la que se usa en los links de reservas, catálogo y fidelidad de este negocio. No se puede cambiar después.",
+  "negocio.crear": "Crear negocio",
+  "negocio.cupo": "Tu plan incluye hasta {max} negocios.",
+  "negocio.error": "No se pudo completar: {mensaje}"
 }

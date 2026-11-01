@@ -8,12 +8,22 @@
   "comun.error_red": "Erro de rede",
   "comun.error_guardar": "Não foi possível salvar: {mensaje}",
   "comun.error_con_mensaje": "Erro: {mensaje}",
-
   "nav.embudo": "Funil de vendas",
   "nav.estadisticas": "Estatísticas",
   "nav.salon": "Planta do salão",
   "nav.turnos": "Agendamentos",
   "nav.catalogo": "Catálogo",
   "nav.fidelidad": "Fidelidade",
-  "nav.empleados": "Funcionários"
+  "nav.empleados": "Funcionários",
+  "negocio.titulo": "Negócio",
+  "negocio.agregar": "+ Adicionar negócio",
+  "negocio.nuevo_titulo": "Novo negócio",
+  "negocio.nombre": "Nome do negócio",
+  "negocio.nombre_ej": "Ex: Wye Eventos",
+  "negocio.slug": "Endereço (sem espaços)",
+  "negocio.slug_ej": "ex: wye-eventos",
+  "negocio.slug_ayuda": "É usado nos links de reservas, catálogo e fidelidade deste negócio. Não pode ser alterado depois.",
+  "negocio.crear": "Criar negócio",
+  "negocio.cupo": "Seu plano inclui até {max} negócios.",
+  "negocio.error": "Não foi possível concluir: {mensaje}"
 }

@@ -415,3 +415,14 @@ Hay un sistema de memoria persistente aparte (archivos locales en esta compu,
 de negocio que NO viaja a otra máquina. Si Claude arranca en una compu nueva sin
 esa memoria, este archivo + el código + preguntarle a Hugo alcanza para retomar
 sin perder nada importante.
+
+## Varios negocios en una misma cuenta Elite (1/11/2026, SIN DESPLEGAR todavía)
+
+- Un cliente `clientes` = un negocio (tablero, WhatsApp, turnos, catálogo, fidelidad, formulario propios). El plan Elite ahora incluye `max_negocios: 3`: el principal + hasta 2 más, creados desde el selector del panel (menú lateral, debajo del logo).
+- Cada negocio extra es un cliente más con `grupo_id` = _id del principal (el principal no tiene `grupo_id`) y `origen: "grupo"`, `precio_pactado: 0`. No tiene usuario propio: se entra con la sesión de Gerencia del principal (`session.principalId`, que se fija en el login solo si el usuario no es de departamento y el cliente no tiene `grupo_id`). Sesiones abiertas antes del deploy no lo tienen: hay que volver a entrar para ver el selector.
+- Endpoints en `server/routes/auth.js`: `GET /api/auth/negocios`, `POST /api/auth/negocios/cambiar`, `POST /api/auth/negocios`. Cambiar de negocio = reescribir `clienteId/clienteSlug/rol` en la sesión (todo el CRM depende de `session.clienteId`), tras verificar que el id pertenece al grupo del principal.
+- Plan y `estado_pago` del principal se COPIAN a los negocios con `db.sincronizarNegociosDelGrupo()` (al activar/cortar por pago, al editar plan/estado en super-admin y cada hora en `ciclo-pagos`). No se copian `prueba_termina`/`gracia_termina` a propósito: los avisos de vencimiento le llegan una sola vez, al principal.
+- El tope mensual de audios (costo de FrontyBack) se cuenta entre TODOS los negocios de la cuenta (`contarUsoAudioEsteMes` suma el grupo); los mensajes de turnos los paga cada negocio en Meta, no cambia.
+- Super-admin: no deja borrar un cliente que tiene negocios agregados (hay que borrar esos primero).
+- Frontend: `public/js/negocios.js` (incluido en tablero, turnos, catálogo, fidelidad, estadísticas y salón) + textos `negocio.*` en `i18n/panel/comun.{es,en,pt}.json`.
+- Probado con una base MongoDB temporal en memoria (30 verificaciones: aislamiento de datos, tope de 3, otra cuenta no entra, empleado no puede cambiar, sincronización de plan/estado, audios compartidos).

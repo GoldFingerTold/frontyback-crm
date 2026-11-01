@@ -117,10 +117,13 @@ const PLANES_DEFAULT = [
     precio_ars_anual: 600000,
     precio_usd_ref_anual: 400,
     max_whatsapp: 20,
+    // Cuántos negocios o emprendimientos caben en una misma cuenta (el principal + los que
+    // se agregan desde el selector del panel). Los demás planes son de un solo negocio.
+    max_negocios: 3,
     limite_turnos_mensajes_mes: 600,
     limite_audios_mes: 600,
-    descripcion: 'Todo lo del plan Premium, más el Plano de salón: organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo.',
-    features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
+    descripcion: 'Todo lo del plan Premium, más el Plano de salón (organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo) y hasta 3 negocios o emprendimientos en una misma cuenta.',
+    features: ['Todo lo del plan Premium', 'Hasta 3 negocios o emprendimientos en una misma cuenta, cada uno con su propio tablero y WhatsApp', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos']
   }
 ];
 
@@ -223,6 +226,21 @@ async function sembrarPlanes() {
     { id: 'elite', features: ['Todo lo del plan Premium', 'Hasta 600 consultas por mes', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos'] },
     { $set: { features: PLANES_DEFAULT[3].features } }
   );
+  // Varios negocios en una misma cuenta: Elite pasa a incluir hasta 3. Se agrega el tope y el
+  // texto nuevo solo si el plan todavía tiene el texto anterior exacto, para no pisar nada que
+  // Hugo ya haya ajustado a mano desde el super-admin.
+  await col.updateOne(
+    { id: 'elite', max_negocios: { $exists: false } },
+    { $set: { max_negocios: PLANES_DEFAULT[3].max_negocios } }
+  );
+  await col.updateOne(
+    { id: 'elite', features: ['Todo lo del plan Premium', 'Plano de salón interactivo (mesas y estado en vivo)', 'Forma del salón editable, a medida de tu local', 'Pensado para gastronomía y organización de eventos'] },
+    { $set: { features: PLANES_DEFAULT[3].features } }
+  );
+  await col.updateOne(
+    { id: 'elite', descripcion: 'Todo lo del plan Premium, más el Plano de salón: organizá las mesas, armá el salón a la forma de tu local y marcá el estado en vivo.' },
+    { $set: { descripcion: PLANES_DEFAULT[3].descripcion } }
+  );
 }
 
 async function getPlanes() {
@@ -324,6 +342,7 @@ async function activarPorPago(clienteId, { preapprovalId } = {}) {
   const set = { estado_pago: 'activo', prueba_termina: null, gracia_termina: null };
   if (preapprovalId) set.mercadopago_preapproval_id = preapprovalId;
   await getDb().collection('clientes').updateOne({ _id: clienteId }, { $set: set });
+  await sincronizarNegociosDelGrupo(clienteId);
 }
 
 // Lo llama el webhook de Mercado Pago cuando Mercado Pago cancela la suscripción porque no
@@ -335,6 +354,7 @@ async function cortarPorFaltaDePago(clienteId) {
     { _id: clienteId, estado_pago: { $ne: 'vencido_cortado' } },
     { $set: { estado_pago: 'vencido_gracia', gracia_termina } }
   );
+  await sincronizarNegociosDelGrupo(clienteId);
 }
 
 // Columnas por defecto del tablero de un cliente nuevo - se pueden editar después desde
@@ -438,6 +458,98 @@ async function crearCliente({
   return { _id: insertedId, ...doc };
 }
 
+// ---------- Varios negocios en una misma cuenta (plan Elite) ----------
+// Cada negocio extra es un cliente más, con su propio tablero, WhatsApp, turnos, catálogo y
+// formulario - nada de eso se mezcla. Lo único que los une es `grupo_id`, que apunta al cliente
+// principal (el que contrata y paga el plan). El principal no tiene `grupo_id`. El plan y el
+// estado de pago del principal se copian a los demás (ver sincronizarNegociosDelGrupo), y el
+// tope mensual de audios se cuenta entre todos juntos para no multiplicar el costo del plan.
+function principalIdDe(cliente) {
+  return cliente.grupo_id || cliente._id;
+}
+
+// Ids del principal y de todos sus negocios (el principal siempre va primero).
+async function idsDelGrupo(clienteId) {
+  const id = normalizarClienteId(clienteId);
+  const cliente = await getDb().collection('clientes').findOne({ _id: id }, { projection: { grupo_id: 1 } });
+  const principalId = cliente?.grupo_id || id;
+  const hijos = await getDb().collection('clientes').find({ grupo_id: principalId }, { projection: { _id: 1 } }).toArray();
+  return [principalId, ...hijos.map((h) => h._id)];
+}
+
+async function maxNegociosDeCliente(cliente) {
+  if (!cliente.plan) return 1;
+  const planes = await getPlanes();
+  return planes[cliente.plan]?.max_negocios ?? 1;
+}
+
+// Principal + negocios agregados, en orden de creación.
+async function listarNegociosDelGrupo(principalId) {
+  const id = normalizarClienteId(principalId);
+  return getDb().collection('clientes')
+    .find({ $or: [{ _id: id }, { grupo_id: id }] })
+    .project({ nombre: 1, slug: 1, grupo_id: 1, created_at: 1 })
+    .sort({ created_at: 1 })
+    .toArray();
+}
+
+const SLUG_NEGOCIO_RE = /^[a-z0-9][a-z0-9-]{2,39}$/;
+
+// Crea un negocio nuevo dentro del grupo de `principal`. No crea usuario: se entra a él desde
+// el selector del panel con la sesión del principal (los empleados de ese negocio sí tienen
+// usuario propio, como siempre, y los crea Gerencia desde el tablero).
+async function crearNegocioDelGrupo(principal, { nombre, slug }) {
+  const slugLimpio = String(slug || '').trim().toLowerCase();
+  const nombreLimpio = String(nombre || '').trim().slice(0, 80);
+  if (!nombreLimpio) throw new Error('Falta el nombre del negocio.');
+  if (!SLUG_NEGOCIO_RE.test(slugLimpio)) {
+    throw new Error('La dirección debe tener entre 3 y 40 letras minúsculas, números o guiones.');
+  }
+  if (await getDb().collection('clientes').findOne({ slug: slugLimpio }, { projection: { _id: 1 } })) {
+    throw new Error('Esa dirección ya está en uso. Probá con otra.');
+  }
+  const ahora = new Date();
+  const doc = {
+    slug: slugLimpio,
+    nombre: nombreLimpio,
+    grupo_id: principal._id,
+    email_notificacion: principal.email_notificacion || '',
+    whatsapp_numeros: [],
+    columnas: columnasDefault(principal.idioma || 'es'),
+    plan: principal.plan,
+    precio_pactado: 0,
+    frecuencia_pago: principal.frecuencia_pago || 'mensual',
+    origen: 'grupo',
+    codigo_referido: null,
+    descuento_pct_aplicado: 0,
+    comision_pct_aplicada: 0,
+    limite_audios_mes: null,
+    avisos_lead_email: true,
+    pasarela_pago: principal.pasarela_pago || 'mercado_pago',
+    hotmart_data: null,
+    idioma: principal.idioma || 'es',
+    consentimiento: null,
+    estado_pago: principal.estado_pago,
+    prueba_termina: null,
+    created_at: ahora
+  };
+  const { insertedId } = await getDb().collection('clientes').insertOne(doc);
+  return { _id: insertedId, ...doc };
+}
+
+// Copia el plan y el estado de pago del principal a sus negocios. No copia las fechas de
+// prueba/gracia a propósito: así los avisos de vencimiento (que se mandan por cliente) le llegan
+// una sola vez, al principal. Sin argumento, repasa todos los grupos (lo usa el ciclo de pagos).
+async function sincronizarNegociosDelGrupo(principalId = null) {
+  const col = getDb().collection('clientes');
+  const ids = principalId ? [normalizarClienteId(principalId)] : await col.distinct('grupo_id', { grupo_id: { $exists: true } });
+  if (!ids.length) return;
+  const principales = await col.find({ _id: { $in: ids } }, { projection: { plan: 1, estado_pago: 1 } }).toArray();
+  for (const p of principales) {
+    await col.updateMany({ grupo_id: p._id }, { $set: { plan: p.plan, estado_pago: p.estado_pago } });
+  }
+}
+
 // Cuenta cuántos audios de WhatsApp ya se transcribieron este mes para un cliente -
 // contador aparte de "fichas" porque una misma persona que manda varios audios no genera
 // una ficha nueva por cada uno (se deduplican por contacto), así que contar fichas
@@ -446,9 +558,12 @@ function mesActual() {
   return new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 }
 
+// Cuenta el uso de todos los negocios de la misma cuenta juntos (si el cliente no tiene
+// negocios extra, es solo el suyo): el tope del plan es por cuenta, no por negocio.
 async function contarUsoAudioEsteMes(clienteId) {
-  const doc = await getDb().collection('uso_audio_mensual').findOne({ cliente_id: clienteId, mes: mesActual() });
-  return doc?.cantidad || 0;
+  const ids = await idsDelGrupo(clienteId);
+  const docs = await getDb().collection('uso_audio_mensual').find({ cliente_id: { $in: ids }, mes: mesActual() }).toArray();
+  return docs.reduce((suma, d) => suma + (d.cantidad || 0), 0);
 }
 
 async function registrarUsoAudio(clienteId) {
@@ -1258,6 +1373,12 @@ module.exports = {
   getDb,
   ObjectId,
   crearCliente,
+  principalIdDe,
+  idsDelGrupo,
+  maxNegociosDeCliente,
+  listarNegociosDelGrupo,
+  crearNegocioDelGrupo,
+  sincronizarNegociosDelGrupo,
   COLUMNAS_DEFAULT,
   columnasDefault,
   getPlanes,

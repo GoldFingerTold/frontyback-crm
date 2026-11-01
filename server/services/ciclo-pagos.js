@@ -85,6 +85,9 @@ async function revisarEstadosPago() {
       `Ciclo de pagos: ${entranEnGracia.length} entraron en período de gracia, ${aCortado.modifiedCount} se cortaron del todo.`
     );
   }
+
+  // Los negocios agregados a una cuenta Elite siguen el estado de pago y el plan del principal.
+  await db.sincronizarNegociosDelGrupo();
 }
 
 function iniciar() {

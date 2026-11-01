@@ -249,6 +249,7 @@ router.put('/clientes/:id/estado-pago', asyncHandler(async (req, res) => {
     { $set: { estado_pago } }
   );
   if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese cliente.' });
+  await db.sincronizarNegociosDelGrupo(req.params.id);
   res.json({ ok: true });
 }));
 
@@ -295,6 +296,7 @@ router.put('/clientes/:id', asyncHandler(async (req, res) => {
 
   const result = await db.getDb().collection('clientes').updateOne({ _id: clienteId }, { $set: set });
   if (result.matchedCount === 0) return res.status(404).json({ error: 'No existe ese cliente.' });
+  if (set.plan !== undefined) await db.sincronizarNegociosDelGrupo(clienteId);
   res.json({ ok: true });
 }));
 
@@ -306,6 +308,9 @@ router.delete('/clientes/:id', asyncHandler(async (req, res) => {
   const mongo = db.getDb();
   const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
   if (!cliente) return res.status(404).json({ error: 'No existe ese cliente.' });
+  if (await mongo.collection('clientes').findOne({ grupo_id: clienteId }, { projection: { _id: 1 } })) {
+    return res.status(400).json({ error: 'Este cliente tiene negocios agregados a su cuenta. Borrá primero esos negocios.' });
+  }
 
   if (cliente.mercadopago_preapproval_id) {
     try {

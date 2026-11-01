@@ -8,12 +8,22 @@
   "comun.error_red": "Network error",
   "comun.error_guardar": "Could not save: {mensaje}",
   "comun.error_con_mensaje": "Error: {mensaje}",
-
   "nav.embudo": "Sales funnel",
   "nav.estadisticas": "Statistics",
   "nav.salon": "Floor plan",
   "nav.turnos": "Appointments",
   "nav.catalogo": "Catalog",
   "nav.fidelidad": "Loyalty",
-  "nav.empleados": "Employees"
+  "nav.empleados": "Employees",
+  "negocio.titulo": "Business",
+  "negocio.agregar": "+ Add business",
+  "negocio.nuevo_titulo": "New business",
+  "negocio.nombre": "Business name",
+  "negocio.nombre_ej": "E.g. Wye Events",
+  "negocio.slug": "Address (no spaces)",
+  "negocio.slug_ej": "e.g. wye-events",
+  "negocio.slug_ayuda": "It is used in this business's booking, catalog and loyalty links. It cannot be changed later.",
+  "negocio.crear": "Create business",
+  "negocio.cupo": "Your plan includes up to {max} businesses.",
+  "negocio.error": "Could not complete: {mensaje}"
 }
