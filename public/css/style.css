@@ -368,12 +368,16 @@ header {
 
 .ficha-notas-aviso { text-transform: none; font-weight: 400; color: var(--text-muted); letter-spacing: normal; }
 .ficha-nota-nueva { display: flex; gap: 8px; margin-top: 14px; }
-.ficha-nota-nueva input {
-  flex: 1; background: var(--bg-surface); border: 1px solid var(--border-subtle);
+.ficha-nota-nueva input,
+.ficha-nota-nueva textarea {
+  flex: 1; min-width: 0; background: var(--bg-surface); border: 1px solid var(--border-subtle);
   border-radius: 9px; padding: 10px 12px; color: var(--text-primary); font-size: 0.85rem; font-family: inherit;
 }
-.ficha-nota-nueva input:focus { outline: none; border-color: rgba(212,175,55,0.4); }
+.ficha-nota-nueva textarea { resize: vertical; min-height: 110px; line-height: 1.45; }
+.ficha-nota-nueva input:focus,
+.ficha-nota-nueva textarea:focus { outline: none; border-color: rgba(212,175,55,0.4); }
 .ficha-nota-nueva button { flex: none; padding: 8px 14px; font-size: 12px; }
+.ficha-nota-nueva textarea + button { align-self: flex-end; }
 
 .etiqueta-chip {
   display: inline-flex; align-items: center; gap: 5px;
