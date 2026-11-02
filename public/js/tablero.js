@@ -32,7 +32,8 @@ const ORIGEN_INFO = {
   whatsapp_texto: { icon: 'fa-brands fa-whatsapp', clave: 'tablero.origen_whatsapp' },
   whatsapp_audio: { icon: 'fa-solid fa-microphone', clave: 'tablero.origen_whatsapp_audio' },
   importado: { icon: 'fa-solid fa-file-csv', clave: 'tablero.origen_importado' },
-  meta_ads: { icon: 'fa-brands fa-meta', clave: 'tablero.origen_meta_ads' }
+  meta_ads: { icon: 'fa-brands fa-meta', clave: 'tablero.origen_meta_ads' },
+  email: { icon: 'fa-regular fa-envelope', clave: 'tablero.origen_email' }
 };
 
 function origenInfo(origen) {
@@ -446,6 +447,29 @@ async function responderWhatsapp(fichaId, textoInput, statusEl) {
   }
 }
 
+async function responderEmail(fichaId, textoInput, statusEl) {
+  const texto = textoInput.value.trim();
+  if (!texto) return;
+  statusEl.textContent = tp('tablero.enviando');
+  statusEl.className = 'ficha-monto-status';
+  try {
+    await api(`/api/admin/fichas/${fichaId}/responder-email`, {
+      method: 'POST',
+      body: JSON.stringify({ texto })
+    });
+    const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
+    if (ficha) {
+      ficha.historial = [...(ficha.historial || []), { tipo: 'respuesta_saliente', canal: 'email', contenido: texto, fecha_hora: new Date().toISOString() }];
+    }
+    textoInput.value = '';
+    statusEl.textContent = '';
+    abrirFicha(fichaId);
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.className = 'ficha-monto-status error';
+  }
+}
+
 function abrirFicha(fichaId) {
   const ficha = ESTADO.fichas.find((f) => f._id === fichaId);
   if (!ficha) return;
@@ -541,6 +565,15 @@ function abrirFicha(fichaId) {
       <p class="ficha-monto-status" id="responder-status"></p>
     ` : ''}
 
+    ${ESTADO.cliente?.puede_responder_email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ficha.contacto || '') ? `
+      <h3>${esc(tp('tablero.responder_email'))}</h3>
+      <div class="ficha-nota-nueva">
+        <textarea id="responder-email-input" rows="4" maxlength="5000" placeholder="${esc(tp('tablero.email_ph'))}"></textarea>
+        <button type="button" class="btn-ghost" id="responder-email-enviar">${esc(tp('tablero.enviar'))}</button>
+      </div>
+      <p class="ficha-monto-status" id="responder-email-status"></p>
+    ` : ''}
+
     <h3>${esc(tp('tablero.historial'))}</h3>
     <div class="historial">${historial || `<p>${esc(tp('tablero.sin_mensajes'))}</p>`}</div>
   `;
@@ -576,6 +609,13 @@ function abrirFicha(fichaId) {
     });
     document.getElementById('responder-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') responderWhatsapp(fichaId, document.getElementById('responder-input'), document.getElementById('responder-status'));
+    });
+  }
+
+  const btnResponderEmail = document.getElementById('responder-email-enviar');
+  if (btnResponderEmail) {
+    btnResponderEmail.addEventListener('click', () => {
+      responderEmail(fichaId, document.getElementById('responder-email-input'), document.getElementById('responder-email-status'));
     });
   }
 

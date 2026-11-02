@@ -13,6 +13,7 @@ const googleCalendar = require('../services/googleCalendar');
 const mercadopagoConnect = require('../services/mercadopagoConnect');
 const fichas = require('../services/fichas');
 const whatsapp = require('../services/whatsapp');
+const correoSaliente = require('../services/correo-saliente');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -123,6 +124,7 @@ router.get('/tablero', asyncHandler(async (req, res) => {
       avisos_lead_email: cliente.avisos_lead_email !== false,
       resumen_semanal_email: cliente.resumen_semanal_email !== false,
       google_review_link: cliente.google_review_link || '',
+      puede_responder_email: correoSaliente.disponiblePara(cliente),
       idioma: ['es', 'en', 'pt'].includes(cliente.idioma) ? cliente.idioma : 'es',
       whatsapp_pago_pendiente: cliente.whatsapp_pago_pendiente === true,
       turnos_mensajes_limite_mes: turnosMensajesLimiteMes,
@@ -407,6 +409,38 @@ router.post('/fichas/:id/responder', asyncHandler(async (req, res) => {
 
   await fichas.registrarRespuesta(ficha._id, { canal: 'whatsapp_texto', texto, manual: true });
   if (viaPlantilla) return res.json({ ok: true, viaPlantilla: true });
+  res.json({ ok: true });
+}));
+
+// Responder por email desde la ficha (fichas que entraron por correo: contacto = email). Sale
+// por la casilla conectada del negocio (services/correo-saliente.js); si la persona contesta,
+// su respuesta vuelve a entrar sola a esta misma ficha.
+router.post('/fichas/:id/responder-email', asyncHandler(async (req, res) => {
+  const mongo = db.getDb();
+  const clienteId = new db.ObjectId(req.session.clienteId);
+  const fichaId = new db.ObjectId(req.params.id);
+  const texto = String(req.body?.texto || '').trim().slice(0, 5000);
+  if (!texto) return res.status(400).json({ error: 'El mensaje no puede estar vacío.' });
+
+  const filtro = { _id: fichaId, cliente_id: clienteId };
+  if (!esGerencia(req)) filtro.departamento = req.session.departamento;
+  const ficha = await mongo.collection('fichas').findOne(filtro);
+  if (!ficha) return res.status(404).json({ error: 'No existe esa ficha.' });
+
+  const cliente = await mongo.collection('clientes').findOne({ _id: clienteId });
+  if (!correoSaliente.disponiblePara(cliente)) {
+    return res.status(400).json({ error: 'Este negocio no tiene una casilla de correo conectada para responder.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ficha.contacto || '')) {
+    return res.status(400).json({ error: 'Esta ficha no tiene un email, no se le puede responder por correo.' });
+  }
+
+  try {
+    await correoSaliente.enviarRespuesta({ ficha, texto, nombreRemitente: cliente.nombre });
+  } catch (err) {
+    return res.status(400).json({ error: `No se pudo mandar el email: ${err.message}` });
+  }
+  await fichas.registrarRespuesta(ficha._id, { canal: 'email', texto, manual: true });
   res.json({ ok: true });
 }));
 
