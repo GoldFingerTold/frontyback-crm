@@ -42,13 +42,26 @@ function esAutomatico(parsed, remitente, propia) {
   return false;
 }
 
+// Quita el texto citado de una respuesta ("El lun, ... escribió:" y las líneas con ">"),
+// pero si no quedara nada conserva el original.
+function sinCita(texto) {
+  const lineas = texto.split('\n');
+  const corte = lineas.findIndex((l, i) =>
+    /^\s*(El|On)\s.+/.test(l) && /(escribi[oó]|wrote)\s*:?\s*$/i.test(lineas.slice(i, i + 3).join(' ')) ||
+    /^\s*>/.test(l) ||
+    /^-{2,}\s*(Mensaje original|Original Message)/i.test(l)
+  );
+  const nuevo = (corte >= 0 ? lineas.slice(0, corte) : lineas).join('\n').trim();
+  return nuevo || texto.trim();
+}
+
 async function procesarMensaje(cliente, parsed, cfg) {
   const de = parsed.from?.value?.[0];
   const remitente = String(de?.address || '').toLowerCase();
   if (esAutomatico(parsed, remitente, cfg.user.toLowerCase())) return false;
 
   const asunto = String(parsed.subject || '(sin asunto)').slice(0, 200);
-  const cuerpo = String(parsed.text || '').replace(/\r/g, '').trim().slice(0, 1800);
+  const cuerpo = sinCita(String(parsed.text || '').replace(/\r/g, '')).slice(0, 1800);
   const mensaje = `Email: ${asunto}${cuerpo ? '\n\n' + cuerpo : ''}`;
   const nombre = String(de?.name || '').slice(0, 120);
 
