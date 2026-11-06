@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /tablero.html
+Disallow: /superadmin.html
+
+Sitemap: https://crm.frontyback.com/sitemap.xml
