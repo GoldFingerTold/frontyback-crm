@@ -616,6 +616,10 @@ async function procesarNotificacionHotmart(body, query, headers = {}) {
     console.warn('Webhook de Hotmart sin evento reconocible, payload completo:', JSON.stringify(body));
     return;
   }
+  if (hotmart.esProductoAjeno(datos.productoId)) {
+    console.log(`Webhook de Hotmart de otro producto (${datos.productoId}, ${datos.evento}) - no es del CRM, ignorado.`);
+    return;
+  }
 
   const mongo = db.getDb();
 

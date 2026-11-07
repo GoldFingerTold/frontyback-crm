@@ -68,6 +68,7 @@ function extraerDatosCompra(body) {
     email: data?.buyer?.email || data?.buyer?.checkout_phone || '',
     nombre: data?.buyer?.name || '',
     pais: data?.buyer?.address?.country_iso || data?.buyer?.address?.country || '',
+    productoId: data?.product?.id != null ? String(data.product.id) : '',
     ofertaCodigo: data?.purchase?.offer?.code || null,
     monto: Number(data?.purchase?.price?.value ?? data?.purchase?.original_offer_price?.value ?? NaN),
     moneda: data?.purchase?.price?.currency_value || data?.currency || '',
@@ -115,4 +116,12 @@ function identificarPlan(datos, planes) {
   return identificarPlanPorMonto(datos.monto, planes);
 }
 
-module.exports = { linksDeCheckout, mapaOfertas, hottokValido, extraerDatosCompra, identificarPlan, identificarPlanPorMonto, inferirIdioma, ORDEN_PLANES_HOTMART };
+// Productos de la misma cuenta de Hotmart que NO son el CRM (el Auditor FrontyBack, id
+// 8908228, cuesta 9 USD y por monto se confundiría con el plan Esencial de 10 USD). Sus
+// avisos se ignoran aunque el webhook del CRM vuelva a quedar en "Todos los productos".
+function esProductoAjeno(productoId) {
+  const ajenos = (process.env.HOTMART_PRODUCTOS_AJENOS || '8908228').split(',').map((x) => x.trim()).filter(Boolean);
+  return Boolean(productoId) && ajenos.includes(String(productoId));
+}
+
+module.exports = { esProductoAjeno, linksDeCheckout, mapaOfertas, hottokValido, extraerDatosCompra, identificarPlan, identificarPlanPorMonto, inferirIdioma, ORDEN_PLANES_HOTMART };
